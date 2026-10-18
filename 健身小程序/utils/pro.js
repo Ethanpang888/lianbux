@@ -133,7 +133,11 @@ function isBodyweight(ex) {
   return NAME_FIX.some(f => f.c === 0 && f.re.test(nm))
 }
 
-/** 估算「8 次重量」：体重 × 相对强度 × 装备修正 */
+/** 估算「8 次重量」：体重 × 相对强度 × 装备修正 × 性别起点（2026-10-18 女性线）
+ *  · 女性推演起点 ×0.60：只作用在「没有任何实测记录」的第一次（lastLogged 实测一旦存在即接管），
+ *    依据=通行的女性相对力量约为男性 55-65%（谭成义体系营养口径本就分性别，此处为训练侧对齐）。
+ *  · 杠铃物理下限 20kg（空杆）：估算 <20 时收拢到空杆，避免出现 17.5kg 这种不存在的杠铃。
+ *  · 女性新手 + 杠铃 + 收拢到空杆 → 提示可换哑铃/器械版（真正的解决路径，见 W8_NOTE）。 */
 function estimateW8(ex, profile) {
   const p = profile || {}
   const bw = Number(p.weight) || 0
@@ -152,7 +156,22 @@ function estimateW8(ex, profile) {
     }
   }
   if (!c) return 0
-  return snap(bw * c, stepOf((ex && ex.equipment) || '杠铃'))
+  if (p.gender === '女') c = c * 0.60
+  let w = snap(bw * c, stepOf((ex && ex.equipment) || '杠铃'))
+  const eq = (ex && ex.equipment) || '杠铃'
+  if (eq === '杠铃' && w > 0 && w < 20) w = 20   // 空杆就是 20kg，17.5kg 不存在
+  return w
+}
+
+/** 女性新手杠铃空杆提示：估算值 = 空杆且用户是女性新手 → 建议动作换哑铃/器械版（在处方卡展示） */
+function barbellNote(ex, profile) {
+  const p = profile || {}
+  if (p.gender !== '女' || p.exp !== '新手') return ''
+  const eq = (ex && ex.equipment) || ''
+  if (eq !== '杠铃') return ''
+  const nm = (ex && ex.name) || ''
+  if (isBodyweight(ex)) return ''
+  return '推不动空杆很正常——换成同部位的哑铃或固定器械版（动作库可搜），重量从能标准完成 8 次的起点开始；练 2-3 周力量上来再回来上杠铃。'
 }
 
 /** 从打卡历史里找这个动作最近一次「有重量且完成」的组（用于反推真实水平） */
@@ -219,7 +238,9 @@ function prescribeOne(ex, profile, history, opts) {
     unit: bw ? '自重' : 'kg',
     perSide: !bw && (ex && ex.equipment) === '哑铃',
     src: bw ? SRC.TUI : a.src,
-    note: bw ? '自重动作，按次数推进（能做满上限再加难度）' : a.note
+    note: bw ? '自重动作，按次数推进（能做满上限再加难度）' : a.note,
+    // 2026-10-18 女性线：女性新手杠铃空杆 → 给「换哑铃/器械版」提示（presc 卡展示）
+    altNote: barbellNote(ex, profile)
   }
 }
 
@@ -504,7 +525,7 @@ function isCoach(user) { return memberOf(user).level === 'coach' }
 module.exports = {
   PRO_VERSION, SRC, COEF, COMPOUND, EQUIP_FIX, STEP, STATES,
   STAPLE, EATOUT, SUPPLEMENT, FALLBACK, DIET_SCHOOLS, LEVELS,
-  parseSets, e1rm, wForReps, snap, isBodyweight, estimateW8, lastLogged, anchorOf,
+  parseSets, e1rm, wForReps, snap, isBodyweight, estimateW8, lastLogged, anchorOf, barbellNote,
   prescribeOne, todayPrescription, roundPlan, cycleTable, stateAdjust, applyState,
   dietPlan, dietSchools, memberOf, isPro, isCoach
 }

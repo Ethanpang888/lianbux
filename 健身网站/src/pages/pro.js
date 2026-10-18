@@ -279,7 +279,7 @@ const PagePro = {
         this.feature('状态不好怎么临时调', '没睡好 −10%、只有 30 分钟只做主项 —— 按规则降量，而不是干脆不练') +
         this.feature('完整饮食计划', '训练日 / 休息日怎么排、练前练后怎么吃、外卖怎么点、补剂与饮水') +
         this.feature('每日计划邮件', '每天 08:00 训练+饮食计划直达邮箱，会员加发「明日预告 + 买菜清单」') +
-  this.feature('18 本功法秘籍', '减脂 / 增肌 / 同步 / 卧推增力 / 部位专项 / 体态矫正 / 居家 / 进阶周期 —— 挑一本，目标和计划当场跟着变') +
+  this.feature('19 本功法秘籍', '减脂 / 增肌 / 同步 / 卧推增力 / 部位专项 / 体态矫正 / 居家 / 进阶周期 —— 挑一本，目标和计划当场跟着变') +
         '<div style="margin-top:12px;padding:10px 12px;border-radius:var(--r-sm);background:var(--green-soft)">' +
           '<div class="muted txs">免费版永远保留：今日课表、打卡与经验、徽章墙、排行榜、训练日志、' +
           '每日饮食目标、分餐克数、1236 种食物库、体重宏观调控、调整顾问。</div>' +
@@ -320,7 +320,7 @@ const PagePro = {
       '每个动作的具体重量 + 逐轮递进',
       '四周周期表与减载安排',
       '完整饮食计划（三套口径，各自标了出处）',
-      '18 本功法秘籍，挑一本换掉你的目标和计划'
+      '19 本功法秘籍，挑一本换掉你的目标和计划'
     ]
     const col = (title, price, per, tag, tagCls, extra) => '<div class="cyc-row' + (tagCls === 'gold' ? ' cur' : '') + '" style="margin-top:8px">' +
       '<div class="cyc-h"><b>' + Fmt.esc(title) + '</b>' +
@@ -360,7 +360,7 @@ const PagePro = {
     const body = t.level === 'plus'
       ? '<div class="muted txs" style="margin-top:8px">一次买断永久用：六周增力处方生成器、疼痛排查库（肘/肩/腰/膝）；' +
         '部位专项包筹备中；AI 顾问上线后<b>免费升级</b>。</div>'
-      : '<div class="muted txs" style="margin-top:8px">每个动作的具体重量、四周周期表与减载、完整饮食（三套口径）、每日计划邮件、18 本功法秘籍。' + Fmt.esc(t.note) + '。</div>'
+      : '<div class="muted txs" style="margin-top:8px">每个动作的具体重量、四周周期表与减载、完整饮食（三套口径）、每日计划邮件、19 本功法秘籍。' + Fmt.esc(t.note) + '。</div>'
     return '<div class="card"><h2>怎么付款 <span class="mini">选档 → 微信付款 → 发码</span></h2>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' + chips + '</div>' +
       '<div style="margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--highlight,#f5f7fa)">' +

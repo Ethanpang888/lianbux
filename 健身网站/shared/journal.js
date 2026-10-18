@@ -91,9 +91,11 @@
     Object.keys(today).forEach(function (name) {
       var t = today[name]
       var bodyweight = (t.weight === 0)              // 自重动作：只比次数
-      if (!bodyweight && t.weight < mini) return      // 小重量哑铃/空杆不报，噪音太多
+      // 2026-10-18 女性线：20kg 门槛只拦「首次记录」（空杆/小哑铃噪音）；
+      // 有历史记录的动作走正常比较 —— 否则女生 2kg→3kg 哑铃永远算不出突破
       var b = best[name]
       if (!b) {
+        if (!bodyweight && t.weight < mini) return    // 小重量哑铃/空杆不报，噪音太多
         if (bodyweight && t.reps < 5) return          // 自重第一次至少 5 次才值得说
         prs.push({ name: name, weight: t.weight, reps: t.reps, prevWeight: 0, prevReps: 0, kind: 'first', delta: 0 })
       } else if (bodyweight) {

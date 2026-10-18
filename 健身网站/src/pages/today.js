@@ -187,8 +187,14 @@ const PageToday = {
         const list = Object.keys(presc).map(k => presc[k])
         const sum = list.reduce((s, x) => s + (x.weight > 0 ? x.weight * x.setsN * x.reps : 0), 0)
         const est = list.filter(x => x.src === '推演').length
+        const altNotes = list.filter(x => x.altNote)
         innerOn = '<div class="muted txs" style="margin-top:10px">动作卡里的「重量 kg」已按你的档案预填 —— <b>觉得轻了/重了，直接在下面清单里改成你实际的</b>，' +
           '打完卡它就记住你，下一轮按实测走、不再估。估算是故意保守的起步值（怕新手被大重量吓到），练一两周就全是你的数了。</div>' +
+          (altNotes.length
+            ? '<div style="margin-top:8px;padding:10px 12px;background:var(--green-soft);border-radius:10px;font-size:12px;line-height:1.7">' +
+              '<b>🧘 女生新手看这里：</b>' + Fmt.esc(altNotes[0].altNote) +
+              (altNotes.length > 1 ? '<br>（同样适用于：' + Fmt.esc(altNotes.slice(1).map(x => x.name).join('、')) + '）' : '') + '</div>'
+            : '') +
           '<div class="muted txs" style="margin-top:6px">计划总容量约 <b>' + Fmt.round(sum / 1000, 1) + ' 吨</b>' +
           (est ? '；其中 ' + est + ' 个动作还是估算起点（标了「推演」）' : '；全部基于你自己的实测记录') + '。</div>' +
           '<button class="btn" style="margin-top:10px" onclick="Router.go(\'pro\')">看完整周期表与饮食计划</button>'
