@@ -1,0 +1,15 @@
+<view class="tip">28 天，每天一个健身干货。点卡片展开看全文。</view>
+<view wx:for="{{list}}" wx:key="day" class="card learn">
+  <view class="lh" bindtap="toggle" data-i="{{index}}">
+    <view>
+      <text class="dayno">Day {{item.day}}</text>
+      <text class="lt">{{item.title}}</text>
+    </view>
+    <text class="muted">{{openIdx===index?'收起':'展开'}}</text>
+  </view>
+  <view wx:if="{{openIdx===index}}" class="lb">
+    <view class="row"><text class="tag">{{item.tag}}</text></view>
+    <view class="lf">{{item.full}}</view>
+    <view wx:if="{{item.action}}" class="btn ghost block" bindtap="goEx" data-name="{{item.action}}">看「{{item.action}}」示范 →</view>
+  </view>
+</view>

@@ -1,0 +1,152 @@
+<view wx:if="{{!profile}}" class="card center-empty">
+  <view style="font-size:60rpx;margin-bottom:20rpx">💪</view>
+  <view class="title">先完善你的资料</view>
+  <view class="muted" style="margin:12rpx 0 30rpx">填一次测评，AI 给你定制 28 天计划</view>
+  <view class="btn block" bindtap="goAssess">开始测评</view>
+</view>
+
+<block wx:else>
+  <!-- 顶栏（网站 homebar 同款）：eyebrow + 大标题 + 头像点 -->
+  <view class="homebar">
+    <view>
+      <view class="eyebrow">练不虚 · 日常修行</view>
+      <view class="homebar-h1">今天，也进步一点。</view>
+    </view>
+    <view class="profile-dot" bindtap="goProfile">{{nickname[0]}}</view>
+  </view>
+
+  <!-- 角色区（网站 hero 同款）：昵称+境界徽记 / Lv 称号 / 修为进度条 / 角色图 / 连续天数 -->
+  <view class="hero">
+    <view class="hero-in">
+      <view class="hero-main">
+        <view class="eyebrow">{{dateLabel}}</view>
+        <view class="hero-who">
+          <b>{{nickname}}</b>
+          <text class="realm-tag">{{culRealm || stageName}}</text>
+        </view>
+        <view class="hero-title" wx:if="{{culLevel}}">Lv.{{culLevel}} · {{culTitle}}</view>
+        <view class="hero-title" wx:else>{{stageName}}</view>
+        <view class="hero-exp" wx:if="{{culLevel}}">
+          <view class="lab"><text>修为</text><text wx:if="{{culMaxed}}">境界已圆满</text><text wx:else>{{culCur}} / {{culSpan}}</text></view>
+          <view class="track"><view class="fill" style="width:{{culMaxed ? 100 : culPct}}%"></view></view>
+        </view>
+        <view class="hero-unlock" wx:if="{{culLevel && !culMaxed}}">再积累 {{culToNext}} 修为，升至 Lv.{{culLevel + 1}}</view>
+        <view class="hero-unlock" wx:elif="{{culLevel && culMaxed}}">继续修炼，记录每一次突破</view>
+      </view>
+      <view class="hero-av">
+        <image src="/assets/characters/{{stageFile}}" mode="aspectFit"/>
+      </view>
+    </view>
+    <view class="hero-footer">
+      <text>连续修炼 <b>{{streak}}</b> 天</text>
+      <text class="text-link" bindtap="go" data-url="/pages/records/records">查看成长 ›</text>
+    </view>
+  </view>
+
+  <!-- 今日训练 -->
+  <view class="card daily-card">
+    <view class="section-label">今日训练</view>
+    <block wx:if="{{isRest}}">
+      <view class="focus-title">今日休息 <text class="tag">恢复日</text></view>
+      <view class="muted txs">散步 / 拉伸 / 筋膜放松，恢复也是训练的一部分。</view>
+      <view class="muted txs" style="margin-top:8rpx">今天不练不扣修为，好好恢复，明天接着来。</view>
+      <view class="btn ghost" style="margin-top:20rpx" bindtap="goToday">看恢复安排</view>
+    </block>
+    <block wx:else>
+      <view class="focus-title">{{todayFocus}}</view>
+      <view class="today-stats">
+        <view><b>{{todayNEx}}</b><text>个动作</text></view>
+        <view><b>{{todayNSets}}</b><text>组</text></view>
+        <view><b>约 {{todayEstMin}}</b><text>分钟</text></view>
+      </view>
+      <view class="btn big" bindtap="goToday">{{doneToday ? '继续训练' : '开始训练'}}</view>
+      <view class="row between" style="margin-top:16rpx">
+        <text class="chip" bindtap="goTab" data-url="/pages/plan/plan">看完整计划</text>
+        <text class="chip" bindtap="go" data-url="/pages/coach/coach">今天没空？调整安排</text>
+      </view>
+    </block>
+  </view>
+
+  <!-- 今日饮食 -->
+  <view class="card daily-card">
+    <view class="section-label">今日饮食</view>
+    <view class="focus-title sm">给身体补充能量</view>
+    <view class="muted txs">目标 {{targetKcal}} kcal · 蛋白 {{targetProtein}}g</view>
+    <view class="muted txs" style="margin-top:8rpx">按时吃饭，也是修炼的一部分。</view>
+    <view class="btn ghost" style="margin-top:20rpx" bindtap="go" data-url="/pages/diet/diet">记一餐 →</view>
+  </view>
+
+  <!-- 今日恢复（网站 recoveryCard 同款：睡眠 chips + 补水） -->
+  <view class="card daily-card">
+    <view class="section-label">今日恢复</view>
+    <view class="focus-title sm">睡够 + 喝够，也算修炼</view>
+    <view class="recovery-row">
+      <text class="rc-lab">昨晚睡眠</text>
+      <text wx:for="{{SLEEP_CHIPS}}" wx:key="*this"
+        class="chip {{sleepHours === item ? 'on' : ''}}"
+        data-h="{{item}}" bindtap="setSleep">{{item}}h</text>
+    </view>
+    <view class="muted txs" style="margin-top:8rpx">{{sleepHours ? (sleepHours >= 7 ? '✓ ' + sleepHours + ' 小时，达标' : sleepHours + ' 小时，7 小时起才有睡够加成') : '点一下就记上'}}</view>
+    <view class="recovery-row" style="margin-top:16rpx">
+      <text class="rc-lab">今天喝水</text>
+      <text class="water-val">{{waterMl}}</text>
+      <text class="muted txs">ml</text>
+      <text class="chip" data-w="250" bindtap="addWater">+250</text>
+      <text class="chip" data-w="500" bindtap="addWater">+500</text>
+      <text class="chip" bindtap="clearWater">清零</text>
+    </view>
+    <view class="muted txs" style="margin-top:8rpx">{{waterMl >= waterTarget ? '✓ 已达标（体重×30ml）' : '目标约 ' + waterTarget + 'ml（体重×30）'}}</view>
+  </view>
+
+  <!-- 双入口（网站 duo-row 同款） -->
+  <view class="duo-row">
+    <view class="duo" bindtap="go" data-url="/pages/ai/ai">
+      <text class="duo-symbol">🧙</text>
+      <b>随身导师</b>
+      <text class="muted txs">遇到问题，随时问</text>
+      <text class="duo-arrow">↗</text>
+    </view>
+    <view class="duo" bindtap="go" data-url="/pages/secret/secret">
+      <text class="duo-symbol">📖</text>
+      <b>藏经阁</b>
+      <text class="muted txs">找到适合你的功法</text>
+      <text class="duo-arrow">↗</text>
+    </view>
+  </view>
+
+  <!-- 快捷入口（小程序保留：动作库/学习网站没有的入口） -->
+  <view class="grid">
+    <view class="gitem" bindtap="goTab" data-url="/pages/plan/plan"><view class="gi">📅</view><text>训练计划</text></view>
+    <view class="gitem" bindtap="go" data-url="/pages/records/records"><view class="gi">📈</view><text>我的记录</text></view>
+    <view class="gitem" bindtap="go" data-url="/subpkgs/exlib/pages/exlib/exlib"><view class="gi">🏋️</view><text>动作库</text></view>
+    <view class="gitem" bindtap="go" data-url="/pages/learn/learn"><view class="gi">📚</view><text>每天学一点</text></view>
+    <view class="gitem" bindtap="go" data-url="/pages/poster/poster?mode=today"><view class="gi">📸</view><text>今日战报</text></view>
+    <view class="gitem" bindtap="go" data-url="/pages/poster/poster?mode=life"><view class="gi">🏆</view><text>修行生涯</text></view>
+  </view>
+
+  <view class="record-link" bindtap="go" data-url="/pages/records/records">
+    <text>每一次坚持，都有迹可循</text>
+    <b>修炼记录 ›</b>
+  </view>
+
+  <view class="card" style="background:var(--green-soft);border-color:var(--line)">
+    <view class="title" style="font-size:28rpx;color:var(--green-dark)">🎁 免费领资料</view>
+    <view class="muted" style="margin:8rpx 0">加微信领《体质自测卡+热量表+7天计划》大礼包</view>
+    <view class="btn ghost block" bindtap="copyWx">复制微信号</view>
+  </view>
+</block>
+
+<!-- 破境/里程碑仪式卡（分层版：境界/形象/里程碑只说真实发生的事） -->
+<view wx:if="{{breakOn}}" class="brk-mask">
+  <view class="brk-card">
+    <view class="brk-eyebrow">{{breakEyebrow}}</view>
+    <view class="brk-realm">Lv.{{breakLv}} · {{breakRealm}}</view>
+    <view class="brk-line"></view>
+    <view class="brk-parts">
+      <view class="brk-part" wx:for="{{breakParts}}" wx:key="*this">· {{item}}</view>
+    </view>
+    <view class="brk-comment">「{{breakComment}}」<view class="brk-from">—— 玄衡</view></view>
+    <view class="btn block" bindtap="closeBreak">继 续 修 炼</view>
+    <view class="brk-foot">不锁经验 · 不设门槛 · 只说真实发生的事</view>
+  </view>
+</view>

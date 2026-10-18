@@ -1,0 +1,7 @@
+.tip { padding: 20rpx 30rpx; color: var(--sub); font-size: 24rpx; }
+.learn { padding: 22rpx 28rpx; }
+.lh { display: flex; justify-content: space-between; align-items: center; }
+.dayno { display: inline-block; font-size: 20rpx; color: var(--green); background: var(--green-soft); padding: 2rpx 12rpx; border-radius: 999rpx; margin-right: 12rpx; }
+.lt { font-weight: 600; font-size: 28rpx; }
+.lb { margin-top: 14rpx; }
+.lf { margin-top: 10rpx; line-height: 1.7; color: var(--text); font-size: 26rpx; }

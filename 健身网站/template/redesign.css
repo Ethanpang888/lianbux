@@ -1,0 +1,152 @@
+/* Quiet cultivation: shared surface system; feature-specific layouts remain intact. */
+:root{--bg:#f4f6f2;--card:#fff;--tx:#25342f;--sub:#738078;--line:#e5eae4;--green:#287b59;--green-dark:#22694d;--green-soft:#edf4ed;--shadow:none;--r-lg:20px}
+body.dark{--bg:#101713;--card:#19221d;--tx:#e6ede7;--sub:#9aa99e;--line:#2a372f;--green:#90c8a4;--green-dark:#a2d4b2;--green-soft:#233c2c;--shadow:none;--warn-soft:#392f20;--gold:#d5bd87}
+html{scroll-padding-top:100px}body{font-size:15px;line-height:1.65;padding-bottom:calc(90px + var(--safe-b))}body.dark::after{display:none!important}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--green);outline-offset:4px}input:focus,textarea:focus{outline-color:var(--green)}button:disabled{opacity:.55;cursor:wait}
+#app{max-width:760px;padding:24px 24px 24px}body[data-page=home] #app{max-width:820px}
+.appbar,body.dark .appbar{position:relative;top:auto;margin:0 0 24px;padding:0 0 16px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:var(--tx);box-shadow:none}
+.appbar h1{font-size:22px;font-weight:650;letter-spacing:-.6px;flex-wrap:wrap}.appbar .sub{color:var(--sub);margin-top:6px}
+.appbar.homebar{display:flex;align-items:center;justify-content:space-between;border:0;margin:4px 0 22px;padding:0}.homebar h1{font-size:26px;margin-top:5px;font-weight:650}
+.eyebrow,.section-label{font-size:11px;color:var(--sub);letter-spacing:1.5px}.profile-dot{height:40px;width:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--tx);font-size:14px}
+.demo-note{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--sub);margin:-7px 0 17px}.demo-note .text-link{margin-left:auto}.status-dot{height:5px;width:5px;background:var(--gold);border-radius:50%}
+.card,body.dark .card{background:var(--card);border:1px solid var(--line);box-shadow:none;padding:22px;border-radius:var(--r-lg);margin-bottom:16px}
+.card h2,body.dark .card h2{color:var(--tx);border:0;padding:0;font-size:16px;font-weight:600;gap:8px;flex-wrap:wrap;margin-bottom:16px}.card h2 .mini{font-size:11px}.muted{color:var(--sub)}.txs{font-size:12px}
+.btn,body.dark .btn{background:var(--green);color:#fff;border:1px solid transparent;box-shadow:none;border-radius:12px;min-height:46px;font-size:14px;font-weight:550;transition:filter .15s}
+body.dark .btn{color:#12291b}.btn:hover{filter:brightness(1.06)}.btn.big{font-size:15px;min-height:50px}
+.btn.ghost,body.dark .btn.ghost{background:var(--green-soft);color:var(--green-dark);border-color:transparent}.btn.line,body.dark .btn.line{background:transparent;color:var(--sub);border-color:var(--line)}
+.chip,body.dark .chip{border:1px solid var(--line);color:var(--sub);background:transparent;border-radius:9px;box-shadow:none;min-height:32px}.chip.on,body.dark .chip.on{background:var(--green-soft);border-color:var(--green);color:var(--green-dark)}
+.tag,body.dark .tag{font-size:10px;font-weight:500;background:var(--green-soft);color:var(--green-dark);border-radius:6px;padding:3px 7px}.kv>div,body.dark .kv>div{background:var(--bg);border-radius:12px}.kv b,body.dark .kv b{color:var(--tx)}
+.hero,body.dark .hero{color:var(--tx);background:var(--green-soft);box-shadow:none;border:1px solid var(--line);margin-bottom:22px;border-radius:22px}.hero::after,.hero::before{display:none}.hero-in{padding:22px 28px 0;gap:28px;min-height:205px}.hero-av{height:190px;width:125px;align-self:flex-end}.hero-av img,body.dark .hero-av img{max-width:100%;object-fit:contain;filter:none}.hero-who{margin-top:11px;gap:12px}.hero-who b{font-size:25px;font-weight:600}.realm-tag{background:transparent;color:var(--green-dark);border:1px solid var(--green);border-radius:6px;padding:0 6px;font-size:10px}.hero-title{font-size:12px;color:var(--sub);margin-top:3px}.hero-exp{max-width:380px;margin-top:17px}.hero-exp .lab{font-size:11px;color:var(--sub)}.hero-exp .track,body.dark .hero-exp .track,.prog .track,body.dark .prog .track{height:4px;background:var(--line)}.hero-exp .fill,body.dark .hero-exp .fill,.prog .fill{background:var(--green)}.hero-unlock{font-size:11px;color:var(--sub);margin-top:9px}.hero-footer{padding:13px 28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-top:12px}.hero-footer b{color:var(--tx);font-weight:500}
+.text-link{border:0;background:none;color:var(--green-dark);padding:0;font-size:11px}.home-daily{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}.home-daily>.card{margin:0 0 16px;display:flex;flex-direction:column}.home-daily .section-label{margin-bottom:9px}.home-daily .focus-title{font-size:20px;line-height:1.6;margin:0 0 8px}.home-daily .focus-title>span:first-child{font-size:18px;background:none;color:var(--tx);padding:0}
+.today-stats{gap:14px;margin:8px 0}.today-stats>div,body.dark .today-stats>div{background:transparent;padding:0;text-align:left;display:flex;align-items:baseline;gap:4px;flex:none}.today-stats b{font-size:17px;font-weight:500;color:var(--tx)}.today-stats span{font-size:11px;color:var(--sub)}
+.home-warmup{font-size:11px;color:var(--sub);margin:4px 0 0}.home-warmup summary{cursor:pointer}.home-daily .row.between .chip{border:0;padding:0;min-height:30px;font-size:11px}.home-daily .card>.btn{margin-top:auto!important}.home-daily .today-card>.btn.big{margin-top:16px!important}.home-daily .hero-exp{margin:18px 0!important}.home-daily .hero-exp .lab{gap:12px}.home-daily .today-card:last-child>.muted.txs{margin-bottom:16px}.home-daily .card h2{margin-bottom:8px}
+.duo-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}.card.duo,body.dark .card.duo{position:relative;display:flex;align-items:flex-start;flex-direction:column;text-align:left;gap:5px;padding:20px;margin:0;color:var(--tx);font-size:14px}.duo-symbol{color:var(--green-dark);display:flex;margin-bottom:6px}.duo b{font-size:14px;font-weight:550}.duo-arrow{position:absolute;top:16px;right:19px;color:var(--sub);font-size:16px}.duo-ic{display:none}.record-link{background:transparent;border:0;display:flex;justify-content:space-between;width:100%;padding:10px 2px;color:var(--sub);font-size:11px}.record-link b{font-size:11px;font-weight:500;color:var(--tx)}
+.tabbar,body.dark .tabbar{max-width:760px;background:var(--bg);border:0;border-top:1px solid var(--line);padding:8px 12px calc(8px + var(--safe-b));box-shadow:none}.tabbar button{font-size:10px;min-height:50px;padding:6px 0;border-radius:12px}.tabbar button.on{color:var(--green-dark);background:var(--green-soft);font-weight:500}.tabbar .ic{display:flex;justify-content:center;height:25px}.tabbar svg{width:20px;height:20px}
+.page-back{display:block;background:transparent;border:0;color:var(--sub);font-size:12px;padding:0;margin-bottom:14px}.fold,details.fold{box-shadow:none;background:var(--card);border:1px solid var(--line);border-radius:14px}.fold summary,details.fold>summary{font-size:12px;font-weight:500;color:var(--sub)}
+/* 今日恢复卡（睡眠 + 补水，2026-10-16 用户要求恢复这块记录） */
+.recovery-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px}
+.recovery-row .rc-lab{flex:none;font-size:12px;color:var(--sub);min-width:60px}
+.recovery-row .rc-note{flex-basis:100%;margin-left:0}
+.recovery-row #waterVal{font-size:16px}
+#recoveryCard .chip.on{border-color:var(--green);color:var(--green-dark);font-weight:600}
+
+/* 动作卡折叠版（2026-10-16 用户指定：力量主区像热身一样可展开/收起） */
+details.ex-card{display:block;position:relative;padding:0;border:1px solid var(--line);border-radius:14px;margin:0 0 10px;background:var(--card);overflow:hidden}
+details.ex-card:last-child{border-bottom:1px solid var(--line)}
+details.ex-card>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+details.ex-card>summary::-webkit-details-marker{display:none}
+details.ex-card>summary .ex-sum-t{flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+details.ex-card>summary .ex-sum-t b{font-size:15px}
+details.ex-card>summary .ex-sum-meta{flex:none;text-align:right;font-size:11px;color:var(--sub);line-height:1.5}
+details.ex-card>summary .arr{flex:none;color:var(--sub);font-size:15px;transition:transform .18s}
+details.ex-card[open]>summary .arr{transform:rotate(90deg)}
+details.ex-card[open]>summary{border-bottom:1px dashed var(--line)}
+details.ex-card>.ex-body{position:relative;padding:14px}
+details.ex-card>.ex-body>.ex-thumb{position:absolute;top:14px;right:14px;width:54px;height:54px;border-radius:10px;object-fit:cover;background:var(--bg)}
+details.ex-card .ex-info{width:100%;min-width:0;padding-right:62px}
+.ex-info{width:100%;min-width:0}.ex-info>b{display:inline-block;font-size:17px;font-weight:600;padding-right:65px;line-height:1.7}.ex-info>.tag{display:none}.ex-info>.muted{padding-right:58px;font-size:11px}.ex-info .ex-how{border:0;margin:8px 0;padding:0;font-size:11px}.ex-how summary{color:var(--green-dark);cursor:pointer;min-height:28px;padding-top:4px}.ex-how .ln{font-size:12px;line-height:1.9}.setgrid{grid-template-columns:26px 1fr 1fr 40px;gap:8px;margin-top:10px}.setgrid input,body.dark .setgrid input{min-height:44px;font-size:16px;border:1px solid var(--line);background:var(--bg);border-radius:10px;color:var(--tx)}.setgrid input:read-only{cursor:pointer}.setgrid input[type=checkbox]{min-height:24px;width:24px!important;height:24px!important;cursor:pointer}.setgrid .hdr{font-size:10px}.setops{margin-top:10px}.setops button{background:transparent;color:var(--sub);border:1px solid var(--line);border-radius:8px;min-height:32px}
+#restBar{bottom:calc(82px + var(--safe-b));background:var(--card);color:var(--tx);border-color:var(--line);box-shadow:0 4px 20px #0002;max-width:650px;padding:10px 12px}#restBar .rb-num{color:var(--green-dark);font-size:23px;min-width:65px}#restBar .rb-lab{color:var(--sub)}#restBar .chip.sm{background:var(--green-soft);color:var(--green-dark);border-color:var(--line);font-size:10px;padding:4px 7px}
+@media(max-width:600px){#app{padding:24px 20px}.homebar h1{font-size:24px}.home-daily{display:block}.home-daily>.card{margin-bottom:14px}.hero-in{padding:20px 20px 0;gap:14px;min-height:185px}.hero-av{height:170px;width:100px}.hero-who b{font-size:23px}.hero-footer{padding:12px 20px}.hero-main{padding-bottom:8px}.duo-row{gap:12px}.card.duo,body.dark .card.duo{padding:18px}.card,body.dark .card{padding:20px}.home-daily .card>.btn{margin-top:14px!important}.hero{margin-bottom:18px}.record-link{gap:8px}.record-link span{font-size:10px}}
+@media(max-width:360px){#app{padding:18px 14px}.hero-av{width:80px;height:150px}.hero-in{gap:10px;padding:18px 16px 0}.hero-who{gap:6px}.hero-who b{font-size:20px}.today-stats{gap:12px}.home-daily .focus-title>span:first-child{font-size:16px}#restBar{gap:6px}.rb-ops{gap:3px!important}#restBar .rb-lab{font-size:10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.tool-link{display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 0;background:none;border:0;border-bottom:1px solid var(--line);color:var(--tx);text-align:left}.tool-link:last-child{border:0;padding-bottom:0}.tool-link b{display:block;font-size:13px;font-weight:500}.tool-link small{display:block;font-size:11px;color:var(--sub);margin-top:3px}.workout-help{margin:0 0 12px;font-size:11px;color:var(--sub)}.workout-help summary{cursor:pointer;min-height:28px}.draft-status{font-size:10px;color:var(--sub);margin-bottom:10px}
+.training-history{border-bottom:1px solid var(--line);padding:12px 0}.training-history:last-child{border:0}.training-history>summary{cursor:pointer;font-size:13px;color:var(--tx)}.history-ex{padding:10px 0;font-size:12px}.history-ex b{display:block;font-weight:500}.history-ex span{font-size:11px;color:var(--sub);display:block;margin-top:4px}
+.today-stats{flex-wrap:wrap}
+/* 饮食页每日目标四色格（2026-10-17 用户指定：每日目标置顶+颜色区分） */
+/* 专注模式全屏时藏底部休息浮条（restBar z 9998 会飘在全屏上，2026-10-18 自检修） */
+body.fm-open #restBar{display:none!important}
+/* hero 口号（2026-10-17 拍板） */
+.hero-slogan{margin-top:9px;font-size:13px;font-weight:700;color:var(--gold);letter-spacing:2px}
+.goal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.goal-cell{border:1px solid var(--line);border-left:4px solid var(--green);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.goal-cell span{display:block;font-size:11px;color:var(--sub)}
+.goal-cell b{display:block;font-size:19px;margin-top:2px;color:var(--tx);font-variant-numeric:tabular-nums}
+.goal-cell.gc-kcal{border-left-color:var(--green)}.goal-cell.gc-kcal b{color:var(--green-dark)}
+.goal-cell.gc-pro{border-left-color:var(--gold)}.goal-cell.gc-pro b{color:var(--gold)}
+.goal-cell.gc-carb{border-left-color:#6aa9e9}.goal-cell.gc-carb b{color:#6aa9e9}
+.goal-cell.gc-fat{border-left-color:#e09a5a}.goal-cell.gc-fat b{color:#e09a5a}.food-category{border-bottom:1px solid var(--line);padding:10px 0}.food-category summary{font-size:12px;cursor:pointer;color:var(--tx)}.food-category summary span{float:right;font-size:10px;color:var(--sub)}.food-category .fc-chips{margin-top:10px;gap:7px}.diet-basis{margin-top:10px;font-size:11px;color:var(--sub)}.diet-basis summary{cursor:pointer}.fold .card{border:0;padding:14px 0 0;margin:0}body[data-page=diet] #flCard .li{flex-wrap:wrap;gap:4px}body[data-page=diet] #flCard .li .mc{font-size:11px}body[data-page=today] .appbar{margin-bottom:14px}body[data-page=today] #app>.card:first-of-type{padding:12px 16px}
+.btn.big,body.dark .btn.big{box-shadow:none;background:var(--green)}body.dark .appbar.homebar{border:0}.appbar.homebar{margin-top:4px}
+/* V2: executable training flow, book covers, live nutrient meters. */
+.flow-card{border:1px solid var(--line);border-radius:20px;padding:22px;background:var(--card);margin-bottom:16px}.flow-heading{display:flex;gap:12px;align-items:center;margin-bottom:18px}.flow-heading h2{font-size:17px;font-weight:600;margin:0}.flow-heading p{font-size:11px;color:var(--sub);margin:3px 0 0}.step-number{font-size:12px;color:var(--green-dark);background:var(--green-soft);border-radius:10px;padding:9px}.flow-heading>#warmupCount{margin-left:auto;color:var(--sub);font-size:11px}.warmup-list{display:grid;gap:2px}.warmup-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}.warmup-item input,.lesson-row input{accent-color:var(--green);width:19px;height:19px;flex:none;margin:3px 0}.warmup-item b{font-size:13px;font-weight:550;display:block}.warmup-item small{display:block;font-size:11px;color:var(--sub);margin-top:3px}.warmup-item:has(input:checked)>span{opacity:.55}.flow-actions{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-top:14px}.flow-actions>.btn{width:auto;font-size:12px;min-height:40px;padding:9px 14px}.flow-source{font-size:10px;color:var(--sub);margin-top:15px}.flow-source summary{cursor:pointer}.session-clock{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px}.session-clock strong{display:block;font-size:38px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.3;letter-spacing:1px}.session-clock>.btn{width:auto;min-width:120px}.rest-shortcuts{display:flex;flex-wrap:wrap;gap:7px;border-top:1px solid var(--line);padding-top:15px;align-items:center}.rest-shortcuts>span{font-size:11px;color:var(--sub);margin-right:4px}.rest-shortcuts .chip{font-size:11px;padding:4px 9px}.cardio-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}.cardio-option{display:flex;flex-direction:column;gap:8px;text-align:left;padding:17px;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--tx)}.cardio-option b{font-size:14px;font-weight:550}.cardio-option span{font-size:12px}.cardio-option small{color:var(--sub);font-size:11px}.cardio-option em{font-size:11px;font-style:normal;color:var(--green-dark);margin-top:6px}.library-lead{padding:10px 0 24px}.library-lead h2{font-size:25px;font-weight:550;margin:9px 0}.library-lead p{font-size:12px;color:var(--sub);margin:0}.library-tabs{display:flex;gap:8px;margin-bottom:22px}.library-tabs .chip{font-size:12px;padding:7px 14px}.manual-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.manual-card{position:relative;text-align:left;border:1px solid var(--line);border-radius:8px 18px 18px 8px;background:var(--card);color:var(--tx);padding:19px 18px 18px 25px;min-height:260px;display:flex;flex-direction:column;box-shadow:inset 5px 0 0 #00000008;overflow:hidden;transition:transform .15s,border-color .15s}.manual-card[hidden]{display:none}.manual-card:hover{transform:translateY(-3px);border-color:var(--green)}.manual-top{display:flex;justify-content:space-between;gap:5px;align-items:center;color:var(--sub);font-size:10px}.access-free{color:var(--green-dark)}.access-paid{color:var(--gold)}.manual-glyph{font-family:serif;font-size:57px;line-height:1.3;font-weight:400;color:var(--book-accent,var(--green-dark));margin:17px 0 9px;opacity:.8}.manual-card h2{font-size:16px;font-weight:600;margin:0 0 6px;line-height:1.6}.manual-card p{font-size:11px;color:var(--sub);margin:0 0 20px;line-height:1.7}.manual-bottom{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:auto;border-top:1px solid var(--line);padding-top:12px;font-size:10px;color:var(--sub)}.manual-bottom b{font-weight:500;color:var(--book-accent,var(--green-dark))}.manual-sage{--book-accent:#42765c;background:#edf3e9}.manual-blue{--book-accent:#4d7890;background:#edf2f5}.manual-sand{--book-accent:#947145;background:#f4eee2}.manual-rose{--book-accent:#996d79;background:#f5edef}.manual-ink{--book-accent:var(--green-dark);background:var(--card)}body.dark .manual-sage{background:#24372a;--book-accent:#abd3ab}body.dark .manual-blue{background:#25343d;--book-accent:#a3c7dd}body.dark .manual-sand{background:#393327;--book-accent:#dcc395}body.dark .manual-rose{background:#382c32;--book-accent:#d6a8b4}.library-note{font-size:11px;color:var(--sub);padding:25px 0}.book-back{margin-bottom:20px}.manual-intro{padding:25px;border-radius:18px;margin-bottom:18px}.manual-intro h2{font-size:21px;font-weight:500;line-height:1.7}.manual-intro p{font-size:12px;color:var(--sub)}.lesson-row{display:flex;gap:14px;border-top:1px solid var(--line);padding:17px 0;cursor:pointer}.lesson-row b{font-weight:550;font-size:14px;display:block;margin-bottom:6px}.lesson-row span>span{font-size:12px;color:var(--sub);display:block;line-height:1.9}.lesson-row:has(input:checked)>span>b{color:var(--green-dark)}.nutrition-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:20px}.nutrition-head h2{margin:5px 0 0;font-size:19px}.nutrition-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 24px}.nutrient{--meter:#658eaf}.nutrient.calorie{--meter:#7e9f63}.nutrient.protein{--meter:#679a90}.nutrient.fat{--meter:#bc9a63}.nutrient.is-over{--meter:#cc5a56}.nutrient-title{display:flex;justify-content:space-between;gap:6px;align-items:center}.nutrient-title b{font-size:12px;font-weight:550}.nutrient-title>span{font-size:9px;color:var(--sub)}.nutrient-value{margin:7px 0 10px;font-variant-numeric:tabular-nums;white-space:nowrap}.nutrient-value strong{font-size:25px;font-weight:500}.nutrient-value span{font-size:10px;color:var(--sub)}.nutrient-track{height:8px;border-radius:6px;background:var(--line);overflow:hidden}.nutrient-track i{display:block;height:100%;border-radius:6px;background:var(--meter);transition:width .4s ease}.nutrient-status{font-size:10px;color:var(--sub);margin-top:7px}.is-over .nutrient-status,.is-over .nutrient-title>span{color:#bd4c49}body.dark .is-over .nutrient-status,body.dark .is-over .nutrient-title>span{color:#f18e85}.nutrition-note{font-size:10px;color:var(--sub);padding-top:16px;margin:18px 0 0;border-top:1px solid var(--line)}
+#restTimer>div:has(#rtCustom){flex-wrap:wrap;justify-content:center;padding:0 15px;max-width:420px}#restTimer .chip{color:#c5d3c9;border-color:#4b5c50}#restTimer #rtCustom{max-width:100px}#restTimer>svg{max-width:75vw;max-height:38vh}
+@media(max-width:600px){.manual-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.manual-card{padding:16px 13px 15px 19px;min-height:255px}.manual-glyph{font-size:49px}.manual-card h2{font-size:14px}.manual-bottom{font-size:9px;flex-wrap:wrap}.library-lead h2{font-size:23px}.flow-card{padding:20px}.cardio-options{grid-template-columns:1fr}.nutrition-grid{gap:20px 18px}.nutrient-value strong{font-size:22px}.nutrient-value span{font-size:9px}.session-clock strong{font-size:34px}.flow-actions{flex-wrap:wrap}}
+
+/* Training correction: one timer, readable prescriptions. */
+.exercise-prescription{font-size:14px;line-height:1.9;margin-top:8px;color:var(--tx)}
+.exercise-effort{font-size:12px;line-height:1.7;color:var(--sub);margin:6px 0 12px;max-width:34em}
+#warmupSteps>summary{cursor:pointer;list-style:none}#warmupSteps>summary::-webkit-details-marker{display:none}
+#warmupSteps>summary:after{content:'收起';margin-left:auto;font-size:12px;color:var(--sub)}
+#warmupSteps:not([open])>summary:after{content:'展开'}
+#strengthSection{scroll-margin-top:18px}
+#workoutTimer{position:fixed;z-index:1500;bottom:calc(78px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:620px;box-sizing:border-box;border:1px solid var(--line);border-radius:18px;padding:14px 18px;background:var(--card);box-shadow:0 8px 36px #0003}
+.wt-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.wt-heading b{font-size:14px}.wt-heading small{display:block;font-size:12px;color:var(--sub);margin-top:4px}.wt-heading strong{font-size:32px;font-variant-numeric:tabular-nums;line-height:1.2}.wt-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+body.has-workout-timer #app{padding-bottom:260px}
+#workoutTimer [hidden]{display:none!important}
+
+/* ── 专注训练（2026-10-16）：浮条醒目按钮 + 全屏专注模式 + 动作库选择弹层 ── */
+.wt-focus{background:var(--green)!important;color:#fff!important;font-weight:700;border-color:var(--green)}
+#focusMode{position:fixed;inset:0;z-index:2000;background:#0c1119;color:#eef1f6;display:flex;flex-direction:column;align-items:center;padding:calc(14px + env(safe-area-inset-top)) 18px calc(14px + env(safe-area-inset-bottom));box-sizing:border-box;overflow-y:auto}
+#focusMode .fm-top{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;max-width:540px;box-sizing:border-box}
+#focusMode .fm-top b{font-size:18px}
+#focusMode .fm-top .chip{background:#1a2233;color:#8b95a7;border-color:#2a3345}
+/* 2026-10-17 修「歪」：所有块共享同一条居中列（max-width 540 居中），图片区固定高度，不再 flex:1 自由撑位 */
+#focusMode .fm-img{flex:none;width:min(92vw,420px);height:min(34vh,360px);display:flex;align-items:center;justify-content:center;margin:12px 0}
+#focusMode .fm-img img,#focusMode .fm-img .ex-frames{width:100%;height:100%;max-width:100%;max-height:100%;border-radius:14px;object-fit:contain}
+/* 双帧图容器必须给显式宽高（内部 img 是绝对定位，auto 会塌成 0×0 → 专注模式黑空白，2026-10-17 修） */
+#focusMode .fm-img .ex-frames{position:relative;overflow:hidden;background:#0c1119}
+#focusMode .fm-img .ex-frames img{object-fit:contain;width:100%;height:100%}
+#focusMode .fm-set,#focusMode .fm-timer,#focusMode .fm-sub{width:100%;max-width:540px;margin-left:auto;margin-right:auto;box-sizing:border-box;text-align:center}
+#focusMode .fm-set{color:#8b95a7;font-size:13px}
+#focusMode .fm-timer{text-align:center;font-size:76px;font-weight:800;color:#4ade80;line-height:1.15;font-variant-numeric:tabular-nums}
+#focusMode .fm-sub{text-align:center;color:#aab3c5;font-size:13px;margin:2px 0 12px}
+#focusMode .fm-fill{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;max-width:540px;margin:6px auto;box-sizing:border-box}
+#focusMode .fm-fill .chip{background:#1a2233;color:#4ade80;border-color:#2a3345;font-weight:700}
+#focusMode .fm-val{cursor:pointer;min-width:96px;text-align:center;font-size:22px;font-variant-numeric:tabular-nums;border-bottom:1px dashed #4b5c50;padding:0 6px}
+#focusMode .fm-val:hover{color:#4ade80;border-bottom-color:#4ade80}
+#focusMode .fm-done{margin:12px auto 6px;width:100%;max-width:420px;font-size:17px;font-weight:800;padding:14px}
+#focusMode .fm-points{width:100%;max-width:540px;margin:0 auto;max-height:110px;overflow-y:auto;color:#8b95a7;font-size:12px;line-height:1.7;padding:8px 14px;border-top:1px solid #1a2233;box-sizing:border-box}
+#exPicker{position:fixed;inset:0;z-index:2100;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+#exPicker .pk-box{background:var(--card);width:calc(100% - 16px);max-width:560px;max-height:80vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;overflow:hidden;box-sizing:border-box}
+#exPicker .pk-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 6px}
+#exPicker .pk-head b{font-size:16px}
+#exPicker #pkSearch{margin:6px 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:var(--bg);color:var(--tx);-webkit-text-fill-color:var(--tx)}
+#exPicker #pkSearch::placeholder{color:var(--sub);opacity:1}
+#exPicker .pk-cats{display:flex;gap:6px;overflow-x:auto;padding:6px 14px}
+#exPicker .pk-cats .chip{flex-shrink:0;font-size:12px}
+#exPicker .pk-cats .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+#exPicker .pk-list{flex:1;overflow-y:auto;padding:4px 10px 10px}
+#exPicker .pk-i{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:11px 6px;cursor:pointer;font:inherit;color:var(--tx)}
+#exPicker .pk-i b{font-size:14px}
+#exPicker .pk-i:active{background:var(--bg)}
+.fm-entry{cursor:pointer}
+.fm-entry:hover{background:rgba(14,159,110,.05)}
+.fm-entry>b{font-size:12px;color:var(--green-dark);font-weight:600}
+.fm-entry .arr{float:right;color:var(--sub);font-weight:400}
+/* ── 动作卡内换/删操作行 ── */
+.exops{display:flex;gap:8px;margin-top:8px}
+.exops button{flex:1;font-size:12px;padding:8px 0;border:1px dashed var(--line);border-radius:10px;background:var(--bg);color:var(--sub);cursor:pointer}
+.exops button:hover{color:var(--danger);border-color:var(--danger)}
+
+/* Mobile nutrition: intake first, targets on their own line. */
+.nutrition-caption{font-size:12px;color:var(--sub);margin:5px 0 0}
+.nutrition-head h2{font-size:20px;margin:0}
+.nutrition-head>.tag{flex-shrink:0}
+.nutrition-grid{gap:22px 20px}
+.nutrient{min-width:0}
+.nutrient-title{flex-wrap:wrap}
+.nutrient-title b{font-size:14px}
+.nutrient-title>span{font-size:11px}
+.nutrient-value{display:flex;flex-wrap:wrap;gap:5px;align-items:baseline;white-space:normal;margin:6px 0 2px;line-height:1.25}
+.nutrient-value strong{font-size:28px;font-weight:650;color:var(--tx);overflow-wrap:anywhere;min-width:0}
+.nutrient-value .nutrient-unit{font-size:12px;color:var(--tx)}
+.nutrient-target{font-size:12px;color:var(--sub);margin-bottom:10px;overflow-wrap:anywhere}
+.nutrient-status{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:420px){.nutrition-card{padding:18px!important}.nutrition-grid{gap:20px 16px}.nutrition-head{margin-bottom:18px}.nutrition-note{font-size:11px;margin-top:16px;padding-top:12px}.nutrient-value strong{font-size:27px}}
+@media(max-width:360px){body[data-page="diet"] .kv{grid-template-columns:repeat(2,minmax(0,1fr))}body[data-page="diet"] .kv>div{min-width:0}body[data-page="diet"] .kv b{overflow-wrap:anywhere}}
+
+/* 建档页：师傅邀请码输入（2026-10-17 收徒） */
+.ob-inv{width:100%;box-sizing:border-box;min-height:44px;font-size:15px;border:1px solid var(--line);background:var(--bg);color:var(--tx);border-radius:10px;padding:10px 12px}
+
+/* 成长总览/徽章进度条（2026-10-18 第一批） */
+.expbar{height:10px;background:var(--bg);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.expbar-fill{height:100%;background:linear-gradient(90deg,var(--green),#4ade80);border-radius:999px;transition:width .3s}

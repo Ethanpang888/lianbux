@@ -1,0 +1,60 @@
+{
+  "miniprogramRoot": "./",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "appid": "wx199ba1ab0963d4c1",
+  "projectname": "fit-companion",
+  "description": "健身减脂28天陪伴小程序（CloudBase版）",
+  "__usePrivacyCheck__": true,
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false,
+    "newFeature": true,
+    "nodeModules": false,
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "compileType": "miniprogram",
+  "libVersion": "latest",
+  "condition": {},
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [
+      { "type": "folder", "value": "assets/exdb" },
+      { "type": "folder", "value": "assets/_removed" },
+      { "type": "folder", "value": "tools" },
+      { "type": "folder", "value": "licenses" },
+      { "type": "file", "value": "exdb-map.json" },
+      { "type": "file", "value": "GIF替换与上传指南.md" },
+      { "type": "file", "value": "图片域名配置说明.md" },
+      { "type": "file", "value": "动作图双帧化说明.md" },
+      { "type": "file", "value": "居家计划与要领补齐说明.md" },
+      { "type": "file", "value": "中医板块融合方案.md" },
+      { "type": "file", "value": "部署说明.md" },
+      { "type": "suffix", "value": "bak" },
+      { "type": "suffix", "value": "bak-localize" },
+      { "type": "glob", "value": "subpkgs/exlib/assets/ex/**/*b.jpg" },
+      { "type": "folder", "value": "subpkgs/exlib/assets/ex" }
+    ],
+    "include": []
+  },
+  "editorSetting": {}
+}

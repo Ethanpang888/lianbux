@@ -1,0 +1,126 @@
+<!-- pages/tcm/tcm.wxml —— 中医调理板块 -->
+<view class="page">
+
+  <!-- 免责声明（合规红线，全程可见） -->
+  <view class="disc">⚠️ {{disclaimer}}</view>
+
+  <!-- 顶部：自测入口 / 结果概览 -->
+  <view class="hero">
+    <view class="hero-t">中医调理 · 体质自测</view>
+    <view class="hero-s">先花 1 分钟自测，再按你的体质看训练宜忌与食养</view>
+    <button class="btn-primary" bindtap="startQuiz">📝 开始体质自测</button>
+  </view>
+
+  <!-- 自测结果卡 -->
+  <view wx:if="{{selType}}" class="card result">
+    <view class="res-head">
+      <text class="res-name">{{selType.name}}</text>
+      <text class="res-tag" wx:if="{{quiz.result.sec}}">兼夹：{{quiz.result.secName}}</text>
+    </view>
+    <view class="res-desc">{{selType.desc}}</view>
+    <view class="res-sec">
+      <view class="rs"><text class="rs-l">中医说</text><text class="rs-v">{{selType.mech}}</text></view>
+      <view class="rs"><text class="rs-l">训练宜忌</text><text class="rs-v">{{selType.train}}</text></view>
+      <view class="rs"><text class="rs-l">食养建议</text><text class="rs-v">{{selType.food}}</text></view>
+      <view class="rs tip"><text class="rs-l">红线信号</text><text class="rs-v">{{selType.tip}}</text></view>
+    </view>
+    <view class="res-reset" bindtap="reset">重新自测 / 清除</view>
+  </view>
+
+  <!-- 手动快选（自测之外的备选） -->
+  <view class="sec">
+    <view class="sec-t">或手动选择你的体质</view>
+    <view class="chips">
+      <view wx:for="{{types}}" wx:key="key" class="chip {{selected===item.key?'on':''}}" data-i="{{index}}" bindtap="selectType">{{item.name}}</view>
+    </view>
+  </view>
+
+  <!-- 概念库小课堂 -->
+  <view class="sec">
+    <view class="sec-t">中医小课堂（健身人能用的真道理）</view>
+    <view class="lessons">
+      <view wx:for="{{lessons}}" wx:key="t" class="lesson">
+        <view class="le-t">{{item.t}}</view>
+        <view class="le-b">{{item.b}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 食养方库 -->
+  <view class="sec">
+    <view class="sec-t">食养方库<text class="sec-n">（按体质 · 食疗非处方）</text></view>
+    <view wx:if="{{selected && !showAllFoods}}" class="toggle" bindtap="toggleShowAllFoods">查看全部体质方 ›</view>
+    <view wx:else class="toggle" bindtap="toggleShowAllFoods">‹ 只看我的体质</view>
+    <view wx:for="{{foodGroups}}" wx:key="name" class="fgrp">
+      <view class="fgrp-t">{{item.name}}</view>
+      <view wx:for="{{item.list}}" wx:for-item="f" wx:key="name" class="recipe">
+        <view class="r-name">{{f.name}}</view>
+        <view class="r-line"><text class="r-l">食材</text>{{f.ingre}}</view>
+        <view class="r-line"><text class="r-l">做法</text>{{f.how}}</view>
+        <view class="r-line"><text class="r-l">频率</text>{{f.freq}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 训练恢复锦囊 -->
+  <view class="sec">
+    <view class="sec-t">训练恢复锦囊</view>
+    <view wx:for="{{recovery}}" wx:key="t" class="lesson">
+      <view class="le-t">{{item.t}}</view>
+      <view class="le-b">{{item.b}}</view>
+    </view>
+  </view>
+
+  <!-- 训练宜忌 -->
+  <view class="sec">
+    <view class="sec-t">训练宜忌</view>
+    <view wx:for="{{trainTips}}" wx:key="t" class="row">
+      <view class="row-l">{{item.t}}</view>
+      <view class="row-d">{{item.d}}</view>
+    </view>
+  </view>
+
+  <!-- 节气养生 -->
+  <view class="sec">
+    <view class="sec-t">节气养生（顺时训练 · 食养）</view>
+    <view wx:for="{{solar}}" wx:key="season" class="solar-grp">
+      <view class="solar-season">{{item.season}}</view>
+      <view class="solar-grid">
+        <view wx:for="{{item.list}}" wx:for-item="sv" wx:key="s" class="solar-item">
+          <text class="sv-s">{{sv.s}}</text><text class="sv-d">{{sv.d}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 五脏 × 训练 -->
+  <view class="sec">
+    <view class="sec-t">五脏 × 训练（中医怎么看健身）</view>
+    <view wx:for="{{wuzang}}" wx:key="z" class="wz">
+      <view class="wz-h"><text class="wz-z">{{item.z}}</text><text class="wz-f">↔ {{item.fit}}</text></view>
+      <view class="wz-b">{{item.b}}</view>
+    </view>
+  </view>
+
+  <!-- 自测浮层 -->
+  <view wx:if="{{quiz.active}}" class="mask">
+    <view class="quiz">
+      <block wx:if="{{!quiz.done}}">
+        <view class="q-prog">第 {{quiz.idx+1}} / {{quizList.length}} 题</view>
+        <view class="q-txt">{{quizList[quiz.idx].q}}</view>
+        <view class="q-opts">
+          <view wx:for="{{scale}}" wx:key="*this" class="q-opt" data-s="{{index+1}}" bindtap="answer">{{item}}</view>
+        </view>
+        <view class="q-foot">凭第一感觉选，不用纠结</view>
+      </block>
+      <block wx:else>
+        <view class="q-title">自测结果</view>
+        <view class="q-res">主要体质倾向：<text class="hl">{{selType.name}}</text></view>
+        <view wx:if="{{quiz.result.sec}}" class="q-res2">兼夹倾向：{{quiz.result.secName}}</view>
+        <view class="q-disc">{{disclaimer}}</view>
+        <view class="q-btn" bindtap="closeQuiz">查看调理建议 →</view>
+      </block>
+    </view>
+  </view>
+
+</view>

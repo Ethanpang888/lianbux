@@ -1,0 +1,27 @@
+/* 排行榜（与网站同榜同款视觉） */
+.rank-head .title { font-size: 32rpx; }
+.me-rank { display: flex; justify-content: space-between; align-items: center; background: var(--green-soft); border: 1rpx solid var(--line); }
+.mr-left { display: flex; flex-direction: column; gap: 4rpx; }
+.mr-rank { font-size: 34rpx; font-weight: 800; color: var(--green-dark); }
+.mr-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4rpx; }
+.mr-val { font-size: 34rpx; font-weight: 700; color: var(--text); }
+.tab-row { display: flex; flex-wrap: wrap; gap: 14rpx; }
+.tab-chip {
+  border: 1rpx solid var(--line); color: var(--sub); background: transparent;
+  border-radius: 18rpx; font-size: 26rpx; padding: 12rpx 26rpx; line-height: 1.4;
+}
+.tab-chip.on { background: var(--green-soft); border-color: var(--green); color: var(--green-dark); font-weight: 600; }
+.city-wrap { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.city-chip {
+  border: 1rpx solid var(--line); color: var(--sub); background: transparent;
+  border-radius: 999rpx; font-size: 24rpx; padding: 8rpx 22rpx;
+}
+.city-chip.on { background: var(--green-soft); border-color: var(--green); color: var(--green-dark); font-weight: 600; }
+.rank-row { display: flex; align-items: center; gap: 16rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--line); }
+.rank-row:last-child { border-bottom: none; }
+.rank-row.me { background: var(--green-soft); margin: 0 -16rpx; padding: 20rpx 16rpx; border-radius: 12rpx; border-bottom: none; }
+.rk { flex: none; width: 64rpx; text-align: center; font-size: 28rpx; font-weight: 700; color: var(--text); }
+.rn { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2rpx; }
+.rnick { font-size: 28rpx; font-weight: 600; color: var(--text); }
+.rmeta { font-size: 20rpx; color: var(--sub); }
+.rv { flex: none; font-size: 28rpx; font-weight: 700; color: var(--green-dark); }

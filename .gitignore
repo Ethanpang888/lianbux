@@ -1,0 +1,21 @@
+# ── 白名单式：只上传两个项目目录，其余（课程/文献/备份）一律不上 ──
+/*
+!/.gitignore
+!/健身小程序/
+!/健身网站/
+
+# ── 密钥与私密（绝不能上）──
+健身网站/.ai-key
+健身小程序/project.private.config.json
+*.pem
+*.env
+*key*.txt
+
+# ── 依赖与构建产物（AI 看源码不需要）──
+node_modules/
+健身小程序/miniprogram_npm/
+健身网站/dist/
+*.tar.gz
+
+# ── 系统文件 ──
+.DS_Store

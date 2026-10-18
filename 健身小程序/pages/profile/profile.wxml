@@ -1,0 +1,128 @@
+<view wx:if="{{!profile}}" class="card center-empty">
+  <view class="title">还没有资料</view>
+  <view class="btn block" bindtap="edit">去测评</view>
+</view>
+
+<block wx:else>
+  <view class="card">
+    <view class="title">我的资料</view>
+    <view class="muted" style="margin:10rpx 0 4rpx">{{profile.gender}} · {{profile.age}}岁 · {{profile.height}}cm · {{profile.weight}}kg</view>
+    <view class="muted">目标 {{profile.goal}} · 经验 {{profile.exp}} · {{profile.days}}天/周</view>
+    <view class="row" style="margin-top:16rpx">
+      <view class="pill">第{{dayIndex+1}}天{{inProgram?' · 精选课表':''}}</view>
+      <view class="pill">连续{{streak}}天</view>
+    </view>
+    <view class="btn ghost block" style="margin-top:20rpx" bindtap="edit">修改资料 / 重新测评</view>
+  </view>
+
+  <!-- 修炼（与网站同一条 EXP 曲线：只读重放打卡，服务端数据为准） -->
+  <view wx:if="{{cul}}" class="card" style="border-left:8rpx solid var(--warn)">
+    <view class="row between">
+      <view class="title" style="font-size:28rpx">修炼 · Lv{{cul.level}} {{cul.title}}</view>
+      <view class="pill">EXP {{cul.exp}}</view>
+    </view>
+    <view class="bar" style="margin-top:12rpx"><view class="bar-in" style="width:{{cul.pct}}%"></view></view>
+    <view class="muted" style="margin-top:8rpx">
+      境界「{{cul.realm}}」· {{cul.realmNote}} · 距下一级还差 {{cul.toNext}} EXP
+    </view>
+    <view class="row" style="margin-top:14rpx">
+      <view class="pill">连续 {{cul.streak.cur}} 天</view>
+      <view class="pill">最长 {{cul.streak.best}} 天</view>
+      <view class="pill">累计 {{cul.trainedTotal}} 练</view>
+    </view>
+  </view>
+
+  <!-- 徽章墙（与网站 badges 页同口径：重放打卡现算；条件+进度） -->
+  <view wx:if="{{badges}}" class="card">
+    <view class="row between">
+      <view class="title" style="font-size:28rpx">徽章墙</view>
+      <view class="pill">已解锁 {{badgeGot}} / {{badges.length}}</view>
+    </view>
+    <view class="badge-grid">
+      <view wx:for="{{badges}}" wx:key="k" class="badge-tile {{item.got ? '' : 'locked'}}">
+        <view class="badge-ic">{{item.got ? '🏅' : '🔒'}}</view>
+        <text>{{item.displayName}}</text>
+      </view>
+    </view>
+    <view class="muted" style="margin-top:14rpx;line-height:1.9">
+      <view class="title" style="font-size:24rpx;margin-bottom:6rpx">未解锁 · 条件与进度</view>
+      <block wx:for="{{badgeOpen}}" wx:key="k">
+        <view style="margin-top:10rpx">
+          <text class="strong">· {{item.displayCond}}</text>
+          <text style="font-size:22rpx;color:var(--sub)">（{{item.tier}} · +{{item.exp}} EXP）</text>
+          <view wx:if="{{item.prog && item.prog.target > 1}}" style="margin-top:6rpx">
+            <view class="wk-bar"><view class="wk-bar-fill" style="width:{{item.prog.cur >= item.prog.target ? 100 : (item.prog.cur / item.prog.target * 100)}}%"></view></view>
+            <text style="font-size:22rpx;color:var(--sub)">{{item.prog.cur}} / {{item.prog.target}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 本周任务（2026-10-18 与网站 growth 页同口径） -->
+  <view wx:if="{{weekTasks.length}}" class="card">
+    <view class="row between">
+      <view class="title" style="font-size:28rpx">本周任务</view>
+      <view class="pill">每项 +{{weekTasks[0].exp}} EXP</view>
+    </view>
+    <view wx:for="{{weekTasks}}" wx:key="name" style="margin-top:16rpx">
+      <view class="row between" style="font-size:26rpx">
+        <text>{{item.name}}</text>
+        <text style="font-size:22rpx;color:var(--sub)">{{item.paid ? '已入账 ✓' : item.cur + ' / ' + item.target}}</text>
+      </view>
+      <view class="wk-bar" style="margin-top:6rpx">
+        <view class="wk-bar-fill" style="width:{{item.cur / item.target * 100}}%"></view>
+      </view>
+    </view>
+    <view class="muted" style="margin-top:12rpx;font-size:22rpx">{{weekNote}}</view>
+  </view>
+
+  <!-- 每日消耗与热量目标 -->
+  <view wx:if="{{energy}}" class="card" style="background:var(--green-soft);border-left:8rpx solid var(--green)">
+    <view class="title" style="font-size:28rpx">每日消耗与目标</view>
+    <view class="muted" style="margin:8rpx 0;line-height:1.8">
+      基础代谢 <b>{{energy.bmr}}</b> × 活动系数 <b>{{energy.factor}}</b>（{{energy.actName}}）= 每日总消耗 <b>{{energy.tdee}}</b> kcal
+    </view>
+    <view class="muted" style="line-height:1.8">
+      热量目标 <b>{{energy.kcal}}</b> kcal（缺口 {{energy.deficit}}）· 蛋白 <b>{{energy.protein}}g</b> · 碳水 <b>{{energy.carb}}g</b> · 脂肪 <b>{{energy.fat}}g</b>
+    </view>
+    <view wx:if="{{energy.warn}}" class="muted" style="margin-top:8rpx;color:var(--warn);line-height:1.6">
+      实际缺口与目标偏离较大，建议到「修改资料 → 日常活动量」复核档位。
+    </view>
+  </view>
+
+  <view wx:if="{{tcm}}" class="card tcm-recap" bindtap="goTcm">
+    <view class="title">我的体质倾向</view>
+    <view class="tcm-main">{{tcm.mainName}}<text class="tcm-conv"> · 倾向{{tcm.mainConv}}</text></view>
+    <view wx:if="{{tcm.sec}}" class="tcm-sec">兼夹倾向：{{tcm.secName}}</view>
+    <view class="muted" style="margin-top:8rpx">点此查看训练宜忌 · 食养建议 · 重新自测</view>
+  </view>
+
+  <!-- 收徒（裂变，2026-10-17）：邀请码 + 弟子 + 绑定师傅 -->
+  <view class="card">
+    <view class="title">广收门徒 <text class="mini">同门师兄弟 · 一起炼</text></view>
+    <view class="muted" style="margin:6rpx 0;line-height:1.6">把邀请码发给想练的人——他注册时填码，<text class="strong">你和他各得 3 天完整版</text>。谁先玩谁就是师傅。</view>
+    <view class="row between" style="margin-top:10rpx">
+      <text class="inv-code">{{inviteCode || '获取中…'}}</text>
+      <view class="btn ghost" style="width:auto;padding:8rpx 24rpx;font-size:24rpx" bindtap="copyInvite">复制</view>
+    </view>
+    <view style="display:flex;gap:14rpx;margin-top:14rpx">
+      <view class="btn ghost" style="flex:1" bindtap="myInvites">我的弟子</view>
+      <view class="btn ghost" style="flex:1" bindtap="bindInvite">{{inviterCode ? '已拜师 · ' + inviterCode : '绑定师傅的邀请码'}}</view>
+    </view>
+  </view>
+
+  <view class="card menu">
+    <view class="mi" bindtap="goTcm"><text>🧬 中医调理</text><text class="arr">›</text></view>
+    <view class="mi" bindtap="goDiet"><text>🥗 饮食方案</text><text class="arr">›</text></view>
+    <view class="mi" bindtap="goHistory"><text>📊 历史打卡</text><text class="arr">›</text></view>
+    <view class="mi" bindtap="goRank"><text>🏆 排行榜（与网站同榜）</text><text class="arr">›</text></view>
+    <view class="mi" bindtap="goBind"><text>🔗 绑定网站账号 · 数据互通</text><text class="arr">›</text></view>
+    <view class="mi" bindtap="goSubscribe"><text>📧 每日邮件订阅</text><text class="arr">›</text></view>
+    <view class="mi" bindtap="regen"><text>🔁 重新生成计划</text><text class="arr">›</text></view>
+    <view class="mi" bindtap="about"><text>⚠️ 免责声明</text><text class="arr">›</text></view>
+    <view class="mi danger" bindtap="clear"><text>🗑 清空我的数据</text><text class="arr">›</text></view>
+  </view>
+
+  <view class="muted center-empty">啊清练不虚 · 用中医让健身更安全</view>
+</block>

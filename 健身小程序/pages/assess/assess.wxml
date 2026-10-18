@@ -1,0 +1,102 @@
+<view class="card">
+  <view class="field"><text>性别</text>
+    <view class="seg">
+      <view class="seg-i {{gender==='男'?'on':''}}" data-v="男" bindtap="onGender">男</view>
+      <view class="seg-i {{gender==='女'?'on':''}}" data-v="女" bindtap="onGender">女</view>
+    </view>
+  </view>
+  <view class="field"><text>年龄</text><input type="number" placeholder="如 30" value="{{age}}" data-k="age" bindinput="onInput"/></view>
+  <view class="field"><text>身高(cm)</text><input type="number" placeholder="如 170" value="{{height}}" data-k="height" bindinput="onInput"/></view>
+  <view class="field"><text>体重(kg)</text><input type="number" placeholder="如 70" value="{{weight}}" data-k="weight" bindinput="onInput"/></view>
+
+  <view class="field"><text>目标</text>
+    <view class="seg">
+      <view wx:for="{{goals}}" wx:key="*this" class="seg-i {{goal===item?'on':''}}" data-v="{{item}}" bindtap="onGoal">{{item}}</view>
+    </view>
+  </view>
+  <view class="field"><text>训练经验</text>
+    <view class="seg">
+      <view wx:for="{{exps}}" wx:key="*this" class="seg-i {{exp===item?'on':''}}" data-v="{{item}}" bindtap="onExp">{{item}}</view>
+    </view>
+  </view>
+  <view class="field"><text>每周训练天数</text>
+    <picker mode="selector" range="{{dayOpts}}" value="{{dayOpts.indexOf(days)}}" bindchange="onDays">
+      <view class="picker">{{days}} 天 / 周</view>
+    </picker>
+  </view>
+  <view class="field"><text>日常活动量</text>
+    <view class="seg" style="flex-wrap:wrap">
+      <view wx:for="{{activities}}" wx:key="key" class="seg-i {{activity===item.key?'on':''}}" data-v="{{item.key}}" bindtap="onActivity">{{item.name}}</view>
+    </view>
+  </view>
+  <view class="muted" style="margin-top:6rpx;line-height:1.6">
+    算每日消耗用：基础代谢 × 活动系数 = 每日总消耗。当前「{{activityName}}」= 系数 {{factor}}。{{activityDesc}}。
+    选低了会把热量算少、缺口拉大；训练强度大的人往高档选。
+  </view>
+  <view class="field"><text>训练场景</text>
+    <view class="seg">
+      <view wx:for="{{scenes}}" wx:key="name" class="seg-i {{home===item.k?'on':''}}" data-v="{{item.k?'1':'0'}}" bindtap="onScene">{{item.name}}</view>
+    </view>
+  </view>
+
+  <view class="field" style="margin-top:16rpx"><text>训练分化</text>
+    <view class="seg" style="flex-wrap:wrap">
+      <view wx:for="{{splitOpts}}" wx:key="key" class="seg-i {{selSplit===item.key?'on':''}}" data-v="{{item.key}}" bindtap="onSplit">{{item.name}}</view>
+    </view>
+  </view>
+  <view class="muted" style="margin-top:6rpx;line-height:1.6">
+    <text wx:if="{{splitSrc==='推演'}}" class="tag warn" style="margin-right:8rpx">推演</text>{{splitBasis}}
+  </view>
+
+  <view class="field"><text>体质类型</text>
+    <view class="seg">
+      <view wx:for="{{bodyTypes}}" wx:key="*this" class="seg-i {{bodyType===item?'on':''}}" data-v="{{item}}" bindtap="onBodyType">{{item}}</view>
+    </view>
+  </view>
+  <view class="muted" style="margin-top:6rpx">易胖从低碳水起步、易瘦从高碳水起步；决定你的碳水基准（谭成义理论）。</view>
+
+  <view class="field" style="margin-top:16rpx"><text>饮食方案</text>
+    <view class="seg">
+      <view class="seg-i {{dietMode==='recipe'?'on':''}}" data-v="recipe" bindtap="onDietMode">配好菜</view>
+      <view class="seg-i {{dietMode==='simple'?'on':''}}" data-v="simple" bindtap="onDietMode">只给克数</view>
+    </view>
+  </view>
+  <view class="muted" style="margin-top:6rpx;line-height:1.6">配好菜＝直接告诉你今天吃什么、各多少克（适合不想动脑）；只给克数＝自己选食材（水煮/外食都行）。</view>
+
+  <view class="field" style="margin-top:16rpx"><text>计划方式</text>
+    <view class="seg">
+      <view class="seg-i {{progMode==='smart'?'on':''}}" data-v="smart" bindtap="onProgMode">智能生成</view>
+      <view class="seg-i {{progMode==='program'?'on':''}}" data-v="program" bindtap="onProgMode">精选课表</view>
+    </view>
+  </view>
+  <view wx:if="{{progMode==='program'}}" style="background:var(--green-soft);border-radius:20rpx;margin:12rpx 0 0;padding:18rpx 20rpx">
+    <view wx:for="{{progList}}" wx:key="key" class="prog {{selProg===item.key?'on':''}}" data-v="{{item.key}}" bindtap="onSelProg">
+      <view class="prog-h"><text>{{item.name}}</text><text class="muted">{{item.level}} · {{item.weeks}}周</text></view>
+      <view class="muted" style="margin-top:4rpx;font-size:22rpx;line-height:1.5">{{item.basis}}</view>
+    </view>
+  </view>
+</view>
+
+<view wx:if="{{result}}" class="card" style="background:var(--green-soft)">
+  <view class="title" style="font-size:28rpx;color:var(--green-dark)">你的每日消耗与目标</view>
+  <view class="muted" style="margin-top:8rpx;line-height:1.8">
+    基础代谢 <b>{{result.bmr}}</b> kcal × 活动系数 <b>{{result.factor}}</b>（{{result.actName}}）= 每日总消耗 <b>{{result.tdee}}</b> kcal
+  </view>
+  <view class="row" style="margin-top:12rpx">
+    <view class="kv"><b style="color:{{result.catColor}}">{{result.bmi}}</b><text>BMI·{{result.cat}}</text></view>
+    <view class="kv"><b>{{result.kcal}}</b><text>每日热量目标</text></view>
+    <view class="kv"><b>{{result.protein}}g</b><text>蛋白质</text></view>
+  </view>
+  <view class="muted" style="margin-top:8rpx">碳水 {{result.carb}}g · 脂肪 {{result.fat}}g</view>
+  <view class="row" style="margin-top:10rpx;gap:10rpx;flex-wrap:wrap">
+    <view class="tag">缺口 {{result.deficit}} kcal</view>
+    <view class="tag">目标缺口 {{result.wantDeficit}} kcal</view>
+    <view wx:if="{{result.warn}}" class="tag warn">偏离较大，建议复核活动量</view>
+  </view>
+  <view class="muted" style="margin-top:10rpx;color:var(--green-dark);line-height:1.6">
+    碳水是弹性项（固定蛋白与脂肪后用来补齐热量）。之后每天在「今日」记一次饥饿感、每周记体重，目标会自动微调。
+  </view>
+</view>
+
+<view class="btn block" bindtap="submit">{{progMode==='program' ? '选用精选课表' : '生成我的训练计划'}}</view>
+<view class="muted center-empty">填完即生成专属计划，数据保存在微信云开发数据库，仅你可读写</view>

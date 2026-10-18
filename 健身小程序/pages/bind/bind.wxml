@@ -1,0 +1,37 @@
+<view class="card" wx:if="{{checking}}">
+  <view class="muted">查询绑定状态…</view>
+</view>
+
+<block wx:else>
+  <!-- 已绑定 -->
+  <view class="card" wx:if="{{bound}}">
+    <view class="title" style="font-size:30rpx">🔗 已绑定网站账号</view>
+    <view class="muted" style="margin-top:8rpx">网站昵称：{{webNick}}</view>
+    <view class="muted" style="margin-top:12rpx;line-height:1.8">
+      两端打卡现在自动互通：小程序记的训练会出现在网站的记录页 / 力量估算 / AI 总结 / 宏观调控里；网站记的也会同步回小程序。排行榜也是同一个榜。
+    </view>
+    <view class="btn ghost block" style="margin-top:20rpx" bindtap="unbind">解除绑定</view>
+  </view>
+
+  <!-- 未绑定 -->
+  <block wx:else>
+    <view class="card">
+      <view class="title" style="font-size:30rpx">🔗 绑定网站账号</view>
+      <view class="muted" style="margin:12rpx 0;line-height:1.8">
+        绑定后两端打卡数据互通：小程序记的训练出现在网站上，网站记的也同步回来，排行榜同榜竞技。
+      </view>
+      <view class="steps">
+        <view class="step"><text class="sn">1</text><text>电脑或手机打开健身网站，登录后进「我的」页</text></view>
+        <view class="step"><text class="sn">2</text><text>点「📱 绑定小程序」，会显示一个 6 位数字码（5 分钟内有效）</text></view>
+        <view class="step"><text class="sn">3</text><text>回来这里输入那个码，点确认绑定</text></view>
+      </view>
+      <view class="row" style="gap:16rpx;margin-top:24rpx">
+        <input class="code-in" type="number" maxlength="6" placeholder="6 位数字码" value="{{code}}" bindinput="onCode"/>
+        <view class="btn" style="width:220rpx;padding:20rpx 0" bindtap="confirm">{{busy ? '绑定中…' : '确认绑定'}}</view>
+      </view>
+    </view>
+    <view class="card" wx:if="{{backfill}}">
+      <view class="muted" style="line-height:1.8">上一次绑定同步了 {{backfill.mpToWeb}} 天到网站、{{backfill.webToMp}} 天到小程序。</view>
+    </view>
+  </block>
+</block>

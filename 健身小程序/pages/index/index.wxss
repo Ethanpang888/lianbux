@@ -1,0 +1,108 @@
+/* ── 洞府首页（2026-10-16 与网站 redesign.css 洞府版式对齐，深色主题）── */
+
+/* 顶栏 */
+.homebar { display: flex; align-items: center; justify-content: space-between; margin: 8rpx 24rpx 44rpx; }
+.eyebrow { font-size: 22rpx; color: var(--sub); letter-spacing: 3rpx; }
+.homebar-h1 { font-size: 52rpx; font-weight: 650; margin-top: 10rpx; letter-spacing: -1rpx; }
+.profile-dot {
+  height: 80rpx; width: 80rpx; border-radius: 50%;
+  border: 1rpx solid var(--line); background: var(--card);
+  color: var(--text); font-size: 28rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* 角色区（网站 .hero） */
+.hero { background: var(--green-soft); border: 1rpx solid var(--line); border-radius: 44rpx; margin: 0 24rpx 40rpx; overflow: hidden; }
+.hero-in { display: flex; gap: 28rpx; padding: 44rpx 40rpx 0; min-height: 370rpx; box-sizing: border-box; }
+.hero-main { flex: 1; min-width: 0; }
+.hero-who { margin-top: 22rpx; display: flex; align-items: center; gap: 20rpx; }
+.hero-who b { font-size: 50rpx; font-weight: 600; color: var(--text); }
+.realm-tag { border: 1rpx solid var(--green); color: var(--green-dark); border-radius: 12rpx; padding: 2rpx 12rpx; font-size: 20rpx; flex: none; }
+.hero-title { font-size: 24rpx; color: var(--sub); margin-top: 6rpx; }
+.hero-exp { max-width: 620rpx; margin-top: 34rpx; }
+.hero-exp .lab { display: flex; justify-content: space-between; font-size: 22rpx; color: var(--sub); margin-bottom: 12rpx; }
+.track { height: 8rpx; background: var(--line); border-radius: 999rpx; overflow: hidden; }
+.track .fill { height: 100%; background: var(--green); border-radius: 999rpx; }
+.hero-unlock { font-size: 22rpx; color: var(--sub); margin-top: 18rpx; }
+.hero-av { width: 220rpx; height: 340rpx; flex: none; align-self: flex-end; }
+.hero-av image { width: 100%; height: 100%; }
+.hero-footer {
+  padding: 26rpx 40rpx; border-top: 1rpx solid var(--line);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 22rpx; color: var(--sub); margin-top: 24rpx;
+}
+.hero-footer b { color: var(--text); font-weight: 500; }
+.text-link { color: var(--green-dark); font-size: 22rpx; }
+
+/* 今日训练/饮食卡 */
+.section-label { font-size: 22rpx; color: var(--sub); letter-spacing: 3rpx; margin-bottom: 18rpx; }
+.focus-title { font-size: 40rpx; line-height: 1.6; margin: 0 0 16rpx; color: var(--text); font-weight: 600; }
+.focus-title.sm { font-size: 34rpx; }
+.focus-title .tag { vertical-align: middle; margin-left: 8rpx; }
+.txs { font-size: 22rpx; }
+.today-stats { display: flex; gap: 28rpx; margin: 8rpx 0 20rpx; }
+.today-stats > view { display: flex; align-items: baseline; gap: 8rpx; }
+.today-stats b { font-size: 34rpx; font-weight: 500; color: var(--text); }
+.today-stats text { font-size: 22rpx; color: var(--sub); }
+.chip {
+  display: inline-block; border: 1rpx solid var(--line); color: var(--sub);
+  background: transparent; border-radius: 18rpx; font-size: 22rpx;
+  padding: 10rpx 20rpx; line-height: 1.4;
+}
+.chip.on { background: var(--green-soft); border-color: var(--green); color: var(--green-dark); font-weight: 600; }
+.btn.big { font-size: 30rpx; padding: 28rpx; }
+
+/* 今日恢复卡 */
+.recovery-row { display: flex; align-items: center; gap: 12rpx; flex-wrap: wrap; }
+.recovery-row .rc-lab { flex: none; font-size: 24rpx; color: var(--sub); min-width: 120rpx; }
+.water-val { font-size: 32rpx; font-weight: 600; color: var(--text); }
+
+/* 双入口 */
+.duo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24rpx; margin: 0 24rpx 28rpx; }
+.duo {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 10rpx; padding: 40rpx 32rpx; text-align: left;
+  background: var(--card); border: 1rpx solid var(--line); border-radius: 40rpx;
+  color: var(--text); font-size: 28rpx;
+}
+.duo-symbol { color: var(--green-dark); font-size: 40rpx; margin-bottom: 8rpx; }
+.duo b { font-size: 28rpx; font-weight: 550; }
+.duo-arrow { position: absolute; top: 32rpx; right: 38rpx; color: var(--sub); font-size: 32rpx; }
+
+/* 快捷入口（小程序保留） */
+.grid { display: flex; flex-wrap: wrap; padding: 0 24rpx; margin-bottom: 8rpx; }
+.gitem { width: 25%; box-sizing: border-box; padding: 14rpx; }
+.gitem > view { background: var(--card); border: 1rpx solid var(--line); border-radius: 24rpx; padding: 26rpx 10rpx; text-align: center; }
+.gi { font-size: 44rpx; display: block; margin-bottom: 8rpx; }
+.gitem text { font-size: 22rpx; color: var(--sub); }
+
+/* 修炼记录入口 */
+.record-link {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 0 24rpx 28rpx; padding: 20rpx 8rpx;
+  color: var(--sub); font-size: 22rpx;
+}
+.record-link b { font-size: 22rpx; font-weight: 500; color: var(--text); }
+
+/* 兼容旧元素 */
+.bar { height: 14rpx; background: var(--line); border-radius: 999rpx; margin-top: 20rpx; overflow: hidden; }
+.bar-in { height: 100%; background: var(--green); border-radius: 999rpx; }
+.stat-row { display: flex; gap: 16rpx; margin-top: 10rpx; }
+.stat { flex: 1; background: var(--bg); border-radius: 14rpx; padding: 16rpx 8rpx; text-align: center; }
+.stat b { display: block; font-size: 34rpx; font-weight: 800; color: var(--green-dark); }
+.stat text { font-size: 22rpx; color: var(--sub); }
+.stage-tag { display: inline-block; padding: 4rpx 18rpx; border-radius: 999rpx; background: var(--green-soft); color: var(--green-dark); font-size: 22rpx; font-weight: 600; }
+
+/* ── 破境仪式卡（2026-10-17 与网站同款）── */
+.brk-mask { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; padding: 40rpx; box-sizing: border-box; }
+.brk-card { background: #0e1510; border: 4rpx solid #d5bd87; border-radius: 32rpx; padding: 44rpx 36rpx 32rpx; text-align: center; color: #e8dcc0; max-height: 88vh; overflow-y: auto; }
+.brk-eyebrow { font-size: 22rpx; color: #a89668; letter-spacing: 8rpx; }
+.brk-realm { font-size: 52rpx; font-weight: 500; color: #d5bd87; margin-top: 16rpx; font-family: var(--font-serif, 'Songti SC'); }
+.brk-note { font-size: 24rpx; color: #c9b98a; margin-top: 12rpx; line-height: 1.7; }
+.brk-line { height: 1px; background: repeating-linear-gradient(90deg,#4a4030 0 6rpx,transparent 6rpx 10rpx); margin: 24rpx 0; }
+.brk-comment { margin-top: 8rpx; padding: 20rpx 24rpx; background: #1a2016; border-radius: 16rpx; font-size: 24rpx; color: #e8dcc0; line-height: 1.7; text-align: left; }
+.brk-from { text-align: right; color: #a83232; font-size: 20rpx; margin-top: 8rpx; }
+.brk-foot { font-size: 20rpx; color: #5f6b60; margin-top: 16rpx; }
+
+.brk-parts { text-align: left; margin-top: 8rpx; }
+.brk-part { font-size: 24rpx; color: #c9b98a; line-height: 1.8; margin-top: 6rpx; }

@@ -1,0 +1,16 @@
+<view wx:if="{{ex}}" class="wrap">
+  <view class="gifbox">
+    <frame-gif frames="{{ex.gif}}" speed="{{420}}" equip="{{ex.equipment}}" interactive="{{true}}"/>
+  </view>
+  <view class="ttl">{{ex.name}}</view>
+  <view class="row">
+    <text class="badge {{ex.equipment==='无器械'?'home':'gym'}}">{{ex.equipment==='无器械'?'🏠 居家':'🏋 器械'}}</text>
+    <text class="meta">{{ex.part}} · {{ex.sets}}</text>
+  </view>
+  <view class="sec" wx:if="{{ex.points}}">
+    <view class="h">动作要领</view>
+    <view class="po">{{ex.points}}</view>
+  </view>
+  <view class="tip">点击图片可暂停 / 播放 · 起始 → 结束 来回循环</view>
+</view>
+<view wx:else class="empty">未找到该动作</view>

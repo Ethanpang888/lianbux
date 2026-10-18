@@ -1,0 +1,98 @@
+/* app.wxss —— 全局样式（2026-10-16 对齐网站「洞府」深色主题）
+   色板与网站 template/redesign.css body.dark 完全同源：
+   --bg:#101713 --card:#19221d --tx:#e6ede7 --sub:#9aa99e --line:#2a372f
+   --green:#90c8a4 --green-dark:#a2d4b2 --green-soft:#233c2c --gold:#d5bd87 */
+page {
+  --green: #90c8a4;
+  --green-dark: #a2d4b2;
+  --green-soft: #233c2c;
+  --bg: #101713;
+  --card: #19221d;
+  --text: #e6ede7;
+  --sub: #9aa99e;
+  --line: #2a372f;
+  --warn: #d5bd87;
+  --warn-soft: #392f20;
+  --gold: #d5bd87;
+  --danger: #e5726f;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  font-size: 28rpx;
+  /* 自定义 tabBar 是浮层（custom-tab-bar 实测高 100rpx + 安全区），
+     页面底部必须自行留白，否则最后一个卡片（如「保存今日打卡」）会被压住、要使劲划才看得到 */
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.card {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 40rpx;
+  padding: 36rpx;
+  margin: 20rpx;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+.btn {
+  background: var(--green);
+  color: #12291b;
+  border-radius: 24rpx;
+  text-align: center;
+  padding: 24rpx;
+  font-weight: 600;
+}
+.btn.ghost { background: var(--green-soft); color: var(--green-dark); }
+.btn.block { width: auto; margin: 20rpx 0 0; }.row { display: flex; align-items: center; }
+.between { justify-content: space-between; }
+.muted { color: var(--sub); font-size: 24rpx; }
+.title { font-size: 34rpx; font-weight: 700; }
+.tag {
+  display: inline-block; font-size: 20rpx; padding: 4rpx 14rpx;
+  border-radius: 12rpx; background: var(--green-soft); color: var(--green-dark); margin-right: 10rpx;
+}
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+.hidden { display: none; }
+.center-empty { text-align: center; color: var(--sub); padding: 80rpx 0; font-size: 26rpx; }
+
+/* 历史打卡明细 */
+.hist { border-top: 1rpx solid var(--line); padding: 16rpx 0; }
+.hist:first-of-type { border-top: none; }
+.hist-h { display: flex; justify-content: space-between; align-items: center; }
+.hist-b { margin-top: 10rpx; padding: 14rpx 18rpx; background: var(--bg); border-radius: 14rpx; font-size: 24rpx; line-height: 1.7; }
+.hist-ex { display: flex; justify-content: space-between; gap: 16rpx; padding: 4rpx 0; }
+
+/* 自定义食物/动作浮层（居中+可滚动，避免被原生 tabBar 挡住底部按钮）*/
+.mask { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 24rpx; box-sizing: border-box; }
+.sheet { width: 100%; max-height: 86vh; overflow-y: auto; background: var(--card); color: var(--text); border: 1rpx solid var(--line); border-radius: 28rpx; padding: 32rpx 28rpx calc(32rpx + env(safe-area-inset-bottom)); box-sizing: border-box; }
+/* 联想建议列表 */
+.sug { max-height: 360rpx; overflow-y: auto; margin: 10rpx 0; border: 1rpx solid var(--line); border-radius: 14rpx; }
+.sug-i { padding: 18rpx 18rpx; border-bottom: 1rpx solid var(--line); font-size: 26rpx; display: flex; justify-content: space-between; align-items: center; }
+.sug-i:last-child { border-bottom: none; }
+.sug-i:active { background: var(--bg); }
+.sug-i .eq { font-size: 20rpx; color: var(--green-dark); }
+.food.custom { background: rgba(99,102,241,0.18); color: #a5b4fc; font-weight: 600; }
+.field.sm { flex-direction: column; align-items: flex-start; gap: 6rpx; margin: 10rpx 0; }
+.field.sm text { font-size: 22rpx; }
+.field.sm input { width: 100%; border: 1rpx solid var(--line); border-radius: 12rpx; padding: 14rpx 16rpx; background: var(--bg); color: var(--text); }
+.grid2 { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.grid2 .field.sm { width: calc(50% - 6rpx); }
+.collapse { margin-top: 16rpx; color: var(--green-dark); font-size: 24rpx; padding: 8rpx 0; }
+
+/* 我的体质倾向回顾卡 */
+.tcm-recap { border-left: 8rpx solid var(--green); }
+.tcm-main { font-size: 34rpx; font-weight: 700; color: var(--text); margin: 8rpx 0 2rpx; }
+.tcm-conv { font-size: 24rpx; font-weight: 400; color: var(--sub); }
+.tcm-sec { font-size: 26rpx; color: var(--warn); margin-top: 4rpx; }
+.tcm-tip { background: var(--green-soft); border-left: 8rpx solid var(--green); }
+.tcm-tip-h { font-size: 28rpx; font-weight: 500; color: var(--text); }
+.week-tip { background: var(--warn-soft); border-left: 8rpx solid var(--warn); }
+.week-tip .wt-h { font-size: 28rpx; font-weight: 500; color: var(--warn); }
+.wt-li { font-size: 24rpx; color: var(--sub); line-height: 1.6; margin-top: 8rpx; }
+.prog { border: 2rpx solid var(--line); border-radius: 14rpx; padding: 18rpx 20rpx; margin-top: 12rpx; }
+.prog.on { border-color: var(--green); background: var(--green-soft); }
+.prog-h { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 26rpx; }
+
+/* 通用输入框：深色下必须显式给底色（网站同规矩） */
+input, textarea { color: var(--text); }
+input { background: transparent; }
+input::-webkit-input-placeholder, textarea::-webkit-input-placeholder { color: #5f6b60; }

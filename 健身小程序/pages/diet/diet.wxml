@@ -1,0 +1,97 @@
+<view wx:if="{{!hasProfile}}" class="card center-empty">
+  <view class="title">还没有测评资料</view>
+  <view class="btn block" bindtap="goAssess">去测评</view>
+</view>
+
+<block wx:else>
+  <!-- 每日消耗 → 热量目标 -->
+  <view wx:if="{{energy}}" class="card" style="background:var(--green-soft);border-left:8rpx solid var(--green)">
+    <view class="title" style="font-size:28rpx">每日消耗与热量目标</view>
+    <view class="muted" style="margin:8rpx 0;line-height:1.8">
+      基础代谢 <b>{{energy.bmr}}</b> × 活动系数 <b>{{energy.factor}}</b>（{{energy.actName}}）= 每日总消耗 <b>{{energy.tdee}}</b> kcal
+    </view>
+    <view class="macline total"><text>热量目标</text><b>{{diet.kcal}}kcal</b><text class="sub">消耗 {{energy.tdee}} − 实际缺口 {{energy.deficit}}</text></view>
+    <view wx:if="{{energy.warn}}" class="ewarn">实际缺口与目标偏离较大，去「我的 → 修改资料」复核日常活动量</view>
+  </view>
+
+  <!-- 体重趋势 → 调控建议 -->
+  <view class="card">
+    <view class="title" style="font-size:28rpx">体重趋势与调控</view>
+    <block wx:if="{{trend && trend.enough}}">
+      <view class="muted" style="margin:8rpx 0;line-height:1.8">
+        {{trend.from}} → {{trend.to}}（{{trend.days}} 天）：<b>{{trend.delta > 0 ? '+' : ''}}{{trend.delta}} kg</b>，折合每周 <b>{{trend.perWeek}} kg</b>
+      </view>
+      <view class="advice">{{trend.advice}}</view>
+      <view wx:if="{{trend.step}}" class="btn ghost block" style="margin-top:14rpx" bindtap="applyTrend">
+        采纳建议：碳水 {{trend.step > 0 ? '+' : ''}}{{trend.step}} g/kg
+      </view>
+      <view class="muted" style="margin-top:10rpx">采纳后写入「微饿循环」的碳水偏移，明天起生效。</view>
+    </block>
+    <view wx:else class="muted" style="line-height:1.7">{{trend.note || '正在读取体重记录…'}}（在「今日 → 完成打卡」里填体重即可累积）</view>
+  </view>
+
+  <view class="card">
+    <view class="title">你的宏量目标 · 谭成义模型</view>
+    <view class="muted" style="margin:6rpx 0 12rpx">随你每天记录的饥饿感、以及每周体重变化微调。</view>
+    <view class="macline"><text>脂肪</text><b>{{diet.fat}}g</b><text class="sub">{{diet.fatG}}g/kg · O3/O6 平衡</text></view>
+    <view class="macline"><text>蛋白质</text><b>{{diet.protein}}g</b><text class="sub">{{diet.protG}}g/kg · 随碳水档反向</text></view>
+    <view class="macline"><text>碳水</text><b>{{diet.carb}}g</b><text class="sub">{{diet.carbG}}g/kg · 弹性项（补齐热量）</text></view>
+    <view class="macline total"><text>合计热量</text><b>{{diet.kcal}}kcal</b><text class="sub">蛋白+脂肪固定，碳水补差额</text></view>
+  </view>
+
+  <!-- 今天吃什么 -->
+  <view class="card">
+    <view class="row between">
+      <view class="title" style="font-size:28rpx">今天吃什么</view>
+      <view class="modesw">
+        <view class="ms {{dietMode==='recipe'?'on':''}}" data-m="recipe" bindtap="setDietMode">配好菜</view>
+        <view class="ms {{dietMode==='simple'?'on':''}}" data-m="simple" bindtap="setDietMode">只给克数</view>
+      </view>
+    </view>
+
+    <block wx:if="{{dayPlan}}">
+      <view class="muted" style="margin:8rpx 0 14rpx;line-height:1.6">{{dayPlan.note}}</view>
+
+      <view wx:for="{{dayPlan.meals}}" wx:key="meal" class="meal">
+        <view class="meal-h">
+          <text class="meal-n">{{item.mealName}}</text>
+          <text class="meal-t">蛋白{{item.got.protein}}g · 碳水{{item.got.carb}}g · 脂肪{{item.got.fat}}g · {{item.got.kcal}}kcal</text>
+        </view>
+
+        <block wx:if="{{dietMode==='recipe'}}">
+          <view wx:for="{{item.dishes}}" wx:for-item="d" wx:key="name" class="dish">
+            <view class="dish-n">{{d.name}}<text class="dish-k">{{d.nutrition.kcal}}kcal · 蛋白{{d.nutrition.protein}}g</text></view>
+            <view class="dish-i">{{d.items}}</view>
+          </view>
+        </block>
+
+        <block wx:else>
+          <view class="smline"><text>蛋白 {{item.protein}}g</text><text>碳水 {{item.carb}}g</text><text>脂肪 {{item.fat}}g</text><text>{{item.kcal}}kcal</text></view>
+          <view wx:for="{{item.hints}}" wx:for-item="h" wx:key="*this" class="hint">{{h}}</view>
+        </block>
+      </view>
+
+      <view class="muted" style="margin-top:12rpx">全天目标 蛋白{{dayPlan.target.protein}}g · 碳水{{dayPlan.target.carb}}g · 脂肪{{dayPlan.target.fat}}g · {{dayPlan.target.kcal}}kcal</view>
+    </block>
+    <view wx:else class="muted">暂时算不出来（先完成测评）。</view>
+  </view>
+
+  <view class="card" style="background:var(--warn-soft);border-left:8rpx solid var(--warn)">
+    <view class="title" style="font-size:28rpx">🌾 微饿循环 · 每天记一下</view>
+    <view class="chk" style="margin-top:12rpx">
+      <view class="chk-i {{dietState.lastType==='很饿'?'on':''}}" data-v="很饿" bindtap="setHunger">很饿·加碳水</view>
+      <view class="chk-i {{dietState.lastType==='微饿'?'on':''}}" data-v="微饿" bindtap="setHunger">微饿·最佳</view>
+      <view class="chk-i {{dietState.lastType==='不饿'?'on':''}}" data-v="不饿" bindtap="setHunger">不饿·减碳水</view>
+    </view>
+    <view class="muted" style="margin-top:10rpx">当前微调：碳水 {{dietState.carbAdj>0?'+':''}}{{dietState.carbAdj}}g/kg · 蛋白 {{dietState.proteinAdj>0?'+':''}}{{dietState.proteinAdj}}g/kg</view>
+    <view class="muted" style="margin-top:8rpx">近7天：<block wx:for="{{history7}}" wx:key="*this"><text class="dot {{item==='微饿'?'on':''}}">{{item}}</text></block><text wx:if="{{history7.length===0}}">暂无记录</text></view>
+  </view>
+
+  <view class="card">
+    <view class="title" style="font-size:28rpx;margin-bottom:10rpx">📚 理论科普</view>
+    <view wx:for="{{theories}}" wx:key="t" class="theory">
+      <view class="th-t">{{item.t}}</view>
+      <view class="th-s">{{item.s}}</view>
+    </view>
+  </view>
+</block>

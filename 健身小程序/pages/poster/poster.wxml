@@ -1,0 +1,9 @@
+<!--pages/poster/poster.wxml——战报海报（与网站同款：今日战报 / 修行生涯卡）-->
+<view class="wrap">
+  <canvas type="2d" id="pCanvas" class="pcv"></canvas>
+  <view class="ops">
+    <view class="btn" bindtap="save">保存到相册</view>
+    <button class="btn ghost sharebtn" open-type="share">发给微信好友</button>
+  </view>
+  <view class="muted hint">保存后可发朋友圈 / 群里 / 当抖音封面素材</view>
+</view>

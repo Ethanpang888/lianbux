@@ -1,0 +1,25 @@
+.pill { background:var(--green-soft); color:var(--green-dark); padding:8rpx 22rpx; border-radius:999rpx; font-size:24rpx; margin-right:14rpx; }
+.menu .mi { display:flex; justify-content:space-between; align-items:center; padding:28rpx 0; border-bottom:1rpx solid var(--line); }
+.menu .mi:last-child { border-bottom:none; }
+.menu .mi text:first-child { font-size:28rpx; }
+.arr { color:var(--line); font-size:36rpx; }
+.mi.danger text:first-child { color:var(--danger); }
+/* 徽章墙（网站 badge-grid 同款） */
+.badge-grid { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
+.badge-tile {
+  width: calc((100% - 48rpx) / 4); box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; gap: 6rpx;
+  padding: 18rpx 8rpx; border-radius: 16rpx;
+  background: var(--green-soft); border: 1rpx solid var(--line);
+}
+.badge-tile text { font-size: 20rpx; color: var(--green-dark); text-align: center; }
+.badge-tile.locked { background: var(--bg); }
+.badge-tile.locked text { color: var(--sub); }
+.badge-ic { font-size: 40rpx; }
+
+/* 收徒卡（2026-10-17） */
+.inv-code { font-family: ui-monospace, Menlo, monospace; font-size: 34rpx; font-weight: 500; letter-spacing: 4rpx; color: var(--green-dark); }
+
+/* 周任务/徽章进度条（2026-10-18 第一批） */
+.wk-bar { height: 14rpx; background: var(--bg); border: 1rpx solid var(--line); border-radius: 999rpx; overflow: hidden; }
+.wk-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), #4ade80); border-radius: 999rpx; }

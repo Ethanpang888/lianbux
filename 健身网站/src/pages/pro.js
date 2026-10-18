@@ -1,0 +1,432 @@
+/* src/pages/pro.js —— 完整版（付费层）：具体重量 / 周期表 / 状态微调 / 完整饮食
+ *
+ * 分层（用户 2026-09-23 拍板）：
+ *   普通用户 → 免费版只给「动作骨架」（练什么、几组几次），本页只展示「里面有什么」+ 开通入口
+ *   已开通   → 本页是完整计划本体；今日训练页的动作卡里也会直接出现建议重量
+ *
+ * 开通状态挂在**账号的 member 字段**（{ level, expiresAt }），由服务端核销后下发 ——
+ * 客户端改不了它，前端也不持有任何口令。详见 shared/pro.js 的会员段。
+ */
+const PagePro = {
+  /** 状态微调的选择（不持久化：今天累不累是当天的事） */
+  stateKey: 'ok',
+
+  render() {
+    const u = Store.state.user || {}
+    const p = u.profile
+    const app = document.getElementById('app')
+    if (!p || !Number(p.weight)) {
+      // 路由守卫一般会先拦到建档页；演示模式或手动清档案时兜底
+      app.innerHTML = Router.bar('完整版', '具体重量与周期') +
+        '<div class="card">' + UI.empty('先补上身高体重、目标和训练经验，重量才算得出来') +
+        '<button class="btn" onclick="Router.go(\'onboard\')">去建档</button></div>'
+      return
+    }
+    const on = ENGINE.pro.isPro(u)
+    app.innerHTML = Router.bar('完整版', on ? '已开通 · 具体重量与周期' : '具体重量 · 周期 · 完整饮食') +
+      (on ? this.body(u, p) : this.lock(u))
+    this.bind(on)
+  },
+
+  // ───────────── 已开通：完整内容 ─────────────
+
+  body(u, p) {
+    const P = ENGINE.pro
+    const plan = u.plan
+    const hist = Store.state.checkins || []
+    const today = Fmt.todayStr()
+
+    let idx = 0, cycleLen = 1
+    if (plan && plan.micro && plan.micro.length) {
+      cycleLen = plan.micro.length
+      try { idx = Math.max(0, ENGINE.calc.dayIndexFromStart(plan.cycleStart || today, today)) } catch (e) { idx = 0 }
+    }
+    const week = Math.floor(idx / cycleLen) + 1
+    const day = (plan && plan.micro && plan.micro.length)
+      ? ENGINE.kb.dayContent(plan, idx, p, !!plan.home) : null
+    const st = P.applyState(day, p, hist, this.stateKey)
+    const ct = P.cycleTable(plan, p, { rounds: 8, week: week, method: ENGINE.method })
+    const energy = ENGINE.calc.energyPlan(p, Store.adj())
+    const dp = P.dietPlan(p, energy, { method: ENGINE.method })
+    const isTrain = !!(day && day.type === 'train')
+
+    // 周期表锚点：用今天处方的主项重量换算出「8 次基准」，把每轮的抽象系数变成具体公斤数
+    // （用户实测 2026-10-13：光看「主项 ×0.91」看不懂 —— 要写「≈ 73kg」）
+    let anchor8 = 0, anchorName = '卧推'
+    try {
+      if (st && st.list && st.list.length && st.list[0].weight > 0) {
+        const curRel = (ct.rounds[(week - 1) % ct.rounds.length] || {}).rel || 1
+        anchor8 = st.list[0].weight / (curRel || 1)
+        anchorName = st.list[0].name || anchorName
+      } else {
+        // 今天是休息日：取计划里第一个训练日的主项推演
+        for (let i = 0; i < (plan.micro || []).length && !anchor8; i++) {
+          const d2 = ENGINE.kb.dayContent(plan, i, p, !!plan.home)
+          if (d2.type !== 'train') continue
+          const pr = P.todayPrescription(d2, p, [])
+          const first = (pr.list || [])[0]
+          if (first && first.weight > 0) { anchor8 = first.weight / (((ct.rounds[(week - 1) % ct.rounds.length] || {}).rel) || 1); anchorName = first.name || anchorName }
+        }
+      }
+    } catch (e) { anchor8 = 0 }
+
+    // 顺序即体验（用户实测 2026-10-13：会员卡+重复处方挡在最前，真正付费内容压在底下，像"开了和没开一样"）：
+    // 开通后先看到**周期表和饮食方案本体**；处方细节留在「训练」页，不在这里重复。
+    // 2026-10-15 用户再点破"开通了也不知道这页是干什么的" → 页首一句话说清这页和训练页的分工。
+    return this.memberCard(u) +
+      '<div class="card" style="border:1px solid var(--green)"><b>这一页是你花钱买的东西的「总表」</b>' +
+        '<div class="muted txs" style="margin-top:4px">下面这张周期表 = 你未来几轮每轮练多重；再往下是按你消耗算的完整饮食。' +
+        '<b>平时不用专门点进来</b> —— 每天的具体重量已经在「训练」页每个动作上预填好了，练就行；这一页用来看全局和改饮食。</div></div>' +
+      this.cycleCard(ct, week, anchor8, anchorName) +
+      this.whereCard(ct, week, cycleLen, day) +
+      this.dietCards(dp, isTrain) +
+      this.sourceCard(dp)
+  },
+
+  /** 会员凭据 —— 让用户随时看得到自己买了什么、还有多久 */
+  memberCard(u) {
+    const m = ENGINE.pro.memberOf(u)
+    if (!m.valid) return ''
+    return '<div class="card">' +
+      '<h2>我的会员 <span class="tag">' + Fmt.esc(m.name) + '</span></h2>' +
+      '<div class="muted txs" style="margin-top:8px">到期 <b>' + Fmt.esc(String(m.expiresAt).slice(0, 10)) +
+        '</b> · 还剩 <b>' + m.days + '</b> 天' +
+        (m.level === 'coach' ? ' · AI 顾问待上线' : '') + '</div>' +
+      '<div class="muted txs" style="margin-top:8px">会员挂在<b>账号</b>上，不是这台设备 —— 换手机登录也还在。' +
+        (m.level === 'coach' ? '' : '想要 AI 顾问，需要「完整版 + AI 顾问」那一档。') + '</div>' +
+      '<div style="margin-top:10px;text-align:right"><span class="muted txs" style="cursor:pointer;text-decoration:underline" ' +
+        'onclick="if(confirm(\'确定取消订阅？取消后到期不再续，到期前权益仍在。\')){document.getElementById(\'proOff\').click()}">取消订阅</span>' +
+        '<button class="btn ghost" id="proOff" style="display:none"></button></div>' +
+    '</div>'
+  },
+
+  /** 你现在处在周期的哪个位置 —— 周期化的意义就是让人知道自己「站在哪一步」 */
+  whereCard(ct, week, cycleLen, day) {
+    const everyWk = ct.everyWeeks
+    const pos = ((week - 1) % everyWk) + 1
+    const isDeload = week % everyWk === 0
+    const nextDeload = isDeload ? week + everyWk : week + (everyWk - pos + 1)
+    const round = ct.rounds[(week - 1) % ct.rounds.length] || ct.rounds[0]
+    return '<div class="card">' +
+      '<h2>你在这个周期里的位置 <span class="mini">「轮」= 走完一遍全部训练日</span></h2>' +
+      UI.kv([
+        { k: '当前阶段', v: round.phase },
+        { k: '周期进度', v: pos + ' / ' + everyWk + ' 天' },
+        { k: '主项组次', v: round.sets.主项 },
+        { k: '下次减载', v: '第 ' + nextDeload + ' 轮' }
+      ]) +
+      (isDeload ? '<div style="margin-top:8px"><span class="tag warn">这一轮是减载轮</span> ' +
+        '<span class="muted txs">只砍组数，重量维持、组间休息不动</span></div>' : '') +
+      '<div class="muted txs" style="margin-top:8px">一轮 = 走完 ' + cycleLen + ' 天' +
+        (day && day.focus ? '；今天这轮是「' + Fmt.esc(day.focus) + '」' : '') +
+        '。周期走完从第 1 轮重新开始，但重量以你上一周期的<b>实测</b>为基准往上走。</div>' +
+    '</div>'
+  },
+
+  /** 今天的处方：具体到每个动作多重；状态不同，处方跟着变 */
+  todayCard(st, day, isTrain) {
+    const P = ENGINE.pro
+    if (!day || !isTrain) {
+      return '<div class="card"><h2>今天的处方</h2>' +
+        '<p class="muted">今天是休息日，完整版不给你排动作 —— 恢复本身就是计划的一部分。</p>' +
+        '<div class="muted txs">想动一动：散步 20-30 分钟、拉伸、筋膜放松。有氧放今天最合适（原文：一周 3-4 次，固定时长只提强度）。</div>' +
+      '</div>'
+    }
+    const list = st.list
+    const sum = list.reduce((s, x) => s + (x.weight > 0 ? x.weight * x.setsN * x.reps : 0), 0)
+    return '<div class="card">' +
+      '<h2>今天的处方 <span class="mini">' + Fmt.esc(day.focus || '') + '</span></h2>' +
+      '<div class="wrap-row" style="margin-bottom:10px">' +
+        P.STATES.map(s => '<button class="chip' + (s.key === this.stateKey ? ' on' : '') +
+          '" data-state="' + s.key + '">' + Fmt.esc(s.name) + '</button>').join('') +
+      '</div>' +
+      '<div class="muted txs" style="margin-bottom:8px">' + Fmt.esc(st.note) + '</div>' +
+      list.map(x => this.pxRow(x)).join('') +
+      '<div class="muted txs" style="margin-top:10px">按这个处方练，今天总容量约 <b>' +
+        Fmt.round(sum / 1000, 1) + ' 吨</b>' +
+        (st.state.weightPct !== 1 ? '（已按「' + Fmt.esc(st.state.name) + '」下调到 ' +
+          Math.round(st.state.weightPct * 100) + '%）' : '') + '。' +
+        '<br>重量是按「能做满 N 次、最后留 2 次余量」给的；第一组先用它做 ≤15 次热身刷熟练度。</div>' +
+    '</div>'
+  },
+
+  pxRow(x) {
+    const bw = !(x.weight > 0)
+    const tag = bw ? '' : (x.src === '实测'
+      ? ' <span class="tag">实测</span>'
+      : ' <span class="tag warn">推演</span>')
+    const wt = bw ? '自重'
+      : Fmt.round(x.weight, 1) + '<span style="font-size:11px">kg</span>' +
+        (x.perSide ? '<div class="muted txs" style="text-align:right;font-weight:400">每只</div>' : '')
+    return '<div class="px-row">' +
+      '<div class="px-nm"><b>' + Fmt.esc(x.name) + '</b> ' +
+        '<span class="tag gray">' + Fmt.esc(x.role) + '</span>' + tag +
+        '<div class="muted txs">' + Fmt.esc(x.sets) + (x.equipment ? ' · ' + Fmt.esc(x.equipment) : '') + '</div>' +
+        '<div class="muted txs">' + Fmt.esc(x.note) + '</div>' +
+      '</div>' +
+      '<div class="px-wt' + (bw ? ' bw' : '') + '">' + wt + '</div>' +
+    '</div>'
+  },
+
+  cycleCard(ct, week, anchor8, anchorName) {
+    return '<div class="card">' +
+      '<h2>四周周期表 <span class="mini">' + ct.everyWeeks + ' 轮一个周期</span></h2>' +
+      '<div class="muted txs" style="margin-bottom:6px">主项阶梯：' + Fmt.esc(ct.ladder) +
+        '。次数越少、重量越大（系数 × 你的 8 次重量）。</div>' +
+      ct.rounds.map(r => {
+        const cur = r.week === week
+        const kg = anchor8 > 0 ? ' <span class="m">≈ ' + Fmt.round(anchor8 * r.rel, 0) + 'kg</span>' : ''
+        return '<div class="cyc-row' + (cur ? ' cur' : '') + '">' +
+          '<div class="cyc-h"><b>第 ' + r.week + ' 轮</b>' +
+            (r.deload ? '<span class="tag warn">减载</span>'
+                      : '<span class="tag">' + Fmt.esc(r.phase) + '</span>') +
+            (cur ? '<span class="tag gold">当前</span>' : '') +
+            '<span class="m">主项 ' + Fmt.esc(r.sets.主项) + kg + '</span></div>' +
+          '<div class="cyc-b">' +
+            '<span>主项 ' + Fmt.esc(r.sets.主项) + '</span>' +
+            '<span>辅助 ' + Fmt.esc(r.sets.辅助) + '</span>' +
+            '<span>孤立 ' + Fmt.esc(r.sets.孤立) + '</span>' +
+            '<span>核心 ' + Fmt.esc(r.sets.核心) + '</span>' +
+          '</div>' +
+          '<div class="muted txs" style="margin-top:2px">' + Fmt.esc(r.note) + '</div>' +
+        '</div>'
+      }).join('') +
+      '<div class="muted txs" style="margin-top:8px">倍率是通用换算（次数↔重量的等比关系），所以打了「推演」——' +
+        '但组次与减载口径全部来自原文。具体到每个动作多重，看上面的「今天的处方」。</div>' +
+    '</div>'
+  },
+
+  dietCards(dp, isTrain) {
+    const which = isTrain ? '训练日' : '休息日'
+    const meals = dp.meals || []
+    return '<div class="card"><h2>三套饮食口径 <span class="mini">都写清了是谁说的</span></h2>' +
+        '<div class="muted txs">' + Fmt.esc(dp.schools.note) + '</div>' +
+        dp.schools.list.map(x =>
+          '<div class="cyc-row' + (x.recommended ? ' cur' : '') + '" style="margin-top:8px">' +
+            '<div class="cyc-h"><b>' + Fmt.esc(x.name) + '</b>' +
+              '<span class="tag gray">' + Fmt.esc(x.useFor) + '</span>' +
+              (x.recommended ? '<span class="tag gold">建议先看</span>' : '') + '</div>' +
+            '<div class="muted txs" style="margin-top:3px"><b>碳水</b> ' + Fmt.esc(x.carb) + '</div>' +
+            '<div class="muted txs"><b>蛋白</b> ' + Fmt.esc(x.protein) + '</div>' +
+            '<div class="muted txs"><b>脂肪</b> ' + Fmt.esc(x.fat) + '</div>' +
+            (x.notes || []).map(n => '<div class="muted txs">· ' + Fmt.esc(n) + '</div>').join('') +
+            '<div class="muted txs" style="margin-top:3px">例：' + Fmt.esc(x.sample) + '</div>' +
+            '<div class="muted txs" style="margin-top:3px">出处：' + Fmt.esc(x.from) + '</div>' +
+          '</div>').join('') +
+        '<div class="muted txs" style="margin-top:10px">这三套都是别人的口径，我们只做整理 —— 出处写在每一档里。' +
+          '上面「每日目标」那张卡是引擎按你的档案算的，跟这三套是两回事。</div>' +
+      '</div>' +
+
+      '<div class="card"><h2>今天每餐怎么分 <span class="mini">' + which + ' · ' + meals.length + ' 餐</span></h2>' +
+        meals.map(m => UI.li(Fmt.esc(m.name) + ' <span class="muted txs">' + Math.round(m.pct * 100) + '%</span>',
+          '碳水 ' + m.carb + 'g',
+          '脂肪 ' + m.fat + 'g · 蛋白 ' + m.protein + 'g')).join('') +
+        '<div class="muted txs" style="margin-top:8px">练的那天的碳水往「练前」和「练后」两餐集中，不要平摊到一天。</div>' +
+        dp.timing.map(t => '<div style="margin-top:6px"><b style="font-size:13px">' + Fmt.esc(t.t) + '</b>' +
+          '<div class="muted txs">' + Fmt.esc(t.d) + '</div></div>').join('') +
+      '</div>' +
+
+      this.eatoutCard() + this.suppCard(dp) +
+
+      '<div class="card"><h2>主食换算 <span class="mini">每 100g</span></h2>' +
+        dp.staples.map(s => UI.li(Fmt.esc(s.name), s.kcal + ' kcal', Fmt.esc(s.unit))).join('') +
+        '<div class="muted txs" style="margin-top:8px">数值取自项目食物库（中国食物成分表 第6版）。' +
+          '⚠️ <b>生重 / 熟重差很多</b>：100g 生米 346 kcal，煮成饭约 300g、350 kcal —— 记生重还是熟重要固定一种。</div>' +
+      '</div>'
+  },
+
+  eatoutCard() {
+    const rows = ENGINE.pro.EATOUT
+    return '<div class="card"><h2>外卖潜规则 <span class="mini">' + rows.length + ' 条 · 带点单示例</span></h2>' +
+      rows.map(x => '<div style="margin-top:6px"><b style="font-size:13px">' + Fmt.esc(x.t) + '</b>' +
+        '<div class="muted txs">' + Fmt.esc(x.d) + '</div></div>').join('') +
+      '<div class="muted txs" style="margin-top:8px">这里不给「某家店一碗多少卡」这种数字 —— ' +
+        '各家做法差太多，编出来的数只会让你算错账。能长期用的只有「点法规则 + 主食克数」。</div>' +
+    '</div>'
+  },
+
+  suppCard(dp) {
+    const rows = ENGINE.pro.SUPPLEMENT
+    return '<div class="card"><h2>补剂与饮水 <span class="mini">通用共识</span></h2>' +
+      rows.map(x => '<div style="margin-top:6px"><b style="font-size:13px">' + Fmt.esc(x.t) + '</b>' +
+        '<div class="muted txs">' + Fmt.esc(x.d) + '</div></div>').join('') +
+      '<div class="muted txs" style="margin-top:8px">' + Fmt.esc(dp.waterNote) + '</div>' +
+      '<div class="muted txs">以下属于通用运动营养共识，不是博主原话；有基础病或在用药，先问医生。</div>' +
+    '</div>'
+  },
+
+  sourceCard(dp) {
+    return '<div class="card"><h2>这些数字是哪来的</h2>' +
+      UI.li('<span class="tag">原文</span> 组次 / 组间休息 / 递进阶梯 / RPE / 减载', '', '谭成义 × 凯圣王') +
+      UI.li('<span class="tag">实测</span> 你的重量', '打卡记录换算', '最优先') +
+      UI.li('<span class="tag warn">推演</span> 起始重量 / 次数↔重量倍率', '按体重与经验估算', '会被实测取代') +
+      '<div class="muted txs" style="margin-top:8px">凡标「推演」的都不是博主原话，是按通用规律推出来的：' +
+        '第一次照着做，一旦有了你自己的打卡记录，重量就自动改用你的实测数据。</div>' +
+      '<div class="muted txs" style="margin-top:6px">' + Fmt.esc(dp.disclaimer) + '</div>' +
+    '</div>'
+  },
+
+  // ───────────── 未开通：说清有什么 + 开通入口 ─────────────
+
+  lock(u) {
+    return '<div class="card">' +
+        '<h2>完整版里有什么 <span class="tag gold">收费</span></h2>' +
+        '<div class="tier-lock"><div class="big">🏋️</div></div>' +
+        '<div class="muted txs" style="text-align:center;margin-bottom:6px">' +
+          '免费版给的是<b>动作骨架</b> —— 练什么、几组几次。完整版补上的是「怎么练重、怎么往上走」：</div>' +
+        this.feature('每个动作练多重', '按你的体重、经验和打卡记录算出具体重量，不用自己猜、也不用试探着加') +
+        this.feature('四周周期表', '哪一轮加量、哪一轮减载（组数 ×0.6），一张表看完整个周期') +
+        this.feature('状态不好怎么临时调', '没睡好 −10%、只有 30 分钟只做主项 —— 按规则降量，而不是干脆不练') +
+        this.feature('完整饮食计划', '训练日 / 休息日怎么排、练前练后怎么吃、外卖怎么点、补剂与饮水') +
+        this.feature('每日计划邮件', '每天 08:00 训练+饮食计划直达邮箱，会员加发「明日预告 + 买菜清单」') +
+  this.feature('18 本功法秘籍', '减脂 / 增肌 / 同步 / 卧推增力 / 部位专项 / 体态矫正 / 居家 / 进阶周期 —— 挑一本，目标和计划当场跟着变') +
+        '<div style="margin-top:12px;padding:10px 12px;border-radius:var(--r-sm);background:var(--green-soft)">' +
+          '<div class="muted txs">免费版永远保留：今日课表、打卡与经验、徽章墙、排行榜、训练日志、' +
+          '每日饮食目标、分餐克数、1236 种食物库、体重宏观调控、调整顾问。</div>' +
+        '</div>' +
+      '</div>' +
+      this.anchorCard() +
+      this.priceCard() +
+      this.payCard() +
+      this.redeemCard()
+  },
+
+  /** 价格锚点（用户 2026-10-15 点破：没有锚点，用户不知道为什么花这个钱）。
+   *  数据点全部真实：竞品 19 页定制 PDF（我们买来拆过，见 docs）、私教课市价、7700 kcal≈1kg 脂肪的算账。 */
+  anchorCard() {
+    return '<div class="card"><h2>算笔账 <span class="mini">这钱花得值不值</span></h2>' +
+      '<div style="padding:8px 0;border-bottom:1px dashed var(--line)">' +
+        '<b style="font-size:13px">市面「定制训练+饮食计划」PDF：¥50–99 一份</b>' +
+        '<div class="muted txs">我们真的买了一份来拆（19 页）：宏量给得细，但<b>没有重量处方、没有组间休息口径、不会跟着你的体重变</b> —— 全靠你自己手算。</div>' +
+      '</div>' +
+      '<div style="padding:8px 0;border-bottom:1px dashed var(--line)">' +
+        '<b style="font-size:13px">线下私教一节课：¥200–400</b>' +
+        '<div class="muted txs">教动作 + 给计划，练完就下课，下次加多少重量照样没人管。</div>' +
+      '</div>' +
+      '<div style="padding:8px 0">' +
+        '<b style="font-size:13px">这里 ¥19.9/月（年付 ¥168 = 每月 14）</b>' +
+        '<div class="muted txs">上面那些它没有的<b>恰好是完整版的全部</b>：每个动作的具体重量（打卡后跟着你的实测走）、四周周期表自动递进减载、状态不好按规则降量、三套饮食口径全带出处。' +
+        '<b>一份定制计划的钱，用一整年，而且计划跟着你变。</b></div>' +
+      '</div>' +
+    '</div>'
+  },
+
+  /** 定价：月付 / 年付两档（年付主推）。旧「AI 顾问」档已停售；
+   *  进阶包（买断）内容做完再上架 —— 没做出来的不预售 */
+  priceCard() {
+    const L = ENGINE.pro.LEVELS
+    const li = arr => arr.map(x => '<div class="muted txs">· ' + Fmt.esc(x) + '</div>').join('')
+    const items = [
+      '每个动作的具体重量 + 逐轮递进',
+      '四周周期表与减载安排',
+      '完整饮食计划（三套口径，各自标了出处）',
+      '18 本功法秘籍，挑一本换掉你的目标和计划'
+    ]
+    const col = (title, price, per, tag, tagCls, extra) => '<div class="cyc-row' + (tagCls === 'gold' ? ' cur' : '') + '" style="margin-top:8px">' +
+      '<div class="cyc-h"><b>' + Fmt.esc(title) + '</b>' +
+        '<span class="tag ' + tagCls + '">' + Fmt.esc(tag) + '</span>' +
+        '<span class="m">¥' + price + ' / ' + per + '</span></div>' +
+      li(items) + (extra ? '<div class="muted txs" style="margin-top:6px">' + extra + '</div>' : '') + '</div>'
+    return '<div class="card"><h2>怎么买 <span class="mini">内容一样，年付更划算</span></h2>' +
+      col('按月', L.pro.price, '月', '随时停', 'warn', '') +
+      col('按年', L.pro.yearly, '年', '最划算 · 省 71', 'gold',
+        '≈ 14 元/月。市面上一份定制计划卖 99，4 周就过期；这里 168 用一整年，' +
+        '而且重量会<b>跟着你的体重和打卡记录自己变</b> —— 这是别的计划给不了的。') +
+      '<div class="muted txs" style="margin-top:10px">🔧 <b>进阶包（¥99 买断）已上线</b>：六周增力处方生成器 + 疼痛排查库（肘 / 肩 / 腰 / 膝）+ AI 配额；' +
+        '部位专项包筹备中。与订阅互不包含，一次买断永久用。</div>' +
+      '<div class="muted txs" style="margin-top:6px">📄 <b>十二周计划文档 ¥39.9 / 份</b>（单独卖）：可打印的 12 周全案，' +
+        '按你的档案生成 —— 计划是周期性交付物，用完一版再买下一版，不塞进买断包。</div>' +
+      '<button class="btn ghost" style="margin-top:10px" onclick="Router.go(\'plus\')">看看进阶包 →</button>' +
+      '<button class="btn ghost" style="margin-top:10px" onclick="Router.go(\'plan12\')">看十二周计划 →</button>' +
+      '<div class="muted txs" style="margin-top:6px">定价锚点是私教答疑（一次 200-400）。</div>' +
+    '</div>'
+  },
+
+  /** 现在能走的付款方式：收款码 + 人工发码（云端核销已就绪）。
+   *  档位选择：月 / 季 / 半年 / 年 / 进阶包 —— 选中后金额和引导跟着变（商户号到位后这里换成 JSAPI 拉起微信） */
+  PAY_TIERS: [
+    { k: 'm1', label: '按月', price: '19.9', days: 30, level: 'pro', note: '先试试，随时停' },
+    { k: 'm3', label: '按季', price: '49.9', days: 90, level: 'pro', note: '≈ 16.6 元/月' },
+    { k: 'm6', label: '半年', price: '89', days: 180, level: 'pro', note: '≈ 14.8 元/月' },
+    { k: 'y1', label: '一年', price: '168', days: 365, level: 'pro', note: '≈ 14 元/月 · 最划算', hot: true },
+    { k: 'plus', label: '进阶包', price: '99', days: 9999, level: 'plus', note: '一次买断永久用 · 增力生成器+疼痛排查' }
+  ],
+  payTier: 'y1',
+  payCard() {
+    const t = this.PAY_TIERS.find(x => x.k === this.payTier) || this.PAY_TIERS[3]
+    const chips = this.PAY_TIERS.map(x =>
+      '<button class="chip' + (x.k === this.payTier ? ' on' : '') + '" onclick="PagePro.setPayTier(\'' + x.k + '\')">' +
+      Fmt.esc(x.label) + ' ¥' + x.price + '</button>').join('')
+    const body = t.level === 'plus'
+      ? '<div class="muted txs" style="margin-top:8px">一次买断永久用：六周增力处方生成器、疼痛排查库（肘/肩/腰/膝）；' +
+        '部位专项包筹备中；AI 顾问上线后<b>免费升级</b>。</div>'
+      : '<div class="muted txs" style="margin-top:8px">每个动作的具体重量、四周周期表与减载、完整饮食（三套口径）、每日计划邮件、18 本功法秘籍。' + Fmt.esc(t.note) + '。</div>'
+    return '<div class="card"><h2>怎么付款 <span class="mini">选档 → 微信付款 → 发码</span></h2>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' + chips + '</div>' +
+      '<div style="margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--highlight,#f5f7fa)">' +
+        '<div style="font-size:22px;font-weight:800">¥' + t.price + ' <span class="muted txs" style="font-weight:400">/ ' + Fmt.esc(t.label) +
+          (t.level === 'plus' ? '（永久）' : '') + '</span></div>' + body +
+      '</div>' +
+      '<div class="muted txs" style="margin-top:10px"><b>手机上</b>：长按下方收款码 → 识别 → 付款 ' + t.price + ' 元，' +
+        '<b>备注里写你的注册邮箱或用户名</b></div>' +
+      '<div class="muted txs">② 把<b>付款截图 + 注册邮箱</b>发给阿清（抖音私信）</div>' +
+      '<div class="muted txs">③ 几分钟内收到开通码，在下面输入即开通（' +
+        (t.level === 'plus' ? '进阶码' : '完整版码 · ' + t.days + ' 天') + '）</div>' +
+      '<div style="text-align:center;margin:12px 0">' +
+        '<img src="assets/pay-qr.png" alt="付款二维码" style="width:180px;border-radius:12px" ' +
+          'onerror="this.style.display=\'none\';var t=document.getElementById(\'payQrTip\');if(t)t.style.display=\'block\'">' +
+        '<div id="payQrTip" style="display:none" class="muted txs">（收款码整理中 —— 可先私信阿清付款）</div>' +
+      '</div>' +
+      '<div class="muted txs">开通码<b>一次一用</b>、由服务端核销，挂在账号上换设备也在。' +
+        '直接跳转微信支付需要商户号（办理中）—— 到位后这里会换成自动拉起，无需再人工发码。</div>' +
+    '</div>'
+  },
+  setPayTier(k) { this.payTier = k; this.render() },
+
+  /** 开通入口：走服务端核销，前端不留任何口令 */
+  redeemCard() {
+    return '<div class="card"><h2>开通</h2>' +
+      '<div class="muted txs">支付通道正在接（需要主体资质 + 商户号）。在那之前先用开通码：</div>' +
+      '<input class="pro-input" id="proCode" type="text" placeholder="输入开通码" autocomplete="off">' +
+      '<button class="btn" style="margin-top:10px" id="proBtn">开通</button>' +
+      '<div class="muted txs" style="margin-top:8px">开通码由<b>服务端核销</b> —— 前端不留任何口令，' +
+        '会员状态也改不了（不在可写字段里）。开通后换设备登录依然有效。</div>' +
+    '</div>'
+  },
+
+  feature(title, desc) {
+    return '<div style="padding:7px 0;border-bottom:1px solid var(--line)">' +
+      '<b style="font-size:13px">' + Fmt.esc(title) + '</b>' +
+      '<div class="muted txs">' + Fmt.esc(desc) + '</div></div>'
+  },
+
+  // ───────────── 交互 ─────────────
+
+  bind(on) {
+    const u = Store.state.user || {}
+    document.querySelectorAll('#app button[data-state]').forEach(b => {
+      b.onclick = () => { this.stateKey = b.dataset.state; this.render() }
+    })
+    const btn = document.getElementById('proBtn')
+    if (btn) btn.onclick = async () => {
+      const inp = document.getElementById('proCode')
+      const code = ((inp && inp.value) || '').trim()
+      if (!code) { UI.toast('先输入开通码'); return }
+      const label = btn.textContent
+      btn.disabled = true; btn.textContent = '正在核销…'
+      const r = await Store.redeem(code)
+      btn.disabled = false; btn.textContent = label
+      if (!r.ok) { UI.toast(r.msg || '开通失败'); return }
+      UI.toast('已开通')
+      this.render()
+    }
+    const off = document.getElementById('proOff')
+    if (off) off.onclick = () => UI.confirm('取消订阅？取消后会立刻收起完整内容，训练记录不受影响。', () => {
+      Store.cancelMember().then(r => {
+        UI.toast(r.ok ? '已取消' : (r.msg || '取消失败'))
+        if (r.ok) this.render()
+      })
+      return true
+    })
+  }
+}

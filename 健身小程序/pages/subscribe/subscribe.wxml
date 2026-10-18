@@ -1,0 +1,22 @@
+<view class="card">
+  <view class="title">每日计划邮件 <text class="mini" style="color:var(--gold,#d5bd87)">完整版权益</text></view>
+  <view class="muted" style="margin:8rpx 0;line-height:1.6">每天 08:00 自动把「今日训练 + 饮食计划」发到你的邮箱；会员每晚 21:00 加发「明日预告 + 买菜清单」，配好菜三餐。个人小程序无法在微信内推送，邮件是唯一直达方式。</view>
+  <view class="muted" style="line-height:1.6;font-size:24rpx">完整版会员专享 —— <text style="color:var(--green-dark)">未开通完整版的账号订阅后不会收到邮件</text>。</view>
+</view>
+
+<view wx:if="{{subscribed}}" class="card" style="background:var(--green-soft)">
+  <view class="title" style="font-size:28rpx">✓ 已订阅</view>
+  <view class="muted" style="margin:6rpx 0">接收邮箱：{{curEmail}}</view>
+  <view class="btn ghost block" style="margin-top:12rpx" bindtap="unsubscribe">取消订阅</view>
+</view>
+
+<view wx:else class="card">
+  <view class="field"><text>QQ 邮箱</text><input placeholder="如 123456@qq.com" value="{{email}}" bindinput="onEmail"/></view>
+  <view class="agree" bindtap="toggleAgree">
+    <view class="box {{agreed?'on':''}}">{{agreed?'✓':''}}</view>
+    <text class="agree-t">我已阅读并同意：邮箱仅用于发送每日训练/饮食计划，不会用于其他用途或提供给第三方。</text>
+  </view>
+  <view class="btn block" style="margin-top:16rpx" bindtap="subscribe">订阅每日邮件（完整版权益）</view>
+</view>
+
+<view class="muted center-empty">啊清练不虚 · 用中医让健身更安全</view>

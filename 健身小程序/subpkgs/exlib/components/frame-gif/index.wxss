@@ -1,0 +1,85 @@
+.fg {
+  position: relative;
+  width: 100%;
+}
+/* 静态海报（列表用） */
+.fg-poster {
+  width: 100%;
+  display: block;
+}
+/* 动画帧：fg-img-0 撑高度，fg-img-1 绝对覆盖；二者 opacity 交叉淡化 */
+.fg-img {
+  width: 100%;
+}
+.fg-img-0 {
+  position: relative;
+  animation-name: show0;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.fg-img-1 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation-name: show1;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+/* 暂停控制：交给 CSS animation-play-state */
+.paused .fg-img {
+  animation-play-state: paused;
+}
+@keyframes show0 {
+  0%   { opacity: 1 }
+  50%  { opacity: 0 }
+  100% { opacity: 1 }
+}
+@keyframes show1 {
+  0%   { opacity: 0 }
+  50%  { opacity: 1 }
+  100% { opacity: 0 }
+}
+.fg-empty {
+  width: 100%;
+  min-height: 200rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: pre-line;
+  color: var(--sub);
+  font-size: 24rpx;
+  background: var(--bg);
+  border-radius: 12rpx;
+}
+.fg-equip {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+  color: #fff;
+  font-weight: 600;
+}
+.fg-equip.home { background: var(--green); color: #12291b; }
+.fg-equip.gym { background: #44534a; }
+.fg-play {
+  position: absolute;
+  bottom: 12rpx;
+  right: 12rpx;
+  font-size: 20rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+}
+/* 详情页点击暂停的透明遮罩：覆盖图片但位于徽标之上，仅 interactive 时渲染 */
+.fg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+}

@@ -1,0 +1,22 @@
+{
+  "envId": "cloud1-d7gtp1mv1bfcc25df",
+  "functionRoot": "./cloudfunctions",
+  "functions": [
+    {
+      "name": "webAuth",
+      "timeout": 20,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "installDependency": true,
+      "memorySize": 256
+    },
+    {
+      "name": "webApi",
+      "timeout": 20,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "installDependency": true,
+      "memorySize": 256
+    }
+  ]
+}

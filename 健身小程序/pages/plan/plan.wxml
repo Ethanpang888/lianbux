@@ -1,0 +1,127 @@
+<view wx:if="{{!hasPlan}}" class="card center-empty">
+  <view class="title">还没有计划</view>
+  <view class="btn block" bindtap="goAssess">去测评生成计划</view>
+</view>
+
+<block wx:else>
+  <view class="card">
+    <view class="title">当前方案：{{plan.templateName}}{{plan.home?' · 居家':''}}</view>
+    <view class="muted" style="margin-top:8rpx;line-height:1.6">{{plan.basis}}</view>
+    <view class="muted" style="margin-top:6rpx">每循环 {{plan.micro.length}} 个单元 · 每周约 {{plan.daysPerWeek}} 练 · 目标 {{plan.goal}}</view>
+  </view>
+
+  <view class="card">
+    <view class="title" style="font-size:26rpx;margin-bottom:10rpx">精选固定课表</view>
+    <view class="muted" style="margin-bottom:12rpx">{{plan.program ? '当前：'+plan.programName+'（固定跟练，不再随机重排）' : '当前为智能生成计划，可切换为精选固定课表'}}</view>
+    <view class="btn ghost block" bindtap="openProg">更换 / 选择课表</view>
+  </view>
+
+  <view class="card">
+    <view class="title" style="font-size:26rpx;margin-bottom:10rpx">训练分化</view>
+    <view class="seg2">
+      <view wx:for="{{splitList}}" wx:key="key" class="seg2-i {{plan.split===item.key?'on':''}}" data-key="{{item.key}}" bindtap="selectSplit">{{item.name}}</view>
+    </view>
+    <view class="muted" style="margin-top:8rpx">强度按经验递增：新手全身循环、进阶三分化、熟练四/五分化单部位容量更高。</view>
+  </view>
+
+  <view class="card">
+    <view class="title" style="font-size:26rpx;margin-bottom:10rpx">训练频率 · 休息安排</view>
+    <view class="seg2">
+      <view wx:for="{{freqList}}" wx:key="key" class="seg2-i {{plan.freq===item.key?'on':''}}" data-key="{{item.key}}" bindtap="selectFreq">{{item.name}}</view>
+    </view>
+    <view class="muted" style="margin-top:8rpx">「每周X练」按周固定排布；「练X休Y」则连续循环不停断，适合想保持节奏的进阶者。</view>
+  </view>
+
+  <view class="card">
+    <view class="title" style="font-size:26rpx;margin-bottom:10rpx">训练场景</view>
+    <view class="seg">
+      <view class="seg-i {{!home?'on':''}}" data-v="0" bindtap="onHome">健身房</view>
+      <view class="seg-i {{home?'on':''}}" data-v="1" bindtap="onHome">居家·无器械</view>
+    </view>
+    <view class="muted" style="margin-top:8rpx">居家模式仅安排无器械动作，一张瑜伽垫即可练。</view>
+  </view>
+
+  <!-- 我的计划库（与网站同款）：保存当前计划 / 多套切换 -->
+  <view class="card">
+    <view class="title" style="font-size:26rpx;margin-bottom:10rpx">💾 我的计划库 <text class="muted">{{savedList.length}} / {{planLimit}} 套</text></view>
+    <view class="muted" style="margin-bottom:12rpx">把现在这套计划（含你改过的动作）存起来，随时一键切回来。挂秘籍前的原计划在藏经阁「换回挂秘籍之前的计划」。</view>
+    <view wx:if="{{savedList.length < planLimit}}" class="btn ghost block" bindtap="saveCurrentPlan">保存当前这套计划</view>
+    <view wx:for="{{savedList}}" wx:key="id" class="sprow">
+      <view class="sp-l">
+        <text class="sp-n">{{item.name}}</text>
+        <text class="sp-m">{{item.meta}}</text>
+      </view>
+      <view wx:if="{{item.id === activeSavedId}}" class="sp-cur">当前</view>
+      <view wx:else class="sp-go" data-id="{{item.id}}" bindtap="switchSaved">切到这套 ›</view>
+      <view class="sp-del" data-id="{{item.id}}" bindtap="deleteSaved">删</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title" style="font-size:26rpx;margin-bottom:4rpx">循环单元（无限循环 · 下面是第 1 轮）</view>
+    <view class="muted" style="margin-bottom:8rpx">今天的位置已高亮。点某单元可展开/编辑；自定义动作会循环到每一天同类型训练日。</view>
+    <view wx:for="{{microView}}" wx:key="slot" class="day {{daySlot===item.slot?'today':''}}" data-slot="{{item.slot}}" bindtap="toggleDay">
+      <view class="day-h">
+        <text>第{{item.slot+1}}单元 · {{item.type==='rest'?'休息':item.focusName}}{{daySlot===item.slot?' · 今天':''}}</text>
+        <text class="muted">{{item.open?'收起':'展开'}}</text>
+      </view>
+      <view wx:if="{{item.open}}" class="day-b">
+        <block wx:if="{{item.type==='train'}}">
+          <view class="grp">基础动作</view>
+          <view wx:for="{{item.base}}" wx:for-item="ex" wx:key="name" class="exline"><text>{{ex.name}} · {{ex.sets}}</text><text class="muted">系统</text></view>
+          <view class="grp">自定义动作</view>
+          <view wx:if="{{item.custom.length===0}}" class="muted">暂无，下方便可添加</view>
+          <view wx:for="{{item.custom}}" wx:for-item="ex" wx:for-index="ci" wx:key="name" class="exline">
+            <text>{{ex.name}} · {{ex.sets}}</text>
+            <text class="del" data-slot="{{item.slot}}" data-i="{{ci}}" bindtap="removeEx">删</text>
+          </view>
+          <view class="addone" data-slot="{{item.slot}}" bindtap="openExForm">+ 加动作（循环生效）</view>
+        </block>
+        <view wx:else class="muted">{{item.note}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="muted center-empty">切换分化/频率会按经验重排；自定义动作在「居家↔健身房」切换时保留。</view>
+
+  <!-- 动作库弹层（与网站 openPicker 同款：搜索 + 分类 + 列表） -->
+  <view wx:if="{{showExForm}}" class="pk-mask" bindtap="closeExForm">
+    <view class="pk-box" catchtap="noop">
+      <view class="pk-head">
+        <text class="pk-title">＋ 给第{{exSlot+1}}单元加动作</text>
+        <view class="pk-close" bindtap="closeExForm">关闭</view>
+      </view>
+      <input class="pk-search" placeholder="搜索动作，如：卧推 / 划船 / 下拉" value="{{exQuery}}" bindinput="exQueryInput"/>
+      <scroll-view scroll-x class="pk-cats" enhanced show-scrollbar="{{false}}">
+        <view wx:for="{{pkCats}}" wx:key="*this" class="pk-cat {{pkCatSel === item ? 'on' : ''}}" data-cat="{{item}}" bindtap="exCat">{{item}}</view>
+      </scroll-view>
+      <scroll-view scroll-y class="pk-list">
+        <view wx:for="{{exSuggestions}}" wx:key="name" class="pk-i" data-i="{{index}}" bindtap="pickExSuggestion">
+          <text class="pk-n">{{item.name}}</text>
+          <text class="pk-m">{{item.equipment}}{{item.sets ? ' · ' + item.sets : ''}}</text>
+        </view>
+        <view wx:if="{{!exSuggestions.length}}" class="muted" style="padding:32rpx;text-align:center">没有找到，换个词试试</view>
+      </scroll-view>
+      <view class="pk-tip">加进来会在这个训练日<b>每个循环都出现</b>；或手动输入动作名 →</view>
+      <view class="row" style="padding:16rpx 28rpx;gap:16rpx">
+        <input class="pk-search" style="margin:0;flex:1" placeholder="自定义动作名，如：上斜哑铃卧推" value="{{exCustomName}}" bindinput="exCustomInput"/>
+        <view class="btn" style="flex:none;padding:0 30rpx" bindtap="submitCustomEx">添加</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 精选课表选择弹层 -->
+  <view wx:if="{{showProg}}" class="mask" bindtap="closeProg">
+    <view class="sheet" catchtap="noop">
+      <view class="title" style="margin-bottom:6rpx">选择精选课表</view>
+      <view class="muted" style="margin-bottom:8rpx">选了即固定跟练，按周循环、含减载周。可随时回来切换。</view>
+      <view wx:for="{{progList}}" wx:key="key" class="prog {{currentProgram===item.key?'on':''}}" data-key="{{item.key}}" bindtap="pickProg">
+        <view class="prog-h"><text>{{item.name}}</text><text class="muted">{{item.level}} · {{item.weeks}}周</text></view>
+        <view class="muted" style="margin-top:4rpx;font-size:22rpx;line-height:1.5">{{item.basis}}</view>
+      </view>
+      <view class="row" style="margin-top:20rpx;gap:16rpx">
+        <view class="btn ghost" style="flex:1" bindtap="closeProg">取消</view>
+      </view>
+    </view>
+  </view>
+</block>

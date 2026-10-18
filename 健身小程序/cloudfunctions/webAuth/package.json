@@ -1,0 +1,10 @@
+{
+  "name": "webAuth",
+  "version": "1.0.0",
+  "description": "网页版账号体系：邮箱验证码登录 + 玩家编号原子分配 + 恢复码找回",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "nodemailer": "^6.9.8"
+  }
+}

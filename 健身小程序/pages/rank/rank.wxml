@@ -1,0 +1,62 @@
+<view class="card rank-head">
+  <view class="title" style="font-size:32rpx">排行榜</view>
+  <view class="muted" style="margin-top:6rpx">只排坚持与容量：等级 / 连续 / 本周训练量。不排体重、不排体型。网站和小程序同一个榜。</view>
+</view>
+
+<!-- 我的名次 -->
+<view class="card me-rank" wx:if="{{me}}">
+  <view class="mr-left">
+    <text class="mr-rank">{{me.medal || ('第' + me.rank + '名')}}</text>
+    <text class="muted" style="font-size:22rpx">{{me.title}}{{me.noStr ? ' · ' + me.noStr : ''}}{{me.founding ? ' · ⭐创始玩家' : ''}}</text>
+  </view>
+  <view class="mr-right">
+    <text class="mr-val">{{me.valText}}</text>
+    <text class="muted" style="font-size:20rpx">共 {{total}} 人</text>
+  </view>
+</view>
+
+<!-- 范围 × 榜种 -->
+<view class="card">
+  <view class="tab-row">
+    <text class="tab-chip {{scope==='city' ? 'on' : ''}}" data-s="city" bindtap="setScope">同城{{city ? ' · ' + city : ''}}</text>
+    <text class="tab-chip {{scope==='all' ? 'on' : ''}}" data-s="all" bindtap="setScope">全国</text>
+  </view>
+  <view class="tab-row" style="margin-top:12rpx">
+    <text wx:for="{{BOARDS}}" wx:key="k" class="tab-chip {{board===item.k ? 'on' : ''}}" data-b="{{item.k}}" bindtap="setBoard">{{item.name}}</text>
+  </view>
+
+  <!-- 没设城市 -->
+  <block wx:if="{{scope==='city' && !city}}">
+    <view class="muted" style="margin:16rpx 0 8rpx;line-height:1.7">选个城市，和同城练友比坚持（不做定位，自己选）：</view>
+    <view class="city-wrap">
+      <text wx:for="{{cityList}}" wx:key="*this" class="city-chip" data-c="{{item}}" bindtap="setCity">{{item}}</text>
+    </view>
+  </block>
+
+  <!-- 榜单 -->
+  <view wx:if="{{loading}}" class="muted" style="padding:30rpx 0;text-align:center">拉取中…</view>
+  <view wx:elif="{{err}}" class="muted" style="padding:20rpx 0;line-height:1.6">{{err}}</view>
+  <block wx:elif="{{rows.length}}">
+    <view wx:for="{{rows}}" wx:key="uid" class="rank-row {{item.isMe ? 'me' : ''}}">
+      <text class="rk">{{item.medal ? item.medal : item.rank}}</text>
+      <view class="rn">
+        <text class="rnick">{{item.nick}}</text>
+        <text class="rmeta">{{item.title}}{{item.noStr ? ' · ' + item.noStr : ''}}{{scope==='all' && item.city ? ' · ' + item.city : ''}}{{item.src==='mp' ? ' · 📱' : (item.src==='web' ? ' · 🌐' : '')}}</text>
+      </view>
+      <text class="rv">{{item.valText}}</text>
+    </view>
+  </block>
+  <view wx:else class="muted" style="padding:24rpx 0;line-height:1.7">这个榜还没人。练起来，你就是第一名。</view>
+
+  <!-- 换城市 -->
+  <view wx:if="{{city}}" class="muted" style="margin-top:16rpx">
+    <view style="margin-bottom:8rpx">换城市：</view>
+    <view class="city-wrap">
+      <text wx:for="{{cityList}}" wx:key="*this" class="city-chip {{city===item ? 'on' : ''}}" data-c="{{item}}" bindtap="setCity">{{item}}</text>
+    </view>
+  </view>
+</view>
+
+<view class="card">
+  <view class="muted" style="line-height:1.7">📱/🌐 = 他用的是小程序 / 网站。两边的数据互通后同一份打卡只算一次。没绑定两端的朋友会各占一行——到「我的 → 绑定网站账号」把两边连起来。</view>
+</view>

@@ -1,0 +1,45 @@
+<!--pages/ai/ai.wxml——随身导师-->
+
+<view class="topbar">
+  <view>
+    <view class="title" style="font-size:32rpx">随身导师</view>
+    <view class="muted">懂你的课表和打卡数据 · 每天免费 3 次</view>
+  </view>
+  <view class="clear" bindtap="clearChat">清空</view>
+</view>
+
+<scroll-view class="chat" scroll-y scroll-into-view="{{anchor}}" scroll-with-animation>
+  <view wx:if="{{!messages.length}}" class="hello card">
+    <view class="title" style="font-size:30rpx">我是你的随身导师 💬</view>
+    <view class="muted" style="margin-top:10rpx">我看得到你的档案、课表和最近的打卡（练了几次、睡眠、体重变化），数字都从你的记录里来，不瞎猜。下面这些可以直接点：</view>
+  </view>
+
+  <view wx:for="{{messages}}" wx:key="id" class="msg {{item.role}}">
+    <view class="bubble {{item.role}}">
+      <rich-text wx:if="{{item.role === 'assistant'}}" nodes="{{item.nodes}}"/>
+      <text wx:else>{{item.content}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{sending}}" class="msg assistant">
+    <view class="bubble assistant muted">正在看你的记录、组织回答…</view>
+  </view>
+
+  <view wx:if="{{err}}" class="errbar">
+    <text>{{err}}</text>
+    <text class="retry" bindtap="retry">↻ 重试</text>
+  </view>
+
+  <view id="chat-bottom" style="height:20rpx"></view>
+</scroll-view>
+
+<view class="quick" wx:if="{{messages.length < 3}}">
+  <view class="qchip" wx:for="{{quick}}" wx:key="*this" bindtap="tapQuick" data-q="{{item}}">{{item}}</view>
+</view>
+
+<view class="inputbar">
+  <input class="ipt" value="{{input}}" bindinput="onInput" confirm-type="send"
+         bindconfirm="send" placeholder="问训练、吃、恢复，什么都行" disabled="{{sending}}"/>
+  <view class="send {{sending ? 'off' : ''}}" bindtap="send">发送</view>
+</view>
+<view class="quota muted" wx:if="{{quota}}">今天已用 {{quota.used}}/{{quota.cap}} 次</view>

@@ -1,0 +1,9 @@
+{
+  "name": "webApi",
+  "version": "1.0.0",
+  "description": "网页版数据接口：读状态 / 写档案 / 打卡（服务端权威结算 EXP）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

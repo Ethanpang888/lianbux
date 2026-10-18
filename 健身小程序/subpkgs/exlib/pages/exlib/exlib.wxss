@@ -1,0 +1,19 @@
+.homebanner { margin: 16rpx 24rpx; padding: 22rpx; border-radius: 16rpx; background: linear-gradient(135deg,var(--green-soft),var(--green-soft)); color: var(--green-dark); font-size: 28rpx; font-weight: 600; text-align: center; border: 1rpx solid var(--line); }
+.homebanner.on { background: var(--green); color: #12291b; border-color: var(--green); }
+.filters { background: var(--card); padding: 20rpx 24rpx; }
+.flab { font-size: 22rpx; color: var(--sub); margin: 10rpx 0 6rpx; }
+.chips { display: flex; flex-wrap: wrap; gap: 10rpx; }
+.chip { background: var(--bg); color: var(--sub); padding: 10rpx 22rpx; border-radius: 999rpx; font-size: 24rpx; }
+.chip.on { background: var(--green); color: #12291b; }
+.qbar { padding: 16rpx 30rpx; font-size: 24rpx; color: var(--sub); }
+.clear { color: var(--green); margin-left: 12rpx; }
+.grid { display: flex; flex-wrap: wrap; padding: 10rpx; }
+.excard { width: 50%; box-sizing: border-box; padding: 10rpx; }
+.excard > view:first-child, .excard { }
+.exgif { width: 100%; border-radius: 14rpx; background: var(--bg); display: block; }
+.exname { font-size: 26rpx; font-weight: 600; margin-top: 8rpx; }
+.exmeta { font-size: 22rpx; color: var(--sub); display: flex; align-items: center; gap: 10rpx; }
+.tag { font-size: 20rpx; padding: 4rpx 12rpx; border-radius: 999rpx; line-height: 1; }
+.tag.home { background: var(--green-soft); color: var(--green-dark); }
+.tag.gym { background: var(--bg); color: var(--sub); }
+.expo { font-size: 21rpx; color: var(--sub); line-height: 1.5; margin-top: 6rpx; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }

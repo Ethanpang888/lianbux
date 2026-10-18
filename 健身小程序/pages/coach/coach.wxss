@@ -1,0 +1,12 @@
+/* 调整顾问（网站 coach 页同款深色样式） */
+.sit-wrap { display: flex; flex-wrap: wrap; gap: 14rpx; margin-top: 16rpx; }
+.sit-chip {
+  border: 1rpx solid var(--line); color: var(--sub); background: transparent;
+  border-radius: 18rpx; font-size: 26rpx; padding: 14rpx 26rpx; line-height: 1.4;
+}
+.sit-chip.on { background: var(--green-soft); border-color: var(--green); color: var(--green-dark); font-weight: 600; }
+.chg-list { margin-top: 16rpx; border-top: 1rpx dashed var(--line); padding-top: 8rpx; }
+.chg-row { display: flex; justify-content: space-between; align-items: center; gap: 16rpx; padding: 14rpx 0; border-bottom: 1rpx solid var(--line); }
+.chg-row:last-child { border-bottom: none; }
+.chg-k { font-size: 26rpx; color: var(--text); font-weight: 600; flex: 1; min-width: 0; }
+.chg-v { font-size: 24rpx; color: var(--green-dark); flex: none; }

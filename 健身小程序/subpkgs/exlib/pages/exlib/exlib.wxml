@@ -1,0 +1,28 @@
+<view class="homebanner {{home?'on':''}}" bindtap="onHome">🏠 居家训练 · 无需器械</view>
+<view class="filters">
+  <view class="flab">部位</view>
+  <view class="chips">
+    <view class="chip {{part===''?'on':''}}" data-v="" bindtap="onPart">全部</view>
+    <view wx:for="{{parts}}" wx:key="code" class="chip {{part===item.code?'on':''}}" data-v="{{item.code}}" bindtap="onPart">{{item.name}}</view>
+  </view>
+  <view class="flab">器械</view>
+  <view class="chips">
+    <view class="chip {{equip===''?'on':''}}" data-v="" bindtap="onEquip">全部</view>
+    <view wx:for="{{equips}}" wx:key="*this" class="chip {{equip===item?'on':''}}" data-v="{{item}}" bindtap="onEquip">{{item}}</view>
+  </view>
+</view>
+
+<view wx:if="{{q}}" class="qbar">搜索：{{q}} <text class="clear" bindtap="clear">清空</text></view>
+
+<view class="grid">
+  <view wx:for="{{list}}" wx:key="name" class="excard" data-name="{{item.name}}" bindtap="tap">
+    <frame-gif wx:if="{{item.gif}}" frames="{{item.gif}}" speed="{{420}}" equip="{{item.equipment}}" mode="anim"/>
+    <view class="exname">{{item.name}}</view>
+    <view class="exmeta">
+      <text class="tag {{item.equipment==='无器械'?'home':'gym'}}">{{item.equipment==='无器械'?'🏠 居家':'🏋 器械'}}</text>
+      <text>{{item.sets}} · {{item.equipment}}</text>
+    </view>
+    <view wx:if="{{item.points}}" class="expo">{{item.points}}</view>
+  </view>
+</view>
+<view wx:if="{{list.length===0}}" class="center-empty">没有匹配的动作，换个筛选条件</view>

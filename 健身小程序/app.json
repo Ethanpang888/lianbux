@@ -1,0 +1,62 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/today/today",
+    "pages/plan/plan",
+    "pages/records/records",
+    "pages/tcm/tcm",
+    "pages/profile/profile",
+    "pages/assess/assess",
+    "pages/learn/learn",
+    "pages/diet/diet",
+    "pages/subscribe/subscribe",
+    "pages/secret/secret",
+    "pages/coach/coach",
+    "pages/rank/rank",
+    "pages/bind/bind",
+    "pages/ai/ai",
+    "pages/poster/poster"
+  ],
+  "subPackages": [
+    {
+      "root": "subpkgs/exlib",
+      "pages": [
+        "pages/exlib/exlib",
+        "pages/exdetail/exdetail"
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/index": {
+      "network": "all",
+      "packages": ["subpkgs/exlib"]
+    },
+    "pages/today/today": {
+      "network": "all",
+      "packages": ["subpkgs/exlib"]
+    }
+  },
+  "window": {
+    "navigationBarBackgroundColor": "#101713",
+    "navigationBarTitleText": "健身减脂陪伴营",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#101713"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#999999",
+    "selectedColor": "#0e9f6e",
+    "backgroundColor": "#ffffff",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "首页" },
+      { "pagePath": "pages/today/today", "text": "今日" },
+      { "pagePath": "pages/plan/plan", "text": "计划" },
+      { "pagePath": "pages/tcm/tcm", "text": "调理" },
+      { "pagePath": "pages/profile/profile", "text": "我的" }
+    ]
+  },
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

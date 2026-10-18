@@ -1,0 +1,14 @@
+/* 绑定网站账号 */
+.steps { margin-top: 16rpx; display: flex; flex-direction: column; gap: 14rpx; }
+.step { display: flex; gap: 14rpx; align-items: flex-start; }
+.step text:last-child { flex: 1; font-size: 26rpx; color: var(--text); line-height: 1.6; }
+.sn {
+  flex: none; width: 40rpx; height: 40rpx; border-radius: 50%;
+  background: var(--green-soft); color: var(--green-dark);
+  font-size: 24rpx; text-align: center; line-height: 40rpx; font-weight: 700;
+}
+.code-in {
+  flex: 1; border: 2rpx solid var(--line); border-radius: 16rpx;
+  padding: 20rpx; text-align: center; background: var(--bg);
+  color: var(--text); font-size: 34rpx; letter-spacing: 8rpx; font-weight: 700;
+}

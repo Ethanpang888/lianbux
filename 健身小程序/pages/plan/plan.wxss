@@ -1,0 +1,50 @@
+.tplrow { display: flex; gap: 12rpx; }
+.tpl { flex: 1; text-align: center; padding: 18rpx 8rpx; border-radius: 12rpx; background: var(--bg); color: var(--sub); font-size: 22rpx; }
+.tpl.on { background: var(--green); color: #12291b; }
+.day { border-bottom: 1rpx solid var(--line); padding: 16rpx 0; }
+.day:last-child { border-bottom: none; }
+.day.today { background: var(--green-soft); border-radius: 12rpx; padding: 16rpx; margin: 6rpx 0; }
+.day-h { display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
+.day-b { margin-top: 12rpx; }
+.exline { display: flex; justify-content: space-between; align-items: center; padding: 8rpx 0; font-size: 26rpx; }
+.del { color: var(--danger); font-size: 24rpx; padding: 4rpx 16rpx; }
+.addone { text-align: center; color: var(--green-dark); background: var(--green-soft); padding: 14rpx; border-radius: 10rpx; margin-top: 10rpx; font-size: 24rpx; }
+
+/* 分化/频率选择器（多选项自动换行） */
+.seg2 { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.seg2-i { flex: 1 1 calc(33.33% - 12rpx); min-width: 0; text-align: center; padding: 18rpx 8rpx; border-radius: 12rpx; background: var(--bg); color: var(--sub); font-size: 22rpx; box-sizing: border-box; }
+.seg2-i.on { background: var(--green); color: #12291b; }
+
+/* 循环单元内的分组小标题 */
+.grp { font-size: 22rpx; color: var(--sub); margin: 14rpx 0 6rpx; font-weight: 600; }
+
+/* 自定义动作弹窗内的输入框 */
+.field { display: flex; justify-content: space-between; align-items: center; padding: 16rpx 0; border-bottom: 1rpx solid var(--line); }
+.field text { color: var(--sub); font-size: 26rpx; }
+.field input { text-align: right; width: 360rpx; }
+.search { border: 1rpx solid var(--line); border-radius: 14rpx; padding: 16rpx 18rpx; font-size: 26rpx; box-sizing: border-box; }
+
+/* ── 动作库弹层（2026-10-17 与网站 openPicker 1:1 同款）── */
+.pk-mask { position: fixed; inset: 0; z-index: 1500; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; justify-content: center; }
+.pk-box { background: var(--card); width: calc(100% - 16rpx); max-height: 80vh; display: flex; flex-direction: column; border-radius: 36rpx 36rpx 0 0; overflow: hidden; box-sizing: border-box; padding-bottom: env(safe-area-inset-bottom); }
+.pk-head { display: flex; justify-content: space-between; align-items: center; padding: 24rpx 28rpx 12rpx; }
+.pk-title { font-size: 32rpx; font-weight: 700; color: var(--tx); }
+.pk-close { font-size: 26rpx; color: var(--sub); padding: 8rpx 16rpx; }
+.pk-search { margin: 12rpx 28rpx; padding: 20rpx 24rpx; border: 1rpx solid var(--line); border-radius: 20rpx; font-size: 28rpx; background: var(--bg); color: var(--tx); }
+.pk-cats { display: flex; gap: 12rpx; padding: 12rpx 28rpx; white-space: nowrap; }
+.pk-cat { flex-shrink: 0; font-size: 24rpx; padding: 8rpx 22rpx; border-radius: 999rpx; background: var(--bg); border: 1rpx solid var(--line); color: var(--sub); }
+.pk-cat.on { background: var(--green); color: #12291b; border-color: var(--green); font-weight: 700; }
+.pk-list { flex: 1; min-height: 300rpx; max-height: 50vh; padding: 8rpx 20rpx 20rpx; box-sizing: border-box; }
+.pk-i { display: flex; justify-content: space-between; align-items: center; gap: 20rpx; padding: 22rpx 12rpx; border-bottom: 1rpx solid var(--line); }
+.pk-n { font-size: 28rpx; font-weight: 600; color: var(--tx); flex: 1; min-width: 0; }
+.pk-m { font-size: 22rpx; color: var(--sub); flex: none; }
+.pk-tip { padding: 16rpx 28rpx; font-size: 22rpx; color: var(--sub); border-top: 1rpx solid var(--line); }
+
+/* ── 我的计划库 ── */
+.sprow { display: flex; align-items: center; gap: 16rpx; margin-top: 20rpx; padding-top: 20rpx; border-top: 1rpx solid var(--line); }
+.sp-l { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
+.sp-n { font-size: 27rpx; font-weight: 600; color: var(--tx); }
+.sp-m { font-size: 22rpx; color: var(--sub); }
+.sp-cur { flex: none; font-size: 22rpx; font-weight: 700; color: var(--gold); background: var(--warn-soft); border-radius: 999rpx; padding: 8rpx 20rpx; }
+.sp-go { flex: none; font-size: 24rpx; font-weight: 600; color: var(--green-dark); background: var(--green-soft); border-radius: 999rpx; padding: 10rpx 22rpx; }
+.sp-del { flex: none; font-size: 22rpx; color: var(--sub); padding: 10rpx 16rpx; }

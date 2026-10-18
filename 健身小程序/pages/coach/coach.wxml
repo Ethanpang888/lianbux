@@ -1,0 +1,52 @@
+<view class="card" wx:if="{{!hasPlan}}">
+  <view class="title" style="font-size:30rpx">先有计划，才能调</view>
+  <view class="muted" style="margin:10rpx 0 20rpx">填一次测评，AI 给你定制 28 天计划，然后这里就能按你的反馈调计划。</view>
+  <view class="btn block" bindtap="goPlan">去看计划</view>
+</view>
+
+<block wx:else>
+  <!-- 哪儿不对劲：情况选择 -->
+  <view class="card">
+    <view class="title" style="font-size:30rpx">哪儿不对劲 <text class="muted">点一个，我给你算</text></view>
+    <view class="sit-wrap">
+      <text wx:for="{{sits}}" wx:key="key"
+        class="sit-chip {{picked === item.key ? 'on' : ''}}"
+        data-key="{{item.key}}" bindtap="pick">{{item.name}}</text>
+    </view>
+    <view class="muted" style="margin-top:12rpx;line-height:1.6">{{picked ? hint : '这些都能算出来，不用瞎猜；算不出来的我不编。'}}</view>
+  </view>
+
+  <!-- 需要先选一个动作（「有个动作不舒服」） -->
+  <view class="card" wx:if="{{needPick && options.length}}">
+    <view class="title" style="font-size:28rpx">{{result.title}}</view>
+    <view class="muted" style="margin:8rpx 0 12rpx;line-height:1.6">{{result.why}}</view>
+    <view class="sit-wrap">
+      <text wx:for="{{options}}" wx:key="key" class="sit-chip" data-ex="{{item.key}}" bindtap="pickEx">{{item.name}}</text>
+    </view>
+  </view>
+
+  <!-- 结果 -->
+  <view class="card" wx:if="{{result && !needPick}}">
+    <block wx:if="{{result.ok}}">
+      <view class="title" style="font-size:30rpx">{{result.title}} <text wx:if="{{result.src}}" class="tag {{result.src==='推演'?'warn':''}}">{{result.src}}</text></view>
+      <view class="muted" style="margin-top:8rpx;line-height:1.7">{{result.why}}</view>
+      <view wx:if="{{result.changes.length}}" class="chg-list">
+        <view wx:for="{{result.changes}}" wx:key="k" class="chg-row">
+          <text class="chg-k">{{item.k}}</text>
+          <text class="chg-v">{{item.from}} → {{item.to}}</text>
+        </view>
+      </view>
+      <view wx:if="{{result.note}}" class="muted" style="margin-top:12rpx;line-height:1.7;border-top:1rpx dashed var(--line);padding-top:12rpx">{{result.note}}</view>
+      <view wx:if="{{result.apply}}" class="btn block" style="margin-top:20rpx" bindtap="apply">应用到我的计划</view>
+      <view wx:else class="muted" style="margin-top:14rpx">这条不用改计划 —— 照着做就行。</view>
+    </block>
+    <block wx:else>
+      <view class="title" style="font-size:28rpx">这个算不了</view>
+      <view class="muted" style="margin-top:8rpx;line-height:1.7">{{result.msg}}</view>
+    </block>
+  </view>
+
+  <view class="card">
+    <view class="muted" style="line-height:1.7">🧭 调整顾问按规则引擎算（不猜、不编）。算完点「应用」会直接改你的计划/饮食参数；更细的问题（比如「卧推肩膀不舒服怎么办」）去首页找<b style="color:var(--green-dark)">随身导师</b>。</view>
+  </view>
+</block>

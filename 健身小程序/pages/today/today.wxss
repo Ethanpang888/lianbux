@@ -1,0 +1,230 @@
+.head .bar { height: 14rpx; background: var(--line); border-radius: 999rpx; margin-top: 16rpx; overflow: hidden; }
+.bar-in { color: #12291b; height: 100%; background: var(--green); }
+.rest { text-align: center; }
+.ex { border-bottom: 1rpx solid var(--line); padding: 16rpx 0; }
+.ex:last-of-type { border-bottom: none; }
+.ex-h { display: flex; justify-content: space-between; align-items: center; }
+.ex-h text:first-child { font-weight: 600; }
+.ex-h .sets { color: var(--sub); font-size: 24rpx; }
+.ex-b { margin-top: 14rpx; }
+.equiptag { display: inline-block; font-size: 20rpx; padding: 4rpx 14rpx; border-radius: 999rpx; margin-bottom: 10rpx; }
+.equiptag.home { background: var(--green-soft); color: var(--green-dark); }
+.equiptag.gym { background: var(--bg); color: var(--sub); }
+.gifwrap { background: var(--bg); border-radius: 12rpx; padding: 10rpx; }
+.gif { width: 100%; border-radius: 8rpx; }
+.expo { font-size: 24rpx; color: var(--sub); line-height: 1.6; margin-top: 12rpx; background: var(--bg); border-radius: 10rpx; padding: 14rpx 16rpx; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden; }
+.setrow { display: flex; align-items: center; gap: 12rpx; margin: 10rpx 0; }
+.setno { width: 90rpx; color: var(--sub); font-size: 24rpx; }
+.sin { flex: 1; background: var(--bg); border-radius: 10rpx; padding: 14rpx; font-size: 24rpx; }
+.done { width: 60rpx; height: 60rpx; border-radius: 50%; background: var(--bg); display: flex; align-items: center; justify-content: center; color: #fff; }
+.done.on { color: #12291b; background: var(--green); }
+.addrow { display: flex; gap: 16rpx; margin-top: 14rpx; }
+.addbtn { flex: 1; text-align: center; background: var(--green-soft); color: var(--green-dark); padding: 18rpx; border-radius: 12rpx; font-size: 26rpx; }
+.chip { background: var(--bg); padding: 8rpx 18rpx; border-radius: 999rpx; font-size: 22rpx; margin: 6rpx; }
+.foodrow { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 14rpx; }
+.food { background: var(--bg); padding: 10rpx 18rpx; border-radius: 999rpx; font-size: 22rpx; }
+.learnfull { margin-top: 14rpx; line-height: 1.7; }
+.chk { display: flex; gap: 14rpx; }
+.chk-i { flex: 1; text-align: center; padding: 20rpx; border-radius: 14rpx; background: var(--bg); color: var(--sub); }
+.chk-i.on { background: var(--green); color: #12291b; }
+.field { display: flex; justify-content: space-between; align-items: center; padding: 16rpx 0; border-bottom: 1rpx solid var(--line); }
+.field text { color: var(--sub); font-size: 26rpx; }
+.field input { text-align: right; width: 360rpx; }
+.searchrow { margin-top: 14rpx; }
+.search { background: var(--bg); border-radius: 12rpx; padding: 16rpx 20rpx; font-size: 26rpx; width: 100%; box-sizing: border-box; }
+.sug-add { padding: 18rpx 18rpx; font-size: 24rpx; color: var(--green-dark); background: var(--green-soft); border-radius: 10rpx; margin-top: 8rpx; }
+.sug-add:active { background: var(--green-soft); }
+.ex-h-r { display: flex; align-items: center; gap: 16rpx; }
+.del { color: #e5726f; font-size: 30rpx; padding: 0 6rpx; }
+.del:active { opacity: 0.5; }
+
+/* ===== 计划头标签 ===== */
+.headtags { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 14rpx; }
+.htag { font-size: 20rpx; padding: 4rpx 14rpx; border-radius: 999rpx; background: var(--bg); color: var(--sub); }
+.htag.tui { background: var(--warn-soft); color: var(--warn); }
+.htag.deload { background: rgba(229,114,111,0.14); color: #e5726f; }
+
+/* ===== 热身卡 ===== */
+.warm { background: var(--green-soft); border-left: 8rpx solid var(--green); }
+.warm-h { font-size: 28rpx; font-weight: 500; color: var(--green-dark); margin-bottom: 8rpx; }
+.warm-i { font-size: 24rpx; color: var(--sub); line-height: 1.8; }
+.warm-note { font-size: 22rpx; color: var(--warn); background: var(--warn-soft); border-radius: 10rpx; padding: 12rpx 14rpx; margin-top: 10rpx; line-height: 1.6; }
+
+/* ===== 动作标题与角色标签 ===== */
+.ex-h-l { flex: 1; min-width: 0; }
+.ex-name { font-size: 30rpx; font-weight: 600; }
+.ex-tags { display: flex; gap: 8rpx; margin-top: 6rpx; flex-wrap: wrap; }
+.rtag { font-size: 18rpx; padding: 2rpx 12rpx; border-radius: 999rpx; }
+.r-main { background: rgba(55,138,221,0.14); color: #7cb8e8; }
+.r-assist { background: var(--bg); color: var(--sub); }
+.r-iso { background: var(--bg); color: var(--sub); }
+.r-core { background: var(--warn-soft); color: var(--warn); }
+.rtag.rf { background: rgba(229,114,111,0.14); color: #e58fa0; }
+.exmeta { font-size: 22rpx; color: var(--sub); margin: 10rpx 0 4rpx; }
+
+/* ===== 组记录（滚轮入口）===== */
+.setrow-h { margin-bottom: 4rpx; }
+.setcol { flex: 1; font-size: 20rpx; color: var(--sub); text-align: center; }
+.done-h { width: 60rpx; font-size: 20rpx; color: var(--sub); text-align: center; }
+.setbox {
+  flex: 1; background: var(--bg); border-radius: 10rpx; padding: 18rpx 8rpx;
+  font-size: 26rpx; text-align: center; color: var(--text); border: 2rpx solid transparent;
+}
+.setbox.fill { background: var(--green-soft); color: var(--green-dark); font-weight: 600; border-color: var(--line); }
+.setbox:active { background: rgba(255,255,255,0.06); }
+.setops { display: flex; gap: 12rpx; margin-top: 14rpx; flex-wrap: wrap; }
+.setop { font-size: 22rpx; color: var(--green-dark); background: var(--bg); border-radius: 999rpx; padding: 8rpx 18rpx; }
+.setop:active { background: var(--green-soft); }
+
+/* ===== 有氧卡 ===== */
+.cardio { background: var(--bg); border-left: 8rpx solid rgba(55,138,221,0.5); }
+.cd-h { font-size: 28rpx; font-weight: 500; color: #7cb8e8; margin-bottom: 8rpx; }
+
+/* ===== 饮食：模式切换 ===== */
+.modesw { display: flex; background: var(--bg); border-radius: 999rpx; padding: 4rpx; }
+.ms { font-size: 22rpx; padding: 8rpx 20rpx; border-radius: 999rpx; color: var(--sub); }
+.ms.on { background: var(--green); color: #12291b; font-weight: 600; }
+
+/* ===== 饮食：每日消耗与热量目标 ===== */
+.ebox { background: var(--green-soft); border-radius: 12rpx; padding: 16rpx; margin: 14rpx 0 6rpx; border-left: 8rpx solid var(--green); }
+.emain { font-size: 26rpx; }
+.emain b { font-size: 32rpx; color: var(--green-dark); }
+.esub { font-size: 22rpx; color: var(--sub); margin-top: 6rpx; line-height: 1.6; }
+.ewarn { font-size: 20rpx; color: var(--warn); background: var(--warn-soft); border-radius: 8rpx; padding: 8rpx 10rpx; margin-top: 8rpx; line-height: 1.5; }
+
+/* ===== 饮食：进度条 ===== */
+.pbs { margin: 16rpx 0 6rpx; }
+.pb { margin-bottom: 14rpx; }
+.pb-h { display: flex; justify-content: space-between; margin-bottom: 6rpx; }
+.pb-l { font-size: 24rpx; color: var(--sub); }
+.pb-v { font-size: 24rpx; color: var(--green-dark); font-weight: 600; }
+.pb-v.over { color: #EF9F27; }
+.pb-bar { height: 14rpx; background: var(--line); border-radius: 999rpx; overflow: hidden; }
+.pb-in { color: #12291b; height: 100%; background: var(--green); border-radius: 999rpx; }
+.pb-in.over { background: #EF9F27; }
+
+/* ===== 饮食：加食物 ===== */
+.foodbox-h { font-size: 26rpx; font-weight: 600; color: var(--green-dark); margin: 18rpx 0 10rpx; }
+.search-lg { font-size: 30rpx; padding: 24rpx 24rpx; border: 2rpx solid var(--green); background: var(--card); }
+
+/* ===== 饮食：已吃清单 ===== */
+.dlog-h { font-size: 24rpx; color: var(--sub); margin: 18rpx 0 8rpx; }
+.dlog-i {
+  display: flex; align-items: center; gap: 12rpx;
+  padding: 18rpx 16rpx; border-bottom: 1rpx solid var(--line); font-size: 26rpx;
+}
+.dlog-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dlog-g { color: var(--sub); font-size: 24rpx; width: 110rpx; text-align: right; }
+.dlog-k { color: var(--green-dark); font-size: 24rpx; width: 130rpx; text-align: right; }
+.dlog-x { color: #e5726f; font-size: 30rpx; padding: 0 8rpx; }
+.dlog-empty { font-size: 24rpx; color: var(--sub); line-height: 1.7; padding: 16rpx; background: var(--bg); border-radius: 12rpx; }
+
+/* ===== 滚轮 ===== */
+.wheel { width: 100%; height: 400rpx; }
+.wheel-i { line-height: 88rpx; text-align: center; font-size: 32rpx; }
+
+/* ===== 食物分类点选 ===== */
+.fcat { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 12rpx 0 10rpx; }
+.fcat-i { padding: 8rpx 22rpx; border-radius: 999rpx; background: var(--card); border: 2rpx solid var(--line); font-size: 26rpx; color: var(--sub); }
+.fcat-i.on { background: var(--green); border-color: var(--green); color: #12291b; font-weight: 600; }
+.fgrid { display: flex; flex-wrap: wrap; gap: 12rpx; margin-bottom: 14rpx; }
+.fgrid-i { width: calc(50% - 6rpx); box-sizing: border-box; background: var(--card); border: 2rpx solid var(--line); border-radius: 12rpx; padding: 12rpx 16rpx; display: flex; flex-direction: column; gap: 4rpx; }
+.fgrid-i:active { border-color: var(--green); background: var(--green-soft); }
+.fgrid-n { font-size: 27rpx; font-weight: 600; }
+.fgrid-m { font-size: 22rpx; color: var(--sub); }
+
+/* 食物搜索框：与上方网格留出间距，占位文字不挤 */
+.foodsearch { margin-top: 16rpx; }
+/* ── 组间倒计时浮条（2026-10-16 与网站同步）；2026-10-17 提层修：z-index 高于自定义 tabBar，bottom 避开 tabBar 高度 ── */
+.rest-float { position: fixed; left: 20rpx; right: 20rpx; bottom: calc(130rpx + env(safe-area-inset-bottom)); z-index: 999; background: #0c1119; color: #eef1f6; border-radius: 20rpx; padding: 20rpx 24rpx; display: flex; align-items: center; gap: 18rpx; box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.35); }
+.rf-num { font-size: 52rpx; font-weight: 800; color: #4ade80; min-width: 130rpx; }
+.rf-s { font-size: 24rpx; font-weight: 400; color: #8b95a7; margin-left: 4rpx; }
+.rf-mid { flex: 1; min-width: 0; }
+.rf-label { font-size: 24rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rf-sub { font-size: 20rpx; color: #8b95a7; margin-top: 2rpx; }
+.rf-btn { padding: 12rpx 22rpx; border-radius: 12rpx; background: rgba(74,222,128,0.15); color: #4ade80; font-size: 24rpx; font-weight: 600; }
+.rf-skip { background: transparent; border: 1rpx solid #2a3345; color: #8b95a7; font-weight: 400; }
+
+/* ── 专注训练（2026-10-16）：浮条醒目按钮 + 全屏专注模式 ── */
+.rf-focus { background: #4ade80; color: #0c1119; font-weight: 800; }
+
+.fm { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 200; background: #0c1119; color: #eef1f6; display: flex; flex-direction: column; padding: 30rpx 30rpx calc(30rpx + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.fm-top { display: flex; justify-content: space-between; align-items: center; }
+.fm-title { font-size: 34rpx; font-weight: 700; }
+.fm-close { font-size: 26rpx; color: #8b95a7; padding: 8rpx 12rpx; }
+.fm-imgwrap { flex: 1; min-height: 0; position: relative; margin: 16rpx 0; }
+.fm-gif { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.fm-gif-0 { animation: fmshow0 840ms ease-in-out infinite; }
+.fm-gif-1 { animation: fmshow1 840ms ease-in-out infinite; }
+@keyframes fmshow0 { 0% { opacity: 1 } 50% { opacity: 0 } 100% { opacity: 1 } }
+@keyframes fmshow1 { 0% { opacity: 0 } 50% { opacity: 1 } 100% { opacity: 0 } }
+.fm-noimg { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 100rpx; gap: 16rpx; }
+.fm-noimg text { font-size: 30rpx; color: #8b95a7; }
+.fm-set { text-align: center; color: #8b95a7; font-size: 26rpx; }
+.fm-timer { text-align: center; font-size: 120rpx; font-weight: 800; color: #4ade80; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fm-ts { font-size: 40rpx; font-weight: 400; color: #8b95a7; margin-left: 6rpx; }
+.fm-sub { text-align: center; color: #aab3c5; font-size: 26rpx; margin: 6rpx 0 18rpx; }
+.fm-fill { display: flex; align-items: center; justify-content: center; gap: 26rpx; margin: 10rpx 0; }
+.fm-step { padding: 16rpx 30rpx; border-radius: 14rpx; background: rgba(74,222,128,0.12); color: #4ade80; font-size: 28rpx; font-weight: 700; }
+.fm-step:active { background: rgba(74,222,128,0.3); }
+.fm-val { min-width: 200rpx; text-align: center; font-size: 40rpx; font-weight: 800; }
+.fm-done { background: #4ade80; color: #0c1119; text-align: center; font-size: 34rpx; font-weight: 800; border-radius: 999rpx; padding: 26rpx; margin: 14rpx 0; }
+.fm-done:active { opacity: 0.85; }
+.fm-points { max-height: 140rpx; color: #8b95a7; font-size: 22rpx; line-height: 1.6; }
+
+/* ── 换动作模式提示条 ── */
+.swapbar { display: flex; justify-content: space-between; align-items: center; background: var(--warn-soft); border: 1rpx solid rgba(213,189,135,0.35); border-radius: 12rpx; padding: 12rpx 18rpx; margin-bottom: 12rpx; }
+.swapbar-t { font-size: 24rpx; color: var(--warn); flex: 1; }
+.swapbar-cancel { font-size: 24rpx; color: var(--warn); font-weight: 700; padding: 4rpx 10rpx; }
+
+/* ── 动作卡操作行 + 要领区进专注 ── */
+.exops { display: flex; gap: 14rpx; margin: 12rpx 0; }
+.exop { flex: 1; text-align: center; padding: 14rpx 0; border-radius: 12rpx; background: var(--bg); color: var(--sub); font-size: 24rpx; font-weight: 600; }
+.exop:active { background: rgba(255,255,255,0.06); }
+.coach-link { margin-top: 14rpx; font-size: 24rpx; color: var(--green-dark); padding: 6rpx 0; }
+.fm-go { position: relative; }
+.fm-go-hint { margin-top: 8rpx; color: var(--green); font-size: 22rpx; font-weight: 600; }
+.gif-hint { text-align: center; color: var(--green); font-size: 22rpx; font-weight: 600; margin-top: 6rpx; }
+
+/* ── 动作库选择弹层（2026-10-17 与网站 openPicker 1:1 同款）── */
+.pk-addbtn { flex: none; background: var(--green-soft); color: var(--green-dark); border: 1rpx solid var(--line); border-radius: 999rpx; padding: 10rpx 24rpx; font-size: 26rpx; font-weight: 700; }
+.pk-mask { position: fixed; inset: 0; z-index: 1500; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; justify-content: center; }
+.pk-box { background: var(--card); width: calc(100% - 16rpx); max-height: 80vh; display: flex; flex-direction: column; border-radius: 36rpx 36rpx 0 0; overflow: hidden; box-sizing: border-box; padding-bottom: env(safe-area-inset-bottom); }
+.pk-head { display: flex; justify-content: space-between; align-items: center; padding: 24rpx 28rpx 12rpx; }
+.pk-title { font-size: 32rpx; font-weight: 700; color: var(--tx); }
+.pk-close { font-size: 26rpx; color: var(--sub); padding: 8rpx 16rpx; }
+.pk-search { margin: 12rpx 28rpx; padding: 20rpx 24rpx; border: 1rpx solid var(--line); border-radius: 20rpx; font-size: 28rpx; background: var(--bg); color: var(--tx); }
+.pk-cats { display: flex; gap: 12rpx; padding: 12rpx 28rpx; white-space: nowrap; }
+.pk-cat { flex-shrink: 0; font-size: 24rpx; padding: 8rpx 22rpx; border-radius: 999rpx; background: var(--bg); border: 1rpx solid var(--line); color: var(--sub); }
+.pk-cat.on { background: var(--green); color: #12291b; border-color: var(--green); font-weight: 700; }
+.pk-list { flex: 1; min-height: 300rpx; max-height: 56vh; padding: 8rpx 20rpx 20rpx; box-sizing: border-box; }
+.pk-i { display: flex; justify-content: space-between; align-items: center; gap: 20rpx; padding: 22rpx 12rpx; border-bottom: 1rpx solid var(--line); }
+.pk-n { font-size: 28rpx; font-weight: 600; color: var(--tx); flex: 1; min-width: 0; }
+.pk-m { font-size: 22rpx; color: var(--sub); flex: none; }
+.pk-foot { padding: 24rpx; text-align: center; color: var(--green-dark); font-size: 26rpx; font-weight: 600; }
+.pk-tip { padding: 16rpx 28rpx; font-size: 22rpx; color: var(--sub); border-top: 1rpx solid var(--line); }
+
+/* ── 每日目标进度四色（2026-10-17 与网站饮食页四色格一致）── */
+.pb-kcal .pb-l { color: var(--green-dark); }
+.pbin-kcal { background: var(--green); }
+.pb-protein .pb-l { color: var(--gold); }
+.pbin-protein { background: var(--gold); }
+.pb-carb .pb-l { color: #6aa9e9; }
+.pbin-carb { background: #6aa9e9; }
+.pb-fat .pb-l { color: #e09a5a; }
+.pbin-fat { background: #e09a5a; }
+
+/* ── 练前「内视」自评（2026-10-17 与网站同款）── */
+.pre-mask { position: fixed; inset: 0; z-index: 1400; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; padding: 40rpx; box-sizing: border-box; }
+.pre-card { background: var(--card); border: 1rpx solid var(--line); border-radius: 32rpx; padding: 36rpx 32rpx 28rpx; width: 100%; max-height: 88vh; overflow-y: auto; }
+.pre-total { font-size: 44rpx; font-weight: 500; color: var(--green-dark); text-align: center; margin: 8rpx 0 12rpx; }
+.pre-row { margin-top: 18rpx; }
+.pre-h { display: flex; justify-content: space-between; font-size: 26rpx; }
+.pre-v { color: var(--sub); font-size: 24rpx; }
+.pre-lo { display: flex; justify-content: space-between; font-size: 20rpx; color: var(--sub); }
+.pre-foot { font-size: 20rpx; color: var(--sub); text-align: center; margin-top: 16rpx; }
+
+/* 2026-10-17 专注模式修整：图片区固定高度（不再 flex:1 自由撑位导致漂移）；重量/次数值可点（走滚轮） */
+.fm-imgwrap { flex: none; height: 40vh; min-height: 360rpx; position: relative; margin: 16rpx 0; }
+.fm-pick { border-bottom: 2rpx dashed rgba(144,200,164,0.4); padding: 0 12rpx; }
+.fm-pick:active { color: #4ade80; border-bottom-color: #4ade80; }

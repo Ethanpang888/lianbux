@@ -1,0 +1,14 @@
+{
+  "triggers": [
+    {
+      "name": "daily0800",
+      "type": "timer",
+      "config": "0 0 8 * * * *"
+    },
+    {
+      "name": "preview2100",
+      "type": "timer",
+      "config": "0 0 21 * * * *"
+    }
+  ]
+}

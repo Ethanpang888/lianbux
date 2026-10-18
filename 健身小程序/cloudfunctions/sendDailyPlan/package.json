@@ -1,0 +1,10 @@
+{
+  "name": "sendDailyPlan",
+  "version": "1.0.0",
+  "description": "每日 08:00 北京时间，给已订阅用户发送「今日训练 + 饮食计划」邮件",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "nodemailer": "^6.9.8"
+  }
+}

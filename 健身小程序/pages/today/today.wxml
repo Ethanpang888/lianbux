@@ -1,0 +1,361 @@
+<view wx:if="{{!loaded}}" class="card center-empty">加载中…</view>
+
+<view wx:elif="{{!hasPlan}}" class="card center-empty">
+  <view class="title">还没有计划</view>
+  <view class="btn block" bindtap="goAssess">去测评生成计划</view>
+</view>
+
+<block wx:else>
+  <!-- 计划头（含减载周提示） -->
+  <view class="card head">
+    <view class="row between">
+      <view class="title">第 {{dayIndex+1}} 天 · {{isRest?'休息日':focus}}</view>
+      <view class="muted">{{relLabel}} · {{viewDate}}</view>
+    </view>
+    <view class="bar"><view class="bar-in" style="width:{{(isRest?0:(dayIndex%microLen+1)/microLen*100)}}%"></view></view>
+    <view class="nav">
+      <view class="navbtn" bindtap="prevDay">‹ 前一天</view>
+      <view class="navmid">{{cycleLabel}}<text wx:if="{{!isToday}}" class="backtoday" bindtap="backToToday"> · 回到今天</text></view>
+      <view class="navbtn" bindtap="nextDay">后一天 ›</view>
+    </view>
+    <view wx:if="{{!isRest}}" class="headtags">
+      <text class="htag we{{week}}">第{{week}}周</text>
+      <text wx:if="{{srcTag==='推演'}}" class="htag tui">推演编排</text>
+      <text wx:if="{{deload}}" class="htag deload">减载周 · 正式组 ×0.6</text>
+    </view>
+    <view class="coach-link" bindtap="goCoach">今天没空 / 状态不好？调一下安排 ›</view>
+  </view>
+
+  <!-- 顺体质调理提示 -->
+  <view wx:if="{{tcmTip}}" class="card tcm-tip" bindtap="goTcm">
+    <view class="row between">
+      <view class="tcm-tip-h">🌿 顺体质调理 · {{tcmTip.name}}</view>
+      <text class="muted">›</text>
+    </view>
+    <view class="muted" style="margin-top:6rpx;line-height:1.6">{{tcmTip.tip}}</view>
+  </view>
+
+  <!-- 本周智能建议 -->
+  <view wx:if="{{weekTip}}" class="card week-tip">
+    <view class="wt-h">📈 本周智能建议</view>
+    <view wx:for="{{weekTip}}" wx:key="*this" class="wt-li">{{item}}</view>
+  </view>
+
+  <!-- 休息日 -->
+  <view wx:if="{{isRest}}" class="card rest">
+    <view style="font-size:60rpx;text-align:center;margin-bottom:10rpx">🌿</view>
+    <view class="muted" style="text-align:center">{{restNote}}</view>
+    <view class="btn ghost block" style="margin-top:14rpx" bindtap="skipToTrain">查看下一天训练 ▶</view>
+  </view>
+
+  <!-- 训练日 -->
+  <block wx:else>
+    <!-- 热身 -->
+    <view wx:if="{{warmup}}" class="card warm">
+      <view class="warm-h">🔥 热身 · {{warmup.minutes}} min</view>
+      <view wx:for="{{warmup.items}}" wx:key="*this" class="warm-i">· {{item}}</view>
+      <view wx:if="{{mainNote}}" class="warm-note">{{mainNote}}</view>
+    </view>
+
+    <!-- 正式动作 -->
+    <view class="card">
+      <view class="row between" style="margin-bottom:6rpx">
+        <view class="title">今日训练</view>
+        <view style="display:flex;gap:12rpx">
+          <view class="pk-addbtn" bindtap="openPk" data-mode="add">＋ 加动作</view>
+          <view class="pk-addbtn" bindtap="goPoster">📸 昭告天下</view>
+        </view>
+      </view>
+      <view class="muted" style="margin-bottom:10rpx">点重量/次数可滚轮选择，自动填满剩余组；也可手动输入</view>
+      <view wx:for="{{exercises}}" wx:key="name" class="ex">
+        <view class="ex-h" bindtap="toggleExpand" data-i="{{index}}">
+          <view class="ex-h-l">
+            <text class="ex-name">{{item.name}}</text>
+            <view class="ex-tags">
+              <text wx:if="{{item.role}}" class="rtag r-{{item.roleKey}}">{{item.role}}</text>
+              <text wx:if="{{item.homeFallback}}" class="rtag rf">居家替代</text>
+            </view>
+          </view>
+          <view class="ex-h-r">
+            <text class="sets">{{item.sets}} ›</text>
+            <text class="del" data-i="{{index}}" catchtap="removeExercise">✕</text>
+          </view>
+        </view>
+        <view wx:if="{{item.expanded}}" class="ex-b">
+          <view class="equiptag {{item.equipment==='无器械'?'home':'gym'}}">{{item.equipment==='无器械'?'🏠 居家 · 无器械':'🏋 ' + item.equipment}}</view>
+          <view wx:if="{{item.gif}}" class="gifwrap" bindtap="fmOpen" data-i="{{index}}"><frame-gif frames="{{item.gif}}" speed="{{420}}" equip="{{item.equipment}}" interactive="{{true}}"/><view class="gif-hint">👆 点图进入专注训练</view></view>
+          <view wx:if="{{item.points}}" class="expo fm-go" bindtap="fmOpen" data-i="{{index}}">{{item.points}}<view class="fm-go-hint">点这里进入「专注训练」：大图大字带着你一组一组练</view></view>
+          <view class="exops">
+            <view class="exop" data-i="{{index}}" catchtap="swapEx">🔁 换动作</view>
+            <view class="exop" data-i="{{index}}" catchtap="removeExercise">🗑 删除动作</view>
+          </view>
+          <view class="exmeta">
+            <text wx:if="{{item.rest}}">组间休息 {{item.rest}}s</text>
+            <text wx:if="{{item.rpe}}"> · {{item.rpe}}</text>
+          </view>
+          <view class="setrow setrow-h">
+            <text class="setno">组</text>
+            <text class="setcol">重量 (kg)</text>
+            <text class="setcol">次数</text>
+            <text class="done-h">完成</text>
+          </view>
+          <view wx:for="{{item.log}}" wx:for-item="s" wx:for-index="j" wx:key="j" class="setrow">
+            <text class="setno">第{{j+1}}组</text>
+            <view class="setbox {{s.weight!==''?'fill':''}}" data-i="{{index}}" data-j="{{j}}" bindtap="openWheel">
+              <text>{{s.weight!=='' ? s.weight : '参考' + item.suggest}}</text>
+            </view>
+            <view class="setbox {{s.reps!==''?'fill':''}}" data-i="{{index}}" data-j="{{j}}" bindtap="openWheel">
+              <text>{{s.reps!=='' ? s.reps : '次数'}}</text>
+            </view>
+            <view class="done {{s.done?'on':''}}" data-i="{{index}}" data-j="{{j}}" bindtap="toggleSetDone">{{s.done?'✓':''}}</view>
+          </view>
+          <view class="setops">
+            <view class="setop" data-i="{{index}}" bindtap="decSet">− 减一组</view>
+            <view class="setop" data-i="{{index}}" bindtap="addSet">＋ 加一组</view>
+            <view class="setop" data-i="{{index}}" bindtap="fillSets">按第一组填满</view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{swapMode}}" class="swapbar">
+        <text class="swapbar-t">🔁 换动作模式：在下方弹层里选一个动作替换选中的动作</text>
+        <view class="swapbar-cancel" bindtap="closePk">取消</view>
+      </view>
+    </view>
+
+    <!-- 有氧 -->
+    <view wx:if="{{cardio}}" class="card cardio">
+      <view class="cd-h">🏃 有氧（选做）· {{cardio.type}}</view>
+      <view class="muted" style="line-height:1.6">{{cardio.detail}}{{cardio.alt ? ' / ' + cardio.alt : ''}} · 每周 {{cardio.perWeek}}</view>
+      <view class="muted" style="margin-top:6rpx;line-height:1.6">{{cardio.note}}</view>
+    </view>
+  </block>
+
+  <!-- 饮食记录 -->
+  <view class="card">
+    <view class="row between">
+      <view class="title">今日饮食</view>
+      <view class="modesw">
+        <view class="ms {{dietMode==='recipe'?'on':''}}" data-m="recipe" bindtap="setDietMode">配好菜</view>
+        <view class="ms {{dietMode==='simple'?'on':''}}" data-m="simple" bindtap="setDietMode">只给克数</view>
+      </view>
+    </view>
+
+    <!-- 每日消耗与热量目标 -->
+    <view wx:if="{{energy}}" class="ebox">
+      <view class="emain">每日消耗 <b>{{energy.tdee}}</b> kcal　→　热量目标 <b>{{calTarget}}</b> kcal</view>
+      <view class="esub">基础代谢 {{energy.bmr}} × 活动系数 {{energy.factor}}（{{energy.actName}}）· 缺口 {{energy.deficit}} kcal</view>
+      <view wx:if="{{energy.warn}}" class="ewarn">缺口偏离较大，去「我的 → 修改资料」复核日常活动量</view>
+    </view>
+
+    <!-- 目标 vs 已吃：4 条进度（四色区分，与网站每日目标四色格一致） -->
+    <view class="pbs">
+      <view class="pb pb-{{item.key}}" wx:for="{{progress}}" wx:key="key">
+        <view class="pb-h">
+          <text class="pb-l">{{item.label}}</text>
+          <text class="pb-v {{item.over?'over':''}}">{{item.got}} / {{item.target}}{{item.unit}}</text>
+        </view>
+        <view class="pb-bar"><view class="pb-in pbin-{{item.key}} {{item.over?'over':''}}" style="width:{{item.pct}}%"></view></view>
+      </view>
+    </view>
+
+    <!-- 加吃了什么：分类点选 + 搜索联想 -->
+    <view class="foodbox-h">＋ 加吃了什么</view>
+    <view class="fcat">
+      <view wx:for="{{foodCats}}" wx:key="*this" class="fcat-i {{foodCat===item?'on':''}}" data-c="{{item}}" bindtap="onFoodCat">{{item}}</view>
+    </view>
+    <view class="fgrid" wx:if="{{!foodInput}}">
+      <view wx:for="{{foodGrid}}" wx:key="name" class="fgrid-i" data-i="{{index}}" bindtap="pickFoodGrid">
+        <text class="fgrid-n">{{item.name}}</text>
+        <text class="fgrid-m">{{item.kcal}}kcal · 蛋白{{item.protein}}g</text>
+      </view>
+    </view>
+    <input class="search search-lg foodsearch" placeholder="或直接打字搜，如：牛肉" value="{{foodInput}}" bindinput="foodSearchInput" confirm-type="search"/>
+    <scroll-view wx:if="{{foodResults.length || foodInput}}" scroll-y class="sug">
+      <view wx:for="{{foodResults}}" wx:key="name" class="sug-i" data-i="{{index}}" bindtap="pickFoodResult">
+        <text>{{item.name}}</text><text class="eq">{{item.kcal}}kcal/100g · 蛋白{{item.protein}}g</text>
+      </view>
+      <view wx:if="{{foodInput}}" class="sug-add" bindtap="openCustomFoodFromInput">+ 没找到？直接添加「{{foodInput}}」（自填营养，填一次就记住）</view>
+    </scroll-view>
+
+    <!-- 已吃清单 -->
+    <view class="dlog-h">已吃记录（{{dietLog.length}} 项）</view>
+    <view wx:for="{{dietLog}}" wx:key="index" class="dlog-i">
+      <text class="dlog-n">{{item.name}}{{item.unknown?'（营养未知）':''}}</text>
+      <text class="dlog-g">{{item.grams}}g</text>
+      <text class="dlog-k">{{item.kcal}}kcal</text>
+      <text class="dlog-x" data-i="{{index}}" catchtap="removeFood">✕</text>
+    </view>
+    <view wx:if="{{dietLog.length===0}}" class="dlog-empty">还没记录。在上面输入框打「牛肉」这类词，联想出来后点一下，填克数就记上了。</view>
+    <view wx:if="{{dietLog.length}}" class="btn ghost block" style="margin-top:14rpx" bindtap="clearDiet">清空今日饮食</view>
+    <view class="collapse" bindtap="goDiet">📐 今天吃什么 · 分餐方案 ›</view>
+  </view>
+
+  <!-- 微饿循环（谭成义理论） -->
+  <view class="card" style="background:var(--warn-soft);border-left:8rpx solid var(--warn)">
+    <view class="title" style="font-size:28rpx">🌾 微饿循环 · 谭成义增肌减脂底层逻辑</view>
+    <view class="muted" style="margin:6rpx 0;line-height:1.6">保持「微微饥饿」状态，增肌减脂效率最高。每天记一下饥饿感，自动微调你的碳水/蛋白目标。</view>
+    <view class="chk" style="margin-top:12rpx">
+      <view class="chk-i {{dietState.lastType==='很饿'?'on':''}}" data-v="很饿" bindtap="setHunger">很饿·加碳水</view>
+      <view class="chk-i {{dietState.lastType==='微饿'?'on':''}}" data-v="微饿" bindtap="setHunger">微饿·最佳</view>
+      <view class="chk-i {{dietState.lastType==='不饿'?'on':''}}" data-v="不饿" bindtap="setHunger">不饿·减碳水</view>
+    </view>
+    <view class="muted" style="margin-top:10rpx">当前微调：碳水 {{dietState.carbAdj>0?'+':''}}{{dietState.carbAdj}}g/kg · 蛋白 {{dietState.proteinAdj>0?'+':''}}{{dietState.proteinAdj}}g/kg</view>
+    <view class="collapse" style="margin-top:10rpx" bindtap="goDiet">📐 饮食计划详解 · 理论科普 ›</view>
+  </view>
+
+  <!-- 学习卡 -->
+  <view class="card" bindtap="toggleLearn">
+    <view class="row between">
+      <view class="title" style="font-size:28rpx">📚 每天学一点 · {{learn.title}}</view>
+      <text class="muted">{{learnOpen?'收起':'展开'}}</text>
+    </view>
+    <view wx:if="{{learnOpen}}" class="learnfull">
+      <view class="tag">{{learn.tag}}</view>
+      <view style="margin-top:10rpx;line-height:1.6">{{learn.full}}</view>
+      <view class="btn ghost block" style="margin-top:14rpx" bindtap="goLearnAll">查看全部 28 天</view>
+    </view>
+  </view>
+
+  <!-- 完成打卡 -->
+  <view class="card">
+    <view class="title" style="margin-bottom:10rpx">完成打卡</view>
+    <view class="chk">
+      <view class="chk-i {{trained?'on':''}}" bindtap="markTrained">训练完成</view>
+    </view>
+    <view class="field"><text>喝水(ml) 目标{{waterTarget}}</text><input type="digit" placeholder="今天喝了多少ml" value="{{waterMl}}" bindinput="onWater"/></view>
+    <view class="muted" style="margin:-4rpx 0 8rpx">{{waterMl}}/{{waterTarget}}ml {{waterMl>=waterTarget?'🟢 达标':''}}</view>
+    <view class="field"><text>睡眠(小时) 建议7-9h</text><input type="digit" placeholder="昨晚睡了几小时" value="{{sleepHours}}" bindinput="onSleep"/></view>
+    <view class="muted" style="margin:-4rpx 0 8rpx">{{sleepHours}}h {{sleepHours>=7?'🟢 达标':''}}</view>
+    <view class="field"><text>今日体重(kg)</text><input type="digit" placeholder="选填" value="{{weight}}" bindinput="onWeight"/></view>
+    <view class="field"><text>备注</text><input placeholder="选填" value="{{note}}" bindinput="onNote"/></view>
+    <view class="btn block" style="margin-top:20rpx" bindtap="save">保存今日打卡</view>
+    <view wx:if="{{savedTip}}" class="muted center-empty" style="padding:10rpx;color:var(--green)">✓ 已保存</view>
+  </view>
+
+  <!-- 重量/次数 滚轮 -->
+  <view wx:if="{{showWheel}}" class="mask" bindtap="closeWheel">
+    <view class="sheet" catchtap="noop">
+      <view class="title" style="margin-bottom:4rpx">第{{wheelSet+1}}组 · {{wheelExName}}</view>
+      <view class="muted" style="margin-bottom:10rpx">参考起步 <text style="color:var(--green);font-weight:600">{{wheelSuggest}}kg</text>（按你的体重与经验估算，按实际能力调）</view>
+      <picker-view class="wheel" indicator-style="height:88rpx" value="{{wheelValue}}" bindchange="onWheelChange">
+        <picker-view-column>
+          <view wx:for="{{weightOptions}}" wx:key="*this" class="wheel-i">{{item===0 ? '自重' : item + ' kg'}}</view>
+        </picker-view-column>
+        <picker-view-column>
+          <view wx:for="{{repOptions}}" wx:key="*this" class="wheel-i">{{item}} 次</view>
+        </picker-view-column>
+      </picker-view>
+      <view class="row" style="gap:16rpx;margin-top:20rpx">
+        <view class="btn ghost" style="flex:1" bindtap="closeWheel">取消</view>
+        <view class="btn" style="flex:1" bindtap="confirmWheel">确定</view>
+      </view>
+      <view class="collapse" bindtap="manualInput">改成手动输入 ›</view>
+    </view>
+  </view>
+
+  <!-- 自定义食物表单 -->
+  <view wx:if="{{showFoodForm}}" class="mask" bindtap="closeFoodForm">
+    <view class="sheet" catchtap="noop">
+      <view class="title" style="margin-bottom:6rpx">添加自定义食物</view>
+      <view class="muted" style="margin-bottom:8rpx">若内置库没有，可手动填写每100g营养（不填则记为未识别）。</view>
+      <view class="field"><text>食物名称</text><input placeholder="如：羊肉" value="{{cf.name}}" data-f="name" bindinput="cfInput"/></view>
+      <view class="field"><text>吃了多少克</text><input type="digit" placeholder="默认100" value="{{cf.grams}}" data-f="grams" bindinput="cfInput"/></view>
+      <view class="collapse" bindtap="toggleCfNutri">{{cf.showNutri ? '收起营养填写' : '我知道每100g营养（可选，填了才计入）'}}</view>
+      <block wx:if="{{cf.showNutri}}">
+        <view class="grid2">
+          <view class="field sm"><text>热量kcal</text><input type="digit" placeholder="如133" value="{{cf.kcal}}" data-f="kcal" bindinput="cfInput"/></view>
+          <view class="field sm"><text>蛋白g</text><input type="digit" placeholder="如24" value="{{cf.protein}}" data-f="protein" bindinput="cfInput"/></view>
+          <view class="field sm"><text>碳水g</text><input type="digit" placeholder="如0" value="{{cf.carbs}}" data-f="carbs" bindinput="cfInput"/></view>
+          <view class="field sm"><text>脂肪g</text><input type="digit" placeholder="如5" value="{{cf.fat}}" data-f="fat" bindinput="cfInput"/></view>
+          <view class="field sm"><text>纤维g</text><input type="digit" placeholder="如0" value="{{cf.fiber}}" data-f="fiber" bindinput="cfInput"/></view>
+        </view>
+      </block>
+      <view class="row" style="margin-top:20rpx;gap:16rpx">
+        <view class="btn ghost" style="flex:1" bindtap="closeFoodForm">取消</view>
+        <view class="btn" style="flex:1" bindtap="submitCustomFood">添加</view>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 组间倒计时浮条（2026-10-16 与网站同步）：勾完一组自动出现 -->
+<view wx:if="{{restLeft > 0}}" class="rest-float">
+  <view class="rf-num">{{restLeft}}<text class="rf-s">s</text></view>
+  <view class="rf-mid">
+    <view class="rf-label">{{restLabel}}</view>
+    <view class="rf-sub">休息结束震动提醒你</view>
+  </view>
+  <view class="rf-btn rf-focus" bindtap="fmOpen">专注训练</view>
+  <view class="rf-btn" bindtap="addRest30">+30s</view>
+  <view class="rf-btn rf-skip" bindtap="skipRest">跳过</view>
+</view>
+
+<!-- 专注训练全屏：大倒计时 + 动作大图 + 当前组填写，点「完成」=打勾并进入休息 -->
+<view wx:if="{{fm.on}}" class="fm">
+  <view class="fm-top">
+    <view class="fm-title">{{fm.exName}}</view>
+    <view class="fm-close" bindtap="fmClose">收起 ✕</view>
+  </view>
+  <view class="fm-imgwrap">
+    <block wx:if="{{fm.gif.length > 1}}">
+      <image wx:for="{{fm.gif}}" wx:key="index" src="{{item}}" mode="aspectFit" class="fm-gif fm-gif-{{index}}"/>
+    </block>
+    <image wx:elif="{{fm.gif.length === 1}}" src="{{fm.gif[0]}}" mode="aspectFit" class="fm-gif fm-static"/>
+    <view wx:else class="fm-noimg">🏋️<text>{{fm.exName}}</text></view>
+  </view>
+  <view class="fm-set">第 {{fm.si+1}} / {{fm.totalSets}} 组</view>
+  <view class="fm-timer {{fm.restLeft>0?'resting':''}}">{{fm.restLeft>0 ? fm.restLeft : '─'}}<text wx:if="{{fm.restLeft>0}}" class="fm-ts">s</text></view>
+  <view class="fm-sub">{{fm.restLeft>0 ? fm.restLabel : '做这一组 —— 重量次数先调好，练完点大按钮'}}</view>
+  <view class="fm-fill">
+    <view class="fm-step" data-f="weight" data-d="-1" bindtap="fmAdj">−2.5</view>
+    <view class="fm-val fm-pick" bindtap="fmPickW">{{fm.weight!=='' && fm.weight!==null && fm.weight!==undefined ? fm.weight + ' kg' : '自重'}}</view>
+    <view class="fm-step" data-f="weight" data-d="1" bindtap="fmAdj">+2.5</view>
+  </view>
+  <view class="fm-fill">
+    <view class="fm-step" data-f="reps" data-d="-1" bindtap="fmAdj">−1</view>
+    <view class="fm-val fm-pick" bindtap="fmPickR">{{fm.reps}} 次</view>
+    <view class="fm-step" data-f="reps" data-d="1" bindtap="fmAdj">+1</view>
+  </view>
+  <view class="fm-done" bindtap="fmDone">✓ 完成这一组</view>
+  <scroll-view scroll-y class="fm-points"><text>{{fm.points}}</text></scroll-view>
+</view>
+
+<!-- 动作库选择弹层（与网站 openPicker 同款：搜索 + 分类 + 列表） -->
+<view wx:if="{{pk.on}}" class="pk-mask" bindtap="closePk">
+  <view class="pk-box" catchtap="noop">
+    <view class="pk-head">
+      <text class="pk-title">{{pk.mode === 'add' ? '＋ 添加动作' : '换成什么动作'}}</text>
+      <view class="pk-close" bindtap="closePk">关闭</view>
+    </view>
+    <input class="pk-search" placeholder="搜索动作，如：卧推 / 划船 / 下拉" value="{{pk.q}}" bindinput="pkInput"/>
+    <scroll-view scroll-x class="pk-cats" enhanced show-scrollbar="{{false}}">
+      <view wx:for="{{pk.cats}}" wx:key="*this" class="pk-cat {{pk.cat === item ? 'on' : ''}}" data-cat="{{item}}" bindtap="pkCat">{{item}}</view>
+    </scroll-view>
+    <scroll-view scroll-y class="pk-list">
+      <view wx:for="{{pk.list}}" wx:key="name" class="pk-i" data-i="{{index}}" bindtap="pickPk">
+        <text class="pk-n">{{item.name}}</text>
+        <text class="pk-m">{{item.meta}}</text>
+      </view>
+      <view wx:if="{{!pk.list.length}}" class="muted" style="padding:32rpx;text-align:center">没有找到，换个词试试</view>
+      <view class="pk-foot" bindtap="pkCustom">没找到？手动输入动作名 →</view>
+    </scroll-view>
+    <view class="pk-tip">{{pk.tip}}</view>
+  </view>
+</view>
+
+<!-- 练前「内视」自评（2026-10-17 与网站同款：每天一次，只建议不强制） -->
+<view wx:if="{{preOn}}" class="pre-mask">
+  <view class="pre-card">
+    <view class="title">开练前，内视一下</view>
+    <view class="muted" style="margin:6rpx 0 10rpx">四项各打 1-5 分。玄衡按你的状态给今日建议——只建议，不动你的计划。</view>
+    <view class="pre-total">总分 {{preTotal}} / 20</view>
+    <view class="pre-row" wx:for="{{preDims}}" wx:key="k">
+      <view class="pre-h"><text class="pre-l">{{item.label}}</text><text class="pre-v">{{item.v}} 分</text></view>
+      <slider min="1" max="5" step="1" value="{{item.v}}" show-value activeColor="#90c8a4" block-size="20" data-i="{{index}}" bindchanging="preChanging"/>
+      <view class="pre-lo"><text>{{item.lo}}</text><text>{{item.hi}}</text></view>
+    </view>
+    <view class="btn block" bindtap="preSubmit">就绪，开始练</view>
+    <view class="pre-foot">每天只问一次 · 不会自动改你的重量和组数</view>
+  </view>
+</view>

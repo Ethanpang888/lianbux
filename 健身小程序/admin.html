@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>练不虚Gym · 管理后台</title>
+<script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.0/cloudbase.full.js"></script>
+<style>
+  :root { --green:#0e9f6e; --dark:#0b7d56; --bg:#f5f7fa; --line:#eef0f3; --sub:#6b7280; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,"PingFang SC",sans-serif; background:var(--bg); color:#1f2937; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 20px 14px 80px; }
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  header h1 { font-size:20px; margin:0; color:var(--dark); }
+  header .today { font-size:12px; color:var(--sub); }
+  .login { background:#fff; border-radius:12px; padding:22px; margin-top:30vh; text-align:center; }
+  .login input { width:240px; padding:10px 12px; border:2px solid var(--line); border-radius:8px; font-size:16px; }
+  .login button { margin-left:8px; padding:10px 22px; background:var(--green); color:#fff; border:0; border-radius:8px; font-size:16px; cursor:pointer; }
+  .stats { display:flex; gap:10px; margin-bottom:12px; }
+  .stat { flex:1; background:#fff; border-radius:10px; padding:12px; text-align:center; }
+  .stat b { display:block; font-size:24px; color:var(--green); }
+  .stat span { font-size:12px; color:var(--sub); }
+  input.search { width:100%; padding:10px 14px; border:2px solid var(--line); border-radius:10px; font-size:15px; margin-bottom:10px; background:#fff; }
+  table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; }
+  th,td { padding:10px 8px; border-bottom:1px solid var(--line); font-size:13px; text-align:left; vertical-align:top; }
+  th { background:#f0faf5; color:var(--dark); font-weight:600; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:999rpx; font-size:11px; font-weight:600; }
+  .b-member { background:#e6f7ef; color:var(--dark); }
+  .b-sub { background:#e8f1ff; color:#1d6fd4; }
+  .b-exp { background:#fef3e6; color:#b45309; }
+  .b-free { background:#f1f3f5; color:var(--sub); }
+  .ops { display:flex; flex-direction:column; gap:6px; }
+  .ops select { font-size:12px; padding:3px; border:1px solid var(--line); border-radius:6px; }
+  .ops button { border:0; border-radius:6px; padding:5px 0; font-size:12px; cursor:pointer; }
+  .btn-set { background:var(--green); color:#fff; }
+  .btn-clear { background:#fdecec; color:#c0392b; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1f2937; color:#fff;
+    padding:10px 20px; border-radius:8px; font-size:14px; display:none; z-index:9; }
+  .empty { text-align:center; color:var(--sub); padding:40px; background:#fff; border-radius:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>练不虚Gym · 管理后台</h1>
+    <div class="today" id="today"></div>
+  </header>
+
+  <div class="login" id="loginBox">
+    <div style="font-size:18px;font-weight:600;margin-bottom:12px">🔐 输入管理口令</div>
+    <input type="password" id="pw" placeholder="管理口令">
+    <button onclick="doLogin()">进入</button>
+    <div style="font-size:12px;color:var(--sub);margin-top:10px">口令 = 云函数 adminApi 的 ADMIN_TOKEN 环境变量</div>
+  </div>
+
+  <div id="main" style="display:none">
+    <div class="stats" id="stats"></div>
+    <input class="search" id="q" placeholder="搜邮箱 / 目标 / 计划名…" oninput="render()">
+    <div id="tbl"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const ENV = 'cloud1-d7gtp1mv1bfcc25df'
+let TOKEN = localStorage.getItem('lbgym_admin_token') || ''
+let USERS = []
+
+function toast(msg) {
+  const t = document.getElementById('toast')
+  t.textContent = msg; t.style.display = 'block'
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 2400)
+}
+async function api(data) {
+  const app = cloudbase.init({ env: ENV })
+  const auth = app.auth({ persistence: 'local' })
+  if (!(await auth.getSignInState()).isLoggedIn) await auth.anonymousAuthProvider().signIn()
+  const res = await app.callFunction({ name: 'adminApi', data: Object.assign({ token: TOKEN }, data) })
+  return res.result
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])) }
+
+async function doLogin() {
+  TOKEN = document.getElementById('pw').value.trim()
+  if (!TOKEN) return toast('先输入口令')
+  toast('加载中…')
+  try {
+    const r = await api({ action: 'list' })
+    if (!r.ok) return toast(r.error || '口令错误')
+    localStorage.setItem('lbgym_admin_token', TOKEN)
+    document.getElementById('loginBox').style.display = 'none'
+    document.getElementById('main').style.display = 'block'
+    document.getElementById('today').textContent = '今天 ' + r.today
+    USERS = r.users
+    renderStats(); render()
+  } catch (e) { toast('失败：' + (e.message || e)) }
+}
+function renderStats() {
+  const sub = USERS.filter(u => u.subscribed).length
+  const mem = USERS.filter(u => u.isMember).length
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><b>' + USERS.length + '</b><span>总用户</span></div>' +
+    '<div class="stat"><b>' + sub + '</b><span>邮件订阅</span></div>' +
+    '<div class="stat"><b>' + mem + '</b><span>会员</span></div>'
+}
+function render() {
+  const q = document.getElementById('q').value.trim().toLowerCase()
+  const list = USERS.filter(u =>
+    !q || (u.email + u.profile.goal + (u.plan && u.plan.name) + u.profile.exp).toLowerCase().includes(q))
+  const el = document.getElementById('tbl')
+  if (!list.length) { el.innerHTML = '<div class="empty">没有匹配的用户</div>'; return }
+  el.innerHTML = '<table><thead><tr>' +
+    '<th>邮箱</th><th>档案</th><th>计划</th><th>状态</th><th>操作</th>' +
+    '</tr></thead><tbody>' +
+    list.map((u, i) => {
+      const p = u.profile
+      const badge = u.isMember
+        ? '<span class="badge b-member">会员·' + esc(u.member.level) + '<br>至' + esc(u.member.expiresAt) + '</span>'
+        : '<span class="badge b-free">免费</span>'
+      const subBadge = u.subscribed ? '<span class="badge b-sub">已订阅</span>'
+        : (u.email ? '<span class="badge b-exp">未订阅</span>' : '<span class="badge b-free">无邮箱</span>')
+      return '<tr>' +
+        '<td>' + (esc(u.email) || '—') + '<br>' + subBadge + '</td>' +
+        '<td>' + esc(p.gender) + ' ' + esc(p.age) + '岁<br>' + esc(p.weight) + 'kg · ' + esc(p.goal) + '<br>' + esc(p.exp) + ' · ' + esc(p.bodyType) + '</td>' +
+        '<td>' + (u.plan ? esc(u.plan.name) + (u.plan.home ? '<br>🏠居家' : '') : '—') + '</td>' +
+        '<td>' + badge + '<br><span style="font-size:11px;color:var(--sub)">模式:' + esc(p.dietMode) + '</span></td>' +
+        '<td><div class="ops" data-i="' + USERS.indexOf(u) + '">' +
+          '<select>' +
+            '<option value="月度">月度 9.9</option>' +
+            '<option value="半年">半年 28</option>' +
+            '<option value="年费">年费 48</option>' +
+          '</select>' +
+          '<button class="btn-set" onclick="setMember(this)">标会员</button>' +
+          '<button class="btn-clear" onclick="clearMember(this)">取消会员</button>' +
+        '</div></td>' +
+      '</tr>'
+    }).join('') + '</tbody></table>'
+}
+async function setMember(btn) {
+  const ops = btn.closest('.ops'); const u = USERS[+ops.dataset.i]
+  const level = ops.querySelector('select').value
+  if (!confirm('把 ' + (u.email || u.openid.slice(0, 10)) + ' 标为「' + level + '」会员？')) return
+  const r = await api({ action: 'setMember', openid: u.openid, level })
+  if (!r.ok) return toast(r.error || '失败')
+  u.member = r.member; u.isMember = true
+  toast('✅ 已标会员，明天邮件即生效'); renderStats(); render()
+}
+async function clearMember(btn) {
+  const ops = btn.closest('.ops'); const u = USERS[+ops.dataset.i]
+  if (!confirm('取消 ' + (u.email || u.openid.slice(0, 10)) + ' 的会员？')) return
+  const r = await api({ action: 'clearMember', openid: u.openid })
+  if (!r.ok) return toast(r.error || '失败')
+  u.member = null; u.isMember = false
+  toast('已取消会员'); renderStats(); render()
+}
+if (TOKEN) { document.getElementById('pw').value = TOKEN; doLogin() }
+</script>
+</body>
+</html>
