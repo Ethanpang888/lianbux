@@ -225,7 +225,7 @@ function dietCheck(checkin, profile, targets) {
   const targetKcal = Number(t.kcal) || 0
   const targetProtein = Number(t.protein) || 0
   let kcal = 0, protein = 0
-  ;(checkin.dietLog || []).forEach(f => { kcal += Number(f.kcal) || 0; protein += Number(f.protein) || 0 })
+  ;((checkin || {}).dietLog || []).forEach(f => { kcal += Number(f.kcal) || 0; protein += Number(f.protein) || 0 })
   kcal = Math.round(kcal); protein = round(protein, 1)
   const proteinHit = targetProtein > 0 && protein >= targetProtein * 0.9
   const kcalHit = targetKcal > 0 && kcal >= targetKcal * 0.9 && kcal <= targetKcal * 1.1
@@ -313,41 +313,55 @@ function calcCheckinExp(ctx) {
   caps.trainRaw = Math.max(caps.trainRaw, train)
   caps.lifeRaw = Math.max(caps.lifeRaw, life)
   caps.pushRaw = Math.max(caps.pushRaw, push)
-  const gained = grantedTrain + grantedLife + grantedPush + special
+  // ⚠️ 2026-10-18 修双倍发放：special（连续阶梯/周任务/徽章）只在最后统一加一次。
+  // 旧代码这里把 special 加进 gained、下面 totalGained 又加一次 → 连续阶梯奖励发两遍。
+  const gained = grantedTrain + grantedLife + grantedPush
 
-  // ⑦ 累计计数器
+  // 当日首次「有效训练」提交才计训练类累计（重复保存同一份训练不双计）；
+  // 旧调用没传就退回 isFirstToday（兼容测试与历史调用方）
+  const firstTrainOfDay = ctx.firstTrainOfDay !== undefined ? !!ctx.firstTrainOfDay : !!ctx.isFirstToday
+  // 生活项增量语义：上一版没达标、这一版达标 → +1（先训练后补睡眠也计，重复提交不双计）
+  const prev = ctx.prevCheckin || null
+  const lifeInc = (prevOk, nowOk) => prev ? (nowOk && !prevOk) : (!!ctx.isFirstToday && nowOk)
+  const prevNum = k => Number((prev || {})[k])
+
+  // ⑦ 累计计数器（2026-10-18 修：训练项按 firstTrainOfDay，生活项按达标增量 —— 修 isFirstToday 写死导致重复保存双计/同日补记漏计）
   const counters = Object.assign({
     sessions: 0, volume: 0, proteinDays: 0, kcalDays: 0, sleepDays: 0, waterDays: 0,
     weightLogs: 0, maxLift: 0, perfectWeeks: 0, challengeWins: 0, earlyCount: 0, nightCount: 0
   }, g.counters || {})
-  if (ctx.isFirstToday) {
+  if (firstTrainOfDay) {
     if (trained) counters.sessions += 1
     counters.volume += volume
-    if (dc.ok) { counters.proteinDays += 1; counters.kcalDays += 1 }
-    else if (dc.proteinOnly) counters.proteinDays += 1
-    if (Number(checkin.sleepHours) >= 7) counters.sleepDays += 1
-    if (Number(checkin.waterMl) >= waterTarget) counters.waterDays += 1
-    if (Number(checkin.weight) > 0) counters.weightLogs += 1
-    const h = Number(ctx.hour)
-    if (h >= 5 && h <= 6) counters.earlyCount = (counters.earlyCount || 0) + 1
-    if (h >= 22 && h <= 23) counters.nightCount = (counters.nightCount || 0) + 1
     let maxLift = 0
     ;(checkin.exercises || []).forEach(e => (e.log || []).forEach(s => {
       if (s && s.done) maxLift = Math.max(maxLift, Number(s.weight) || 0)
     }))
     if (maxLift > counters.maxLift) counters.maxLift = maxLift
   }
+  const sleepOk = Number(checkin.sleepHours) >= 7
+  const waterOk = Number(checkin.waterMl) >= waterTarget
+  const weightOk = Number(checkin.weight) > 0
+  if (lifeInc(prevNum('sleepHours') >= 7, sleepOk)) counters.sleepDays += 1
+  if (lifeInc(prevNum('waterMl') >= waterTarget, waterOk)) counters.waterDays += 1
+  if (lifeInc(prevNum('weight') > 0, weightOk)) counters.weightLogs += 1
+  if (lifeInc(dietCheck(prev, ctx.profile, ctx.targets).ok, dc.ok)) { counters.proteinDays += 1; counters.kcalDays += 1 }
+  else if (lifeInc(dietCheck(prev, ctx.profile, ctx.targets).proteinOnly, dc.proteinOnly)) counters.proteinDays += 1
+  if (ctx.isFirstToday) {
+    const h = Number(ctx.hour)
+    if (h >= 5 && h <= 6) counters.earlyCount = (counters.earlyCount || 0) + 1
+    if (h >= 22 && h <= 23) counters.nightCount = (counters.nightCount || 0) + 1
+  }
 
-  // ⑧ 周任务累计
+  // ⑧ 周任务累计（sessions 同训练项口径；生活项同增量口径）
   const week = ctx.weekKey
   let weekTask = Object.assign({ week, sessions: 0, sleepDays: 0, weights: 0, proteinDays: 0, paid: [] }, g.weekTask || {})
   if (weekTask.week !== week) weekTask = { week, sessions: 0, sleepDays: 0, weights: 0, proteinDays: 0, paid: [] }
-  if (ctx.isFirstToday) {
-    if (trained) weekTask.sessions += 1
-    if (Number(checkin.sleepHours) >= 7) weekTask.sleepDays += 1
-    if (Number(checkin.weight) > 0) weekTask.weights += 1
-    if (dc.ok || dc.proteinOnly) weekTask.proteinDays += 1
-  }
+  if (firstTrainOfDay && trained) weekTask.sessions += 1
+  if (lifeInc(prevNum('sleepHours') >= 7, sleepOk)) weekTask.sleepDays += 1
+  if (lifeInc(prevNum('weight') > 0, weightOk)) weekTask.weights += 1
+  if (lifeInc(dietCheck(prev, ctx.profile, ctx.targets).ok, dc.ok) ||
+      lifeInc(dietCheck(prev, ctx.profile, ctx.targets).proteinOnly, dc.proteinOnly)) weekTask.proteinDays += 1
   WEEK_TASKS.forEach(t => {
     if (weekTask[t.key] >= t.target && weekTask.paid.indexOf(t.key) < 0) {
       weekTask.paid.push(t.key)
@@ -356,8 +370,8 @@ function calcCheckinExp(ctx) {
     }
   })
 
-  // ⑨ 徽章
-  const ctxCounters = { counters, streak, gamify: { exp: (g.exp || 0) + gained } }
+  // ⑨ 徽章（exp 基数含 pools+special，与最终发放一致）
+  const ctxCounters = { counters, streak, gamify: { exp: (g.exp || 0) + grantedTrain + grantedLife + grantedPush + special } }
   const owned = (g.badges || []).map(b => b.k)
   const badges = []
   BADGES.forEach(b => {
@@ -537,12 +551,29 @@ function visibleBadges(badges, ownedKeys, level) {
   })
 }
 
+/** 徽章进度（2026-10-18 成长总览）：返回 { cur, target, done }；事件型/隐藏徽章返回 null（无进度条） */
+function badgeProgress(b, counters, streak) {
+  const c = counters || {}, s = streak || {}
+  const M = {
+    first_session: ['sessions', 1], sessions_10: ['sessions', 10], sessions_50: ['sessions', 50], sessions_100: ['sessions', 100],
+    streak_3: ['best', 3, 'streak'], streak_7: ['best', 7, 'streak'], streak_14: ['best', 14, 'streak'],
+    streak_30: ['best', 30, 'streak'], streak_100: ['best', 100, 'streak'],
+    protein_7: ['proteinDays', 7], protein_30: ['proteinDays', 30], kcal_14: ['kcalDays', 14],
+    sleep_7: ['sleepDays', 7], water_30: ['waterDays', 30], weight_20: ['weightLogs', 20],
+    volume_100t: ['volume', 100000], lift_100: ['maxLift', 100]
+  }
+  const m = M[b.k]
+  if (!m) return null
+  const cur = m[2] === 'streak' ? (Number(s.best) || 0) : (Number(c[m[0]]) || 0)
+  return { cur: cur, target: m[1], done: cur >= m[1] }
+}
+
 module.exports = {
   DAILY_CAP, DAILY_CAP_TOTAL, EXP_RULE, STREAK_TIERS, WEEK_TASKS,
   MAX_LEVEL, TITLE_TIERS, REALMS, realmOf, UNLOCKS, BADGES,
   PLAYER_NO, playerTier, playerNoStr, parsePlayerNo, tierIndexOf,
   levelOf, needOf, titleOf, volumeOf, doneRatio, dietCheck,
-  calcCheckinExp, settleWeek, sortRank, visibleBadges,
+  calcCheckinExp, settleWeek, sortRank, visibleBadges, badgeProgress,
   BOARDS, CITIES, normCity, boardValue, rankBoard, rankWords, gapWords,
   round, clamp, dayDiff
 }
