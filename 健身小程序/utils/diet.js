@@ -234,3 +234,50 @@ function buildDay(macros, mode, opts) {
 }
 
 module.exports = { nutritionOfItems, buildRecipeDay, buildSimpleDay, buildDay }
+
+
+// 两端共用：每项始终以可食部克数保存，营养为每100g；参考不等于实际摄入。
+function referenceSum(items) {
+  const t = { k: 0, p: 0, c: 0, f: 0 }
+  ;(items || []).forEach(x => {
+    const g = Number(x.g) / 100
+    if (!Number.isFinite(g) || g < 0) return
+    t.k += (Number(x.kcal) || 0) * g; t.p += (Number(x.protein) || 0) * g
+    t.c += (Number(x.carbs) || 0) * g; t.f += (Number(x.fat) || 0) * g
+  })
+  Object.keys(t).forEach(k => { t[k] = r1(t[k]) })
+  return t
+}
+function referenceBasis(p) {
+  return JSON.stringify(['gender','age','height','weight','goal','activity'].map(k => (p || {})[k] || ''))
+}
+function buildReference(e) {
+  const defs = [
+    { meal: 'b', name: '早餐', pct: .27, foods: [['燕麦片',50,20,80],['鸡蛋',100,50,150],['牛奶',200,100,300],['蓝莓',100,50,150]] },
+    { meal: 'l', name: '午餐', pct: .35, foods: [['米饭(熟)',200,100,350],['鸡胸肉',150,80,250],['西兰花',200,150,300],['橄榄油',8,0,20]] },
+    { meal: 'd', name: '晚餐', pct: .28, foods: [['米饭(熟)',180,80,350],['牛肉(瘦)',120,60,220],['菠菜',200,150,300],['橄榄油',5,0,20]] },
+    { meal: 's', name: '加餐', pct: .10, foods: [['香蕉',120,60,180],['酸奶',200,100,300]] }
+  ]
+  return defs.map(d => {
+    const target = { k: (e.kcal || 0)*d.pct, p: (e.protein || 0)*d.pct, c: (e.carb || 0)*d.pct, f: (e.fat || 0)*d.pct }
+    const items = d.foods.map(a => {
+      const f = kb.FOODS.find(f => f.name === a[0])
+      if (!f) throw new Error('参考食材缺失：' + a[0])
+      return { name: f.name, g: a[1], min: a[2], max: a[3], unit: 'g', kcal: Number(f.kcal)||0, protein: Number(f.protein)||0, carbs: Number(f.carbs)||0, fat: Number(f.fat)||0, fiber: Number(f.fiber)||0 }
+    })
+    // 有上限的复合营养拟合：每次调整都重新计算所有食物的P/C/F与热量。
+    // 无法在正常份量内满足时如实显示差额，不无限增加燕麦或油。
+    const loss = () => { const t=referenceSum(items); return ['k','p','c','f'].reduce((a,k)=>a+Math.pow((t[k]-target[k])/Math.max(target[k],k==='k'?100:10),2),0) }
+    for(let pass=0;pass<5;pass++) items.forEach(x => {
+      let best=x.g, score=Infinity
+      const step=x.name==='鸡蛋'?50:x.name==='橄榄油'?1:5
+      for(let g=x.min;g<=x.max;g+=step) { x.g=g; const v=loss(); if(v<score) {score=v;best=g} }
+      x.g=best
+    })
+    Object.keys(target).forEach(k=>{target[k]=r1(target[k])})
+    return { meal:d.meal, name:d.name, items, sum:referenceSum(items), target }
+  })
+}
+module.exports.buildReference = buildReference
+module.exports.referenceSum = referenceSum
+module.exports.referenceBasis = referenceBasis

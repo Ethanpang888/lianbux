@@ -36,52 +36,49 @@ const TrainingFlow = {
 // One countdown, shared by automatic set rests and optional cardio.
 // 用户 2026-10-15 拍板：不要常驻计时块 —— 只在勾完一组（或有氧开始）时出现，结束后自动消失。
 const WorkoutTimer = {
-  state:null,
+  state:null, owner:'', iv:null,
+  ownerId(){const u=Store.state.user||{};return String(u._id||u.id||u.playerNo||(u.player||{}).no||'demo')},
+  key(){return 'lbgym_active_timer_v2_'+this.ownerId()},
   fmt(seconds){const n=Math.max(0,Math.ceil(seconds));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')},
-  persist(){TrainingFlow.save('countdown',this.state)},
-  nextRest(){
-    const records=PageToday.collect(), exercises=PageToday._exs||[];
-    const index=records.findIndex(e=>e.log.some(s=>!s.done));
-    const e=exercises[Math.max(0,index)]||{};
-    return {seconds:Number(e.rest)||120,name:e.name||'当前动作'}
-  },
-  start(seconds,label,interval,context){
-    this.state={total:seconds,left:seconds,deadline:Date.now()+seconds*1000,run:true,label:label||'组间休息',interval:!!interval,context:context||''};this.persist();this.mount()
-  },
-  unmount(){if(this.iv)clearInterval(this.iv);this.iv=null;if(this._hideT){clearTimeout(this._hideT);this._hideT=null}const el=document.getElementById('workoutTimer');if(el)el.remove();document.body.classList.remove('has-workout-timer')},
+  persist(){try{if(this.state)localStorage.setItem(this.key(),JSON.stringify(this.state));else localStorage.removeItem(this.key())}catch(e){UI.toast('计时无法保存，刷新后可能丢失')}},
+  nextRest(){const records=PageToday.collect(),exercises=PageToday._exs||[],index=records.findIndex(e=>e.log.some(s=>!s.done)),e=exercises[Math.max(0,index)]||{};return{seconds:Number(e.rest)||120,name:e.name||'当前动作'}},
+  unlockAudio(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;this.ac=this.ac||new AC();if(this.ac.state==='suspended')this.ac.resume().catch(()=>{});const o=this.ac.createOscillator(),g=this.ac.createGain();g.gain.value=0;o.connect(g);g.connect(this.ac.destination);o.start();o.stop(this.ac.currentTime+.01)}catch(e){}},
+  init(){if(this.initialized)return;this.initialized=true;document.addEventListener('pointerdown',()=>this.unlockAudio(),{passive:true});document.addEventListener('visibilitychange',()=>{if(!document.hidden)this.mount()});window.addEventListener('pageshow',()=>this.mount());window.addEventListener('storage',e=>{if(e.key===this.key()){this.state=null;this.mount()}})},
+  start(seconds,label,interval,context){TrainingFlow.save('countdown',null);this.init();this.owner=this.ownerId();this.unlockAudio();seconds=Math.max(1,Math.min(86400,Number(seconds)||120));this.state={total:seconds,left:seconds,deadline:Date.now()+seconds*1000,run:true,label:label||'组间休息',interval:!!interval,context:context||'',route:'today/'+(PageToday.date||Fmt.todayStr()),id:Date.now()+'_'+Math.random(),notified:false};this.persist();this.mount()},
+  // Removing UI is reserved for completion, explicit end, and account changes; route changes keep it alive.
+  unmount(){if(this.iv)clearInterval(this.iv);this.iv=null;const el=document.getElementById('workoutTimer');if(el)el.remove();document.body.classList.remove('has-workout-timer')},
   mount(){
-    this.unmount();
-    this.state=this.state||TrainingFlow.load('countdown',null);
-    // 没有正在跑的计时（或已归零）就不显示 —— 用户不要常驻块
-    if(!this.state||(!this.state.run&&this.state.left<=0)){this.state=null;TrainingFlow.save('countdown',null);return}
-    this.sync();
-    const el=document.createElement('section');el.id='workoutTimer';el.setAttribute('aria-label','训练倒计时');
-    el.innerHTML='<div class="wt-heading"><div><b id="wtLabel"></b><small id="wtContext"></small></div><strong id="wtTime" role="timer"></strong></div><div id="wtPhase" class="muted txs"></div><div class="wt-actions"><button class="chip wt-focus" id="wtFocus" onclick="FocusMode.open()">🧘 专注训练</button><button class="chip" id="wtAdd" onclick="WorkoutTimer.add()">加 30 秒</button><button class="chip" id="wtPause" onclick="WorkoutTimer.toggle()">暂停</button><button class="chip" id="wtEnd" onclick="WorkoutTimer.end()">结束计时</button></div>';
-    document.body.appendChild(el);document.body.classList.add('has-workout-timer');this.paint();this.iv=setInterval(()=>this.paint(),500)
-  },
-  sync(){const t=this.state;if(t&&t.run)t.left=Math.max(0,Math.ceil((t.deadline-Date.now())/1000))},
-  paint(){
-    const t=this.state;if(!t)return;this.sync();
-    if(t.left===0&&t.run){
-      t.run=false;this.persist();PageToday.rtBeep(true);
-      // 结束后停留几秒提示，再自动收掉
-      if(this._hideT)clearTimeout(this._hideT);
-      this._hideT=setTimeout(()=>{if(this.state&&!this.state.run)this.end()},4000)
+    this.init();const owner=this.ownerId();if(this.owner!==owner){this.unmount();this.state=null;this.owner=owner}
+    if(!this.state){try{this.state=JSON.parse(localStorage.getItem(this.key())||'null')}catch(e){this.state=null}}
+    if(!this.state && Router.current==='today'){
+      const old=TrainingFlow.load('countdown',null)
+      if(old&&old.left>0){this.state=Object.assign({},old,{route:'today/'+PageToday.date,id:'legacy_'+Date.now(),notified:false});this.persist();TrainingFlow.save('countdown',null)}
     }
-    document.getElementById('wtLabel').textContent=t.label+(t.left===0?' · 已结束':!t.run?' · 已暂停':'');
-    document.getElementById('wtContext').textContent=t.left===0?(t.interval||t.label!=='组间休息'?'有氧计时完成，放慢速度收尾':'休息结束，可以继续下一组'):t.context;
-    const elapsed=t.total-t.left, slot=elapsed%300;
-    // Interval mode shows the current segment as the only clock.
-    document.getElementById('wtTime').textContent=this.fmt(t.interval&&t.left>0?(slot<180?180-slot:300-slot):t.left);
-    document.getElementById('wtPhase').textContent=t.interval&&t.left>0?'第 '+(Math.floor(elapsed/300)+1)+'/4 轮 · '+(slot<180?'快走':'轻松跑')+' · 当前段剩余':'';
-    document.getElementById('wtPause').textContent=t.run?'暂停':'继续';
-    document.getElementById('wtPause').hidden=t.left===0;
-    document.getElementById('wtAdd').hidden=t.interval||t.left===0;
-    document.getElementById('wtFocus').hidden=t.interval   // 有氧计时不需要专注模式
+    const t=this.state
+    if(!t||!Number.isFinite(t.deadline)||!Number.isFinite(t.left)||!Number.isFinite(t.total)){this.state=null;this.unmount();return}
+    if(!document.getElementById('workoutTimer')){
+      const el=document.createElement('section');el.id='workoutTimer';el.setAttribute('aria-label','训练倒计时');el.innerHTML='<div class="wt-heading"><div><b id="wtLabel"></b><small id="wtContext"></small></div><strong id="wtTime" role="timer"></strong></div><div id="wtPhase" class="muted txs"></div><div class="wt-actions"><button class="chip wt-focus" id="wtFocus" onclick="WorkoutTimer.returnToTraining()">返回训练</button><button class="chip" id="wtAdd" onclick="WorkoutTimer.add()">加30秒</button><button class="chip" id="wtPause" onclick="WorkoutTimer.toggle()">暂停</button><button class="chip" onclick="WorkoutTimer.end()">结束计时</button></div>';document.body.appendChild(el);document.body.classList.add('has-workout-timer')
+    }
+    this.paint();if(this.state&&!this.iv)this.iv=setInterval(()=>this.paint(),250)
   },
-  toggle(){this.sync();const t=this.state;if(!t||t.left===0)return;t.run=!t.run;if(t.run){t.deadline=Date.now()+t.left*1000;if(this._hideT){clearTimeout(this._hideT);this._hideT=null}}this.persist();this.paint()},
-  add(){this.sync();const t=this.state;if(!t||t.interval||t.left===0)return;t.left+=30;t.total+=30;if(t.run)t.deadline=Date.now()+t.left*1000;this.persist();this.paint()},
-  end(){this.state=null;TrainingFlow.save('countdown',null);this.unmount()}
+  returnToTraining(){if(Router.current==='today')FocusMode.open();else Router.go(this.state.route||'today')},
+  sync(){const t=this.state;if(t&&t.run)t.left=Math.max(0,Math.ceil((t.deadline-Date.now())/1000))},
+  notify(){try{if(navigator.vibrate)navigator.vibrate([200,100,200])}catch(e){};try{const ac=this.ac;if(ac&&ac.state==='running'){[0,.28,.56].forEach(d=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=880;g.gain.setValueAtTime(.1,ac.currentTime+d);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d+.2);o.connect(g);g.connect(ac.destination);o.start(ac.currentTime+d);o.stop(ac.currentTime+d+.22)})}}catch(e){};UI.toast(this.state.label+'结束，可以继续训练',5000)},
+  paint(){
+    const t=this.state;if(!t)return;if(this.owner!==this.ownerId()){this.state=null;this.unmount();return}this.sync()
+    if(t.left===0&&!t.notified){t.run=false;t.notified=true;t.finishedAt=Date.now();this.persist();this.notify()}
+    // Keep a completion notice until acknowledged, including when returning from background.
+    const el=document.getElementById('workoutTimer');if(!el)return
+    document.getElementById('wtLabel').textContent=t.label+(t.left===0?' · 已结束':!t.run?' · 已暂停':'')
+    document.getElementById('wtContext').textContent=t.left===0?(t.interval||t.label!=='组间休息'?'有氧完成，放慢速度收尾':'休息结束，可以继续下一组'):t.context
+    const elapsed=Math.max(0,t.total-t.left),slot=elapsed%300
+    document.getElementById('wtTime').textContent=this.fmt(t.interval&&t.left>0?(slot<180?180-slot:300-slot):t.left)
+    document.getElementById('wtPhase').textContent=t.interval&&t.left>0?'第 '+(Math.floor(elapsed/300)+1)+'/4轮 · '+(slot<180?'快走':'轻松跑')+' · 当前段剩余':''
+    document.getElementById('wtPause').textContent=t.run?'暂停':'继续';document.getElementById('wtPause').hidden=t.left===0;document.getElementById('wtAdd').hidden=t.interval||t.left===0;document.getElementById('wtFocus').hidden=t.interval;document.getElementById('wtFocus').textContent=Router.current==='today'?'专注训练':'返回训练'
+  },
+  toggle(){this.unlockAudio();this.sync();const t=this.state;if(!t||t.left===0){this.paint();return}t.run=!t.run;if(t.run)t.deadline=Date.now()+t.left*1000;this.persist();this.paint()},
+  add(){this.sync();const t=this.state;if(!t||t.interval||t.left===0){this.paint();return}t.left+=30;t.total+=30;if(t.run)t.deadline=Date.now()+t.left*1000;this.persist();this.paint()},
+  end(){TrainingFlow.save('countdown',null);this.state=null;this.persist();this.unmount()}
 }
 
 // FocusMode —— 专注训练全屏（2026-10-16 用户需求：带着用户一起练）
@@ -128,7 +125,7 @@ const FocusMode = {
       '<div class="fm-img">' + PageToday.framesHTML(gif) + '</div>' +
       '<div class="fm-set">第 ' + (cur.si + 1) + ' / ' + e.log.length + ' 组</div>' +
       '<div class="fm-timer" id="fmTime">—</div><div class="fm-sub" id="fmSub"></div>' +
-      '<div class="fm-fill"><button class="chip" onclick="FocusMode.adj(-1,\'w\')">−2.5</button><b id="fmW" class="fm-val" title="点我滑条选重量" onclick="FocusMode.pickW()"></b><button class="chip" onclick="FocusMode.adj(1,\'w\')">+2.5</button></div>' +
+      '<div class="fm-fill"><button class="chip" onclick="FocusMode.adj(-1,\'w\')">' + (e.target&&e.target.weights.length?'上一档':'−'+(e.target?e.target.step:2.5)) + '</button><b id="fmW" class="fm-val" title="点我滑条选重量" onclick="FocusMode.pickW()"></b><button class="chip" onclick="FocusMode.adj(1,\'w\')">' + (e.target&&e.target.weights.length?'下一档':'+'+(e.target?e.target.step:2.5)) + '</button></div>' +
       '<div class="fm-fill"><button class="chip" onclick="FocusMode.adj(-1,\'r\')">−1</button><b id="fmR" class="fm-val" title="点我滑条选次数" onclick="FocusMode.pickR()"></b><button class="chip" onclick="FocusMode.adj(1,\'r\')">+1</button></div>' +
       '<button class="btn fm-done" onclick="FocusMode.done()">✓ 完成这一组</button>' +
       (points.length ? '<div class="fm-points">' + points.map(p => '<div class="ln">· ' + Fmt.esc(p) + '</div>').join('') + '</div>' : '')
@@ -145,7 +142,7 @@ const FocusMode = {
     const s = e.log[cur.si] || {}
     const wEl = document.getElementById('fmW'), rEl = document.getElementById('fmR')
     if (wEl) wEl.textContent = (s.weight === '' ? '自重' : s.weight + ' kg')
-    if (rEl) rEl.textContent = (s.reps === '' ? '—' : s.reps + ' 次')
+    if (rEl) rEl.textContent = (s.reps === '' ? '—' : s.reps+(e.target&&e.target.kind==='time'?' 秒':' 次'))
   },
   adj(d, kind) {
     const cur = this.cur; if (!cur) return
@@ -154,11 +151,11 @@ const FocusMode = {
     if (kind === 'w') {
       const sug = (PageToday._presc || {})[e.name]
       const base = s.weight === '' ? ((sug && sug.weight) || 20) : Number(s.weight)
-      s.weight = Math.max(0, Math.min(PageToday.WEIGHT.max, Math.round((base + d * PageToday.WEIGHT.step) * 10) / 10))
+      s.weight=ENGINE.progression.adjustWeight(e.target,base,d,PageToday.WEIGHT.step)
     } else {
       const reps0 = parseInt(String(e.sets).split(/[×x]/i)[1], 10) || 10
       const base = s.reps === '' ? reps0 : Number(s.reps)
-      s.reps = Math.max(1, Math.min(50, base + d))
+      s.reps = Math.max(1, Math.min(e.target&&e.target.kind==='time'?180:100,base+d))
     }
     this.paintFill()
   },
@@ -168,14 +165,14 @@ const FocusMode = {
     const range = document.getElementById('wRange')
     const valEl = document.getElementById('wVal')
     if (!range) return
-    const upd = () => { if (valEl) valEl.innerHTML = Fmt.round(Number(range.value), 1) + (W.unit || '<span> kg</span>') }
+    const upd = () => { if (valEl) valEl.innerHTML = (W.weight?W.weight(range.value):Number(range.value)) + (W.unit || '<span> kg</span>') }
     range.oninput = upd
     const minus = document.getElementById('wMinus')
     const plus = document.getElementById('wPlus')
     if (minus) minus.onclick = () => { range.value = Math.max(W.min, Number(range.value) - W.step); upd() }
     if (plus) plus.onclick = () => { range.value = Math.min(W.max, Number(range.value) + W.step); upd() }
     document.querySelectorAll('#modalbox [data-w]').forEach(b => {
-      b.onclick = () => { range.value = b.dataset.w; upd() }
+      b.onclick = () => { range.value=W.rack?W.rack.indexOf(Number(b.dataset.w)):b.dataset.w; upd() }
     })
   },
 
@@ -184,22 +181,20 @@ const FocusMode = {
     const cur = this.cur; if (!cur) return
     const e = PageToday._exs[cur.ei]; if (!e) return
     const s = e.log[cur.si] || {}
-    const W = PageToday.WEIGHT
-    const sug = (PageToday._presc || {})[e.name]
-    const start = s.weight === '' ? ((sug && sug.weight) || 20) : Number(s.weight)
-    const quick = [20, 40, 60, 80, 100, 120, 140]
+    const sug=(PageToday._presc||{})[e.name],current=s.weight===''?((sug&&sug.weight)||20):Number(s.weight),W=PageToday.weightSlider(e,current),start=W.value
+    const quick=W.rack||[20,40,60,80,100,120,140]
     UI.modal({
       title: e.name + ' · 重量（滑条直选）',
       body: '<div class="wslider">' +
-        '<div class="val" id="wVal">' + Fmt.round(start, 1) + '<span> kg</span></div>' +
-        '<input type="range" id="wRange" min="0" max="' + W.max + '" step="' + W.step + '" value="' + Fmt.round(start, 1) + '">' +
-        '<div class="ends"><span>0</span><span>' + W.max + ' kg</span></div>' +
+        '<div class="val" id="wVal">' + W.weight(start) + '<span> kg</span></div>' +
+        '<input type="range" id="wRange" min="0" max="' + W.max + '" step="' + W.step + '" value="' + start + '">' +
+        '<div class="ends"><span>0</span><span>' + W.weight(W.max) + ' kg</span></div>' +
         '<div class="wquick">' + quick.map(v =>
           '<button class="chip sm" type="button" data-w="' + v + '">' + v + '</button>').join('') + '</div>' +
       '</div>',
       okText: '用这个重量',
       onOk: () => {
-        const v = Number((document.getElementById('wRange') || {}).value) || 0
+        const v=W.weight((document.getElementById('wRange')||{}).value||0)
         s.weight = v
         this.paintFill()
       }
@@ -214,24 +209,24 @@ const FocusMode = {
     const s = e.log[cur.si] || {}
     const reps0 = parseInt(String(e.sets).split(/[×x]/i)[1], 10) || 10
     const start = s.reps === '' ? reps0 : Number(s.reps)
-    const quick = [5, 8, 10, 12, 15, 20]
+    const timed=e.target&&e.target.kind==='time',unit=timed?'秒':'次',max=timed?180:100,quick=timed?[20,30,45,60,90,120]:[5,8,10,12,15,20]
     UI.modal({
-      title: e.name + ' · 次数（滑条直选）',
+      title: e.name + ' · '+unit+'（滑条直选）',
       body: '<div class="wslider">' +
-        '<div class="val" id="wVal">' + Fmt.round(start, 0) + '<span> 次</span></div>' +
-        '<input type="range" id="wRange" min="1" max="50" step="1" value="' + Fmt.round(start, 0) + '">' +
-        '<div class="ends"><span>1</span><span>50 次</span></div>' +
+        '<div class="val" id="wVal">' + Fmt.round(start, 0) + '<span> '+unit+'</span></div>' +
+        '<input type="range" id="wRange" min="1" max="' + max + '" step="1" value="' + Fmt.round(start, 0) + '">' +
+        '<div class="ends"><span>1</span><span>' + max + ' ' + unit + '</span></div>' +
         '<div class="wquick">' + quick.map(v =>
           '<button class="chip sm" type="button" data-w="' + v + '">' + v + '</button>').join('') + '</div>' +
       '</div>',
-      okText: '用这个次数',
+      okText:'用这个'+unit,
       onOk: () => {
         const v = Number((document.getElementById('wRange') || {}).value) || reps0
         s.reps = v
         this.paintFill()
       }
     })
-    this.bindSlider({ min: 1, max: 50, step: 1, unit: '<span> 次</span>' }, start, quick)
+    this.bindSlider({ min: 1, max,step:1,unit:'<span> '+unit+'</span>' }, start, quick)
   },
   paint() {
     const t = WorkoutTimer.state

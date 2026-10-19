@@ -1,9 +1,12 @@
 // app.js —— 初始化云环境 + 全局用户态（OPENID / profile / plan）
 const ENV = 'cloud1-d7gtp1mv1bfcc25df' // CloudBase 环境 ID
 const kb = require('./utils/kb.js')
+const restTimer = require('./utils/rest-timer.js')
 const cultivation = require('./utils/cultivation.js')
 
 App({
+  onShow(){restTimer.show()},
+  onHide(){restTimer.hide()},
   globalData: {
     env: ENV,
     openid: null,

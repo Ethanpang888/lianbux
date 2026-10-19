@@ -1,6 +1,8 @@
 const app = getApp()
+const restTimer=require('../../utils/rest-timer.js')
 const calc = require('../../utils/calc.js')
 const kb = require('../../utils/kb.js')
+const dietRecords = require('../../utils/diet-records.js')
 
 function todayStr() {
   const d = new Date()
@@ -40,10 +42,14 @@ Page({
   },
 
   onShow() {
+    restTimer.connect(app.globalData.openid)
+    if(!this._restUnsub)this._restUnsub=restTimer.subscribe(t=>this.setData({activeRest:t?{label:t.label,left:t.left,time:String(Math.floor(t.left/60)).padStart(2,'0')+':'+String(t.left%60).padStart(2,'0')}:null}))
     if (this.getTabBar) this.getTabBar().setData({ selected: 0 })
     this.load()
   },
 
+  onHide(){if(this._restUnsub){this._restUnsub();this._restUnsub=null}},
+  onUnload(){this.onHide()},
   load() {
     const g = app.globalData
     if (!g.openid) { setTimeout(() => this.load(), 300); return }
@@ -101,6 +107,23 @@ Page({
     })
     this.loadStreak()
     this.loadRecovery()
+    this.loadDietSummary()
+  },
+
+  postponeTraining(){app.globalData.openSchedule=true;wx.switchTab({url:'/pages/plan/plan'})},
+  goDiet(){wx.navigateTo({url:'/pages/diet/diet'})},
+  openFoodPanel(e){wx.navigateTo({url:'/pages/food/food?meal='+e.currentTarget.dataset.k+'&date='+todayStr()})},
+  loadDietSummary(){
+    const e=calc.energyPlan(app.globalData.profile,app.globalData.dietState||{})
+    const paint=log=>{const t={kcal:0,protein:0,carbs:0,fat:0};log.forEach(f=>Object.keys(t).forEach(k=>t[k]+=Number(f[k])||0));Object.keys(t).forEach(k=>t[k]=Math.round(t[k]));
+      const mk=(key,label,got,target)=>{const pct=target>0?Math.round(got/target*100):0;return{key,label,got,target,pct,width:Math.min(100,pct),over:target>0&&got>target}}
+      const cp=mk('kcal','热量',t.kcal,e.kcal)
+      this.setData({goalName:(app.globalData.profile||{}).goal,calTarget:e.kcal,energy:{tdee:e.tdee,deficit:e.deficit},dietTotal:t,calorieProgress:cp,
+        nutrientProgress:[mk('protein','蛋白质',t.protein,e.protein),mk('carb','碳水',t.carbs,e.carb),mk('fat','脂肪',t.fat,e.fat)],dietOver:t.kcal>e.kcal,dietRemain:Math.abs(Math.round(e.kcal-t.kcal)),ringStyle:'background:conic-gradient('+(cp.over?'#e05252':'#df9656')+' '+cp.width+'%,var(--line) 0)',
+        mealGroups:[{k:'b',name:'早餐'},{k:'l',name:'午餐'},{k:'d',name:'晚餐'},{k:'s',name:'加餐'}].map(m=>{const a=log.filter(f=>(f.meal||'s')===m.k);return Object.assign({},m,{items:a,sum:Math.round(a.reduce((n,f)=>n+(Number(f.kcal)||0),0))+' kcal'})})})
+    }
+    paint([])
+    dietRecords.load(app.globalData.openid,todayStr()).then(rows=>paint((rows[0]||{}).dietLog||[])).catch(()=>wx.showToast({title:'饮食记录读取失败',icon:'none'}))
   },
 
   /* ───── 破境/里程碑仪式卡（与网站分层版一致）：按真实事件分类，跨级合并，不虚构奖励 ───── */

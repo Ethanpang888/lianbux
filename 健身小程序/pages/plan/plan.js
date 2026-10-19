@@ -59,9 +59,10 @@ Page({
   load() {
     const g = app.globalData
     if (!g.openid) { setTimeout(() => this.load(), 300); return }
-    if (!g.profile) { app.loadUser().then(() => this.render()).catch(() => this.render()); return }
+    if (!g.profile) { app.loadUser().then(() => this.load()).catch(() => this.render()); return }
     this.setData({ progList: kb.programList() })
     this.render()
+    if(g.openSchedule){g.openSchedule=false;this.postponeTraining()}
   },
 
   render() {
@@ -76,7 +77,8 @@ Page({
     }
     let idx = calc.dayIndexFromStart(plan.cycleStart, todayStr())
     const microLen = (plan.micro && plan.micro.length) || 1
-    const daySlot = idx < 0 ? -1 : (((idx % microLen) + microLen) % microLen)
+    const pos=kb.schedulePosition(plan,idx)
+    const daySlot = idx < 0 || pos.paused ? -1 : (((pos.index % microLen) + microLen) % microLen)
     const microView = (plan.micro || []).map((f, slot) => {
       const isRest = (f === 'rest' || !f)
       const isObj = typeof f === 'object' && f.exercises
@@ -90,9 +92,16 @@ Page({
         custom: extra.map(e => ({ oid: e.oid || '', name: e.name, sets: e.sets || '3×12', equipment: e.equipment || '' }))
       }
     })
-    this.setData({ hasPlan: true, plan, home: !!plan.home, microView, daySlot, currentProgram: plan.program || '' })
+    const upcoming=Array.from({length:7},(_,i)=>{const date=this.shiftScheduleDate(todayStr(),i),d=kb.dayContent(plan,idx+i,profile,plan.home);return {date,focus:d.focus||'休息日'}})
+    this.setData({ upcoming, hasPlan: true, plan, home: !!plan.home, microView, daySlot, currentProgram: plan.program || '' })
     this.renderSaved()
   },
+
+  postponeTraining(){wx.showActionSheet({itemList:['今天没空：顺延1天','今天起休息2天','今天起休息3天','补顺延昨天漏练（1天）','撤销最近一次顺延'],success:r=>{if(r.tapIndex===4){this.undoSchedule();return}const days=r.tapIndex===3?1:r.tapIndex+1,from=r.tapIndex===3?this.shiftScheduleDate(todayStr(),-1):todayStr();this.previewPostpone(from,days)}})},
+  shiftScheduleDate(s,n){const d=new Date(s+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)},
+  scheduleRecords(from){const db=wx.cloud.database();return db.collection('checkins').where({_openid:app.globalData.openid,date:db.command.gte(from)}).limit(100).get().then(r=>r.data||[])},
+  previewPostpone(from,days){const g=app.globalData,plan=g.plan;let np;try{np=kb.postponePlan(plan,from,days)}catch(e){wx.showToast({title:e.message,icon:'none'});return}this.scheduleRecords(from).then(rows=>{const resume=this.shiftScheduleDate(from,days);if(rows.some(c=>c.trained))throw new Error('开始日期后已有完成训练，请从未练日期顺延');const d=kb.dayContent(np,calc.dayIndexFromStart(np.cycleStart,resume),g.profile,np.home);wx.showModal({title:'确认顺延'+days+'天？',content:from+'起临时休息，'+resume+'恢复：'+d.focus+'。历史记录保留，部分已做组数不复制。',success:r=>{if(!r.confirm)return;if(g.plan!==plan){wx.showToast({title:'计划已变化，请重新预览',icon:'none'});return}wx.cloud.database().collection('users').doc(g.openid).update({data:{plan:np}}).then(()=>{g.plan=np;this.render();wx.showToast({title:'已顺延，可撤销'})}).catch(()=>wx.showToast({title:'保存失败，请重试',icon:'none'}))}})}).catch(e=>wx.showToast({title:e.message||'记录读取失败，未更改',icon:'none'}))},
+  undoSchedule(){const g=app.globalData,plan=g.plan,list=plan.schedulePauses||[];if(!list.length){wx.showToast({title:'没有可撤销的顺延',icon:'none'});return}const last=list[list.length-1],from=last.fromDate||this.shiftScheduleDate(plan.cycleStart,last.at);this.scheduleRecords(from).then(rows=>{if(rows.some(c=>c.trained))throw new Error('顺延后已有完成训练，请安排后续');wx.showModal({title:'撤销最近一次顺延？',content:'恢复之前的后续排期，历史记录保留。',success:r=>{if(!r.confirm)return;if(g.plan!==plan){wx.showToast({title:'计划已变化，请重新预览',icon:'none'});return}const np=Object.assign({},plan,{schedulePauses:list.slice(0,-1)});wx.cloud.database().collection('users').doc(g.openid).update({data:{plan:np}}).then(()=>{g.plan=np;this.render();wx.showToast({title:'已撤销'})}).catch(()=>wx.showToast({title:'保存失败',icon:'none'}))}})}).catch(e=>wx.showToast({title:e.message||'读取失败',icon:'none'}))},
 
   // ───── 我的计划库（与网站同款）：保存当前计划 / 多套切换 ─────
   renderSaved() {
@@ -192,6 +201,7 @@ Page({
       split: patch.split || plan.split, freq: patch.freq || plan.freq,
       home, dietMode: plan.dietMode
     })
+    np.schedulePauses = plan.schedulePauses || []
     np.cycleStart = plan.cycleStart
     const sameFoci = JSON.stringify(np.foci || []) === JSON.stringify(plan.foci || [])
     if (sameFoci) {
@@ -218,6 +228,7 @@ Page({
     const np = kb.generatePlan(g.profile, {
       split: plan.split, freq: plan.freq, home, dietMode: plan.dietMode
     })
+    np.schedulePauses = plan.schedulePauses || []
     np.cycleStart = plan.cycleStart
     np.slotExercises = plan.slotExercises || {}
     // 场景写回 profile（权威源统一）

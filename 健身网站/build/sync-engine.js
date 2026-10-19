@@ -26,7 +26,7 @@ const WEBAPI_LIB = path.join(KB, 'cloudfunctions', 'webApi', 'lib')
 const WEBAUTH_LIB = path.join(KB, 'cloudfunctions', 'webAuth', 'lib')
 
 // 网页端需要的引擎文件（email-html.js 是邮件专用，不进 webApi）
-const ENGINE_FILES = ['method.js', 'kb.js', 'calc.js', 'diet.js', 'recipes-data.js', 'exercises-data.js']
+const ENGINE_FILES = ['progression.js','method.js', 'kb.js', 'calc.js', 'diet.js', 'recipes-data.js', 'exercises-data.js']
 
 const md5 = f => crypto.createHash('md5').update(fs.readFileSync(f)).digest('hex')
 const exists = f => { try { fs.accessSync(f); return true } catch (e) { return false } }

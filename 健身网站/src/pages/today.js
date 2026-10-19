@@ -1,6 +1,37 @@
 /* src/pages/today.js —— 训练页：用真实引擎渲染当天课表，支持记录组次并本地试算 EXP */
 const PageToday = {
   date: '',
+  progressionCard(e,i){
+    const plan=Store.state.user.plan,c=ENGINE.progression.configFor(e,plan),s=c&&ENGINE.progression.suggestion(e,plan,Store.state.checkins,Fmt.shiftDate(this.date,1))
+    return '<details class="progression-box"><summary>训练递进'+(c?' · 已启用':' · 可选')+'</summary><p class="muted txs">'+(c?'此动作按实际工作组推进，替代周期加重；每次建议由你确认。':'默认沿用原计划。可按实际能力设置起点，逐组达标后再推进。')+'</p>'+
+      (c?'<p><b>本次目标：'+Fmt.esc(ENGINE.progression.label(e.target)||'保留原记录，下次起生效')+'</b></p><label class="progression-ready"><input type="checkbox" data-ready="'+i+'" onchange="PageToday.persistDraft()" '+(e.progressReady?'checked':'')+'> 动作稳定、没有疼痛，结束后仍有约2次余力</label>'+(s?'<p class="muted txs">'+(s.date?Fmt.esc(s.date+'：'+s.summary)+'<br>':'')+Fmt.esc(s.reason)+'</p>':'')+
+        (s&&s.target?'<p>下次建议：<b>'+Fmt.esc(ENGINE.progression.label(Object.assign({},s.target,s.value)))+'</b></p>':'')+
+        (s&&s.source&&s.kind!=='calibrate'&&(!c.accepted||c.accepted.source!==s.source)?'<button class="chip" onclick="PageToday.acceptProgression('+i+')">确认采用下次目标</button>':'')+(c.accepted&&s&&c.accepted.source===s.source?'<p class="muted txs">已采用，下次训练生效</p>':'')+(c.accepted?'<button class="chip" onclick="PageToday.undoProgression('+i+')">撤销上次采用</button>':''):'')+
+      '<button class="chip" onclick="PageToday.editProgression('+i+')">'+(c?'调整 / 关闭递进':'设置递进起点')+'</button></details>'
+  },
+  editProgression(i){
+    if(this.date!==Fmt.todayStr()){UI.toast('请回到今天设置，历史记录保持原样');return}
+    this.syncFromDOM();const e=this._exs[i],plan=Store.state.user.plan,P=ENGINE.progression,c=P.configFor(e,plan),ps=ENGINE.pro.parseSets(e.sets),kind=c?c.kind:/辅助.*引体|助力/.test(e.name)?'assisted':/秒|平板|悬垂/.test(e.sets+' '+e.name)?'time':e.equipment==='无器械'?'bodyweight':'load'
+    const field=(id,label,value)=>'<label>'+label+'<input class="pro-input" id="pg-'+id+'" type="number" min="0" value="'+value+'"></label>'
+    UI.modal({title:'设置 '+e.name+' 的递进',body:'<p class="muted txs">先选你实际能完成的起点。哑铃重量按每只填写；助力越小越难。仅这个动作使用递进，已完成记录保留。</p><label>类型<select class="pro-input" id="pg-kind">'+[['load','负重动作'],['assisted','助力器械'],['bodyweight','自重次数'],['time','静态计时（秒）']].map(x=>'<option value="'+x[0]+'" '+(kind===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+field('sets','工作组数',c?c.sets:ps.sets)+field('min','次数 / 秒数下限',c?c.min:kind==='time'?30:Math.min(ps.reps,8))+field('max','次数 / 秒数上限',c?c.max:kind==='time'?60:Math.max(ps.repMax,12))+field('weight','起始重量kg（自重 / 计时填0）',c?c.weight:0)+field('step','最小加重档位kg',c?c.step:e.equipment==='哑铃'?1:2.5)+'<label>可用重量档位（选填，逗号分隔）<input class="pro-input" id="pg-weights" value="'+Fmt.esc(c?(c.weights||[]).join(','):'')+'" placeholder="例如 2,4,6,8"></label>'+(c?'<label><input type="checkbox" id="pg-off"> 关闭该动作递进，恢复原计划</label>':''),okText:'确认设置',onOk:()=>{
+      if(Store.state.user.plan!==plan){UI.toast('计划已变化，请重新设置');return true}
+      let next;try{if(!(document.getElementById('pg-off')||{}).checked){const raw={kind:document.getElementById('pg-kind').value,weights:document.getElementById('pg-weights').value,id:Date.now()+'_'+Math.random().toString(36).slice(2),scope:P.scope(plan)};['sets','min','max','weight','step'].forEach(k=>raw[k]=Number(document.getElementById('pg-'+k).value));next=P.normalizeConfig(raw)}}catch(err){UI.toast(err.message);return true}
+      const map=Object.assign({},plan.exerciseProgression);if(next)map[P.key(e)]=next;else delete map[P.key(e)]
+      const current=this.collect(),keep=current.some(x=>x.log.some(s=>s.done)),np=Object.assign({},plan,{exerciseProgression:map})
+      Store.patchUser({plan:np});if(keep){try{localStorage.setItem(this.draftKey(),JSON.stringify({date:this.date,exercises:current}))}catch(err){UI.toast('本机保存失败，请先保存打卡')}}else{try{localStorage.removeItem(this.draftKey())}catch(err){}}
+      this.render([this.date]);UI.toast(keep?'已设置；本次已记录组保持原样，下次生效':'递进设置已保存')
+    }})
+  },
+  acceptProgression(i){
+    const e=this._exs[i],u=Store.state.user,plan=u.plan,P=ENGINE.progression,c=P.configFor(e,plan),s=c&&P.suggestion(e,plan,Store.state.checkins,Fmt.shiftDate(this.date,1));if(!s||!s.source){UI.toast('先保存训练记录，再查看下次建议');return}
+    UI.modal({title:'采用为下次目标？',body:'<p>'+Fmt.esc(P.label(Object.assign({},s.target,s.value)))+'</p><p class="muted">'+Fmt.esc(s.reason)+'</p><p class="muted txs">从该记录之后的训练日起生效，本次组数与历史不变。</p>',onOk:()=>{
+      if(Store.state.user.plan!==plan||P.suggestion(e,plan,Store.state.checkins,Fmt.shiftDate(this.date,1)).source!==s.source){UI.toast('记录或计划已变化，请重新确认');return true}
+      let next;try{next=P.accept(c,s)}catch(err){UI.toast(err.message);return true}this.writeProgression(e,next);UI.toast('下次目标已保存')
+    }})
+  },
+  writeProgression(e,c){this.persistDraft();const cur=this.collect(),plan=Store.state.user.plan,map=Object.assign({},plan.exerciseProgression,{[ENGINE.progression.key(e)]:c});Store.patchUser({plan:Object.assign({},plan,{exerciseProgression:map})});try{localStorage.setItem(this.draftKey(),JSON.stringify({date:this.date,exercises:cur}))}catch(err){}this.render([this.date])},
+  undoProgression(i){const e=this._exs[i],c=ENGINE.progression.configFor(e,Store.state.user.plan);if(!c||!c.accepted){UI.toast('没有可撤销的采用记录');return}this.writeProgression(e,Object.assign({},c,{accepted:c.previousAccepted||null,previousAccepted:null}));UI.toast('已恢复上次目标，训练记录保留')},
+
 
   draftKey(date) {
     const u = Store.state.user || {}
@@ -54,7 +85,11 @@ const PageToday = {
       const sets = Number(String(e.sets).split('×')[0]) || 3
       const reps = parseInt(String(e.sets).split(/[×x]/i)[1], 10) || 10
       const log = saved && Array.isArray(saved.log) && saved.log.length ? saved.log.map(s => Object.assign({}, s)) : Array.from({ length: sets }, () => ({ weight: '', reps: String(reps), done: false }))
-      return Object.assign({}, e, { log })
+      const recovery=!!day.deload||!['ok','good'].includes(stKey)
+      const target=saved&&saved.target?ENGINE.progression.cleanTarget(saved.target):saved?null:ENGINE.progression.targetFor(e,plan,Store.state.checkins||[],this.date,recovery)
+      if(target&&!saved){log.splice(0,log.length,...Array.from({length:target.sets},()=>({weight:target.weight,reps:target.reps,done:false})));delete presc[e.name]}
+      if(ENGINE.progression.configFor(e,plan))delete presc[e.name]
+      return Object.assign({},e,{log,target,progressReady:!!(saved&&saved.progressReady),sets:target?target.sets+'×'+target.reps+(target.kind==='time'?'秒':''):e.sets})
     })
 
     if (day.type === 'rest') {
@@ -84,7 +119,7 @@ const PageToday = {
           '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)">' +
             '<span class="muted txs">今天没空练？把计划往后顺延：</span>' +
             [1, 2, 3].map(n => '<button class="chip" style="margin-left:6px" onclick="PagePlan.delay(' + n +
-              ');UI.toast(\'计划已顺延 ' + n + ' 天\');Router.go()">顺延 ' + n + ' 天</button>').join('') +
+              ')">顺延 ' + n + ' 天</button>').join('') +
             '<span class="muted txs" style="margin-left:6px">（停几天顺几天，不用对不上）</span>' +
           '</div>' +
         '</details>' +
@@ -227,10 +262,10 @@ const PageToday = {
   /** 「调一下」入口 —— 免费也能用：这些都是基础调整，不该锁在付费墙后面 */
   coachEntry() {
     return '<div class="card">' +
-      '<h2>今天不对劲？ <span class="mini">调一下</span></h2>' +
+      '<h2>训练与饮食需要调整？ <span class="mini">调一下</span></h2>' +
       '<div class="muted txs">体重卡住、老是饿、没睡好、练不过来 —— 点一下，我按规则算该怎么调，' +
         '算完能直接改进你的计划。</div>' +
-      '<button class="btn ghost" style="margin-top:10px" onclick="Router.go(\'coach\')">去调一下</button>' +
+      '<button class="btn ghost" style="margin-top:10px" onclick="Router.go(\'coach\')">查看调整建议</button>' +
     '</div>'
   },
 
@@ -308,9 +343,9 @@ const PageToday = {
   },
 
   prescriptionText(e) {
-    const parts=String(e.sets||'').split(/[×x]/i), seconds=Number(e.rest)||120;
+    const parts=String(e.sets||'').replace(/秒$/,'').split(/[×x]/i), seconds=Number(e.rest)||120;
     const rest=(Math.floor(seconds/60)?Math.floor(seconds/60)+' 分钟':'')+(seconds%60?' '+seconds%60+' 秒':'');
-    return Fmt.esc(parts.length>1?'计划 '+parts[0].trim()+' 组，每组 '+parts.slice(1).join('×').trim()+' 次':'计划 '+String(e.sets||'按计划完成'))+'<br>组间休息 '+rest
+    return Fmt.esc(parts.length>1?'计划 '+parts[0].trim()+' 组，每组 '+parts.slice(1).join('×').trim()+(e.target&&e.target.kind==='time'?' 秒':' 次'):'计划 '+String(e.sets||'按计划完成'))+'<br>组间休息 '+rest
   },
 
   /** 双帧循环图（对应小程序 frame-gif 组件）：两帧自动交替 = "做动作"的演示效果。
@@ -360,10 +395,10 @@ const PageToday = {
             points.map(p => '<div class="ln">· ' + Fmt.esc(p) + '</div>').join('') +
             '<div class="muted txs" style="margin-top:4px">全屏大图 + 大倒计时，带着你一组一组练</div></div>'
           : '') +
-        '<div class="setgrid">' +
-          '<span class="hdr">组</span><span class="hdr">重量kg</span><span class="hdr">次数</span><span class="hdr">完成</span>' +
+        this.progressionCard(e,ei) + '<div class="setgrid'+(e.target?' has-progression':'')+'">' +
+          '<span class="hdr">组</span><span class="hdr">重量kg</span><span class="hdr">'+(e.target&&e.target.kind==='time'?'秒数':'次数')+'</span><span class="hdr">完成</span>' +
           e.log.map((s, si) =>
-            '<span class="muted txs">' + (si + 1) + '</span>' +
+            '<span class="muted txs">' + (si + 1) + (e.target?'<label class="warmup-label"><input type="checkbox" data-warm="'+ei+'-'+si+'" '+(s.type==='warmup'?'checked':'')+'>热身</label>':'')+'</span>' +
             '<input aria-label="' + Fmt.esc(e.name) + ' 第' + (si + 1) + '组重量" type="number" inputmode="none" readonly data-e="' + ei + '" data-s="' + si + '" data-f="weight" value="' + Fmt.esc(s.weight) + '" placeholder="' + (sug && sug.weight > 0 ? Fmt.round(sug.weight, 1) : '0') + '">' +
             '<input aria-label="' + Fmt.esc(e.name) + ' 第' + (si + 1) + '组次数" min="0" step="1" type="number" inputmode="numeric" data-e="' + ei + '" data-s="' + si + '" data-f="reps" value="' + Fmt.esc(s.reps) + '">' +
             '<span class="cbdone"><input aria-label="' + Fmt.esc(e.name) + ' 第' + (si + 1) + '组完成" type="checkbox" data-e="' + ei + '" data-s="' + si + '" data-f="done" ' + (s.done ? 'checked' : '') + ' style="width:20px;height:20px;accent-color:var(--green)"></span>'
@@ -396,7 +431,7 @@ const PageToday = {
   syncFromDOM() {
     if (!this._exs) return
     const cur = this.collect()
-    this._exs.forEach((e, i) => { if (cur[i]) e.log = cur[i].log })
+    this._exs.forEach((e, i) => { if(cur[i]){e.log=cur[i].log;e.progressReady=cur[i].progressReady} })
   },
 
   redrawEx() {
@@ -437,7 +472,8 @@ const PageToday = {
   slotN() {
     const plan = (Store.state.user || {}).plan || {}
     const idx = ENGINE.calc.dayIndexFromStart(plan.cycleStart || this.date, this.date)
-    return plan.micro && plan.micro.length ? ((idx % plan.micro.length) + plan.micro.length) % plan.micro.length : 0
+    const logical=ENGINE.kb.schedulePosition(plan,idx).index
+    return plan.micro && plan.micro.length ? ((logical % plan.micro.length) + plan.micro.length) % plan.micro.length : 0
   },
   dayEditKey() {
     const u = Store.state.user || {}
@@ -566,30 +602,33 @@ const PageToday = {
     this.render([this.date])
   },
 
+  weightSlider(e,current){
+    const rack=e.target&&e.target.weights&&e.target.weights.length?ENGINE.progression.weightChoices(e.target,current):null
+    return {min:0,max:rack?rack.length-1:Math.max(e.target?1000:this.WEIGHT.max,current),step:rack?1:(e.target ? .001 : this.WEIGHT.step),rack,
+      value:rack?rack.indexOf(current):current,weight:v=>rack?rack[Number(v)]:Number(v)}
+  },
   openWeight(ei, si) {
     this.syncFromDOM()
     const e = this._exs[ei]
     if (!e) return
-    const W = this.WEIGHT
-    const cur = Number((e.log[si] || {}).weight) || 0
-    const start = Fmt.clamp(Math.round(cur / W.step) * W.step, 0, W.max)
-    const quick = [20, 40, 60, 80, 100, 120, 140]
+    const cur=Number((e.log[si]||{}).weight)||0,W=this.weightSlider(e,cur),start=W.value
+    const quick=W.rack||[20,40,60,80,100,120,140]
     UI.modal({
       title: e.name + ' · 第 ' + (si + 1) + ' 组',
       body: '<div class="wslider">' +
-        '<div class="val" id="wVal">' + Fmt.round(start, 1) + '<span> kg</span></div>' +
-        '<input type="range" id="wRange" min="0" max="' + W.max + '" step="' + W.step + '" value="' + Fmt.round(start, 1) + '">' +
-        '<div class="ends"><span>0</span><span>' + W.max + ' kg</span></div>' +
+        '<div class="val" id="wVal">' + W.weight(start) + '<span> kg</span></div>' +
+        '<input type="range" id="wRange" min="0" max="' + W.max + '" step="' + W.step + '" value="' + start + '">' +
+        '<div class="ends"><span>0</span><span>' + W.weight(W.max) + ' kg</span></div>' +
         '<div class="wstep">' +
-          '<button type="button" id="wMinus">− ' + W.step + '</button>' +
-          '<button type="button" id="wPlus">+ ' + W.step + '</button>' +
+          '<button type="button" id="wMinus">' + (W.rack?'上一档':'− '+(e.target?e.target.step:W.step)) + '</button>' +
+          '<button type="button" id="wPlus">' + (W.rack?'下一档':'+ '+(e.target?e.target.step:W.step)) + '</button>' +
         '</div>' +
         '<div class="wquick">' + quick.map(v =>
           '<button class="chip sm" type="button" data-w="' + v + '">' + v + '</button>').join('') + '</div>' +
       '</div>',
       okText: '用这个重量',
       onOk: () => {
-        const v = Number((document.getElementById('wRange') || {}).value) || 0
+        const v=W.weight((document.getElementById('wRange')||{}).value||0)
         e.log[si] = Object.assign({}, e.log[si], { weight: v })
         this.redrawEx()
       }
@@ -597,14 +636,14 @@ const PageToday = {
     const range = document.getElementById('wRange')
     const valEl = document.getElementById('wVal')
     if (!range) return
-    const upd = () => { if (valEl) valEl.innerHTML = Fmt.round(Number(range.value), 1) + '<span> kg</span>' }
+    const upd = () => { if (valEl) valEl.innerHTML = W.weight(range.value) + '<span> kg</span>' }
     range.oninput = upd
     const minus = document.getElementById('wMinus')
     const plus = document.getElementById('wPlus')
-    if (minus) minus.onclick = () => { range.value = Math.max(0, Number(range.value) - W.step); upd() }
-    if (plus) plus.onclick = () => { range.value = Math.min(W.max, Number(range.value) + W.step); upd() }
+    if (minus) minus.onclick = () => { range.value=W.rack?Math.max(0,Number(range.value)-1):ENGINE.progression.adjustWeight(e.target,W.weight(range.value),-1,this.WEIGHT.step); upd() }
+    if (plus) plus.onclick = () => { range.value=W.rack?Math.min(W.max,Number(range.value)+1):ENGINE.progression.adjustWeight(e.target,W.weight(range.value),1,this.WEIGHT.step); upd() }
     document.querySelectorAll('#modalbox [data-w]').forEach(b => {
-      b.onclick = () => { range.value = b.dataset.w; upd() }
+      b.onclick = () => { range.value=W.rack?W.rack.indexOf(Number(b.dataset.w)):b.dataset.w; upd() }
     })
   },
 
@@ -617,10 +656,10 @@ const PageToday = {
       card.querySelectorAll('input[data-f="weight"]').forEach((inp, si) => {
         const reps = card.querySelector('input[data-e="' + ei + '"][data-s="' + si + '"][data-f="reps"]')
         const done = card.querySelector('input[data-e="' + ei + '"][data-s="' + si + '"][data-f="done"]')
-        log.push({ weight: Number(inp.value) || '', reps: Number(reps.value) || '', done: !!(done && done.checked) })
+        const warm=card.querySelector('[data-warm="'+ei+'-'+si+'"]');log.push({weight:Number(inp.value)||'',reps:Number(reps.value)||'',done:!!(done&&done.checked),type:warm&&warm.checked?'warmup':'work'})
       })
       const original = this._exs[ei]
-      exs.push({ name, sets: original.sets, role: original.role || '', log })
+      const ready=card.querySelector('[data-ready="'+ei+'"]');exs.push({oid:original.oid||'',name,sets:original.sets,role:original.role||'',log,target:original.target||null,progressReady:!!(ready&&ready.checked)})
     })
     return exs
   },
@@ -708,6 +747,7 @@ const PageToday = {
       try { localStorage.removeItem(this.draftKey(this.date)) } catch (e) {}
       btn.disabled = false; btn.textContent = '保存打卡'
 
+      this.syncFromDOM();document.querySelectorAll('#exWrap .progression-box').forEach((box,i)=>{if(this._exs[i])box.outerHTML=this.progressionCard(this._exs[i],i)})
       const server = (!res || res.local || res.offline) ? null : res
       const shown = server || local
       const breakdown = shown.breakdown || []

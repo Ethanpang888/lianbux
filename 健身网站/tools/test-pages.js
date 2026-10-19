@@ -280,22 +280,22 @@ section('页面内容正确性抽查')
   ok(/g\/kg/.test(diet), '饮食页显示了 g/kg 口径')
   ok(/活动系数/.test(diet), '饮食页显示了活动系数')
   // 2026-10-19 改版：三餐参考独立页（mealref），主页只留入口 + 四餐记录 + 添加按钮
-  ok(/三餐参考/.test(diet) && /mealref/.test(diet), '饮食页有三餐参考入口')
-  ok(/添加食物/.test(diet), '有「添加食物」入口（面板收进弹层）')
+  ok(/我的饮食参考/.test(diet) && /mealref/.test(diet), '饮食页有三餐参考入口')
+  ok(/openFoodPanel/.test(diet), '四餐入口跳转到独立选择食物页')
   ok(/早餐/.test(diet) && /加餐/.test(diet), '主页有四餐记录区')
   // 三餐参考页：≥3 餐且每餐热量不为 0（原「每餐合计」断言挪到这里）
   const ref = res.pages.mealref ? res.pages.mealref.html : ''
   ok(!!ref, '三餐参考页可渲染')
   if (ref) {
-    const mealKcals = (ref.match(/(\d+) kcal · 蛋白/g) || []).map(x => Number(x.match(/(\d+)/)[1]))
+    const mealKcals = (ref.match(/(\d+) 大卡/g) || []).map(x => Number(x.match(/(\d+)/)[1]))
     ok(mealKcals.length >= 3, '三餐参考列出了 ≥3 餐', '实际 ' + mealKcals.length)
     ok(mealKcals.every(k => k > 0), '每餐热量都不为 0（字段名接对）', JSON.stringify(mealKcals))
-    ok(/记入/.test(ref), '每餐可一键记入')
+    ok(/refLog/.test(ref) && /记录实际吃的/.test(ref), '每餐可确认后记录实际摄入')
     // 科学性抽查：主食克数别再出现「早餐 185g 燕麦」级别的离谱值（单食物 ≤500g）
     const grams = (ref.match(/(\d+)g/g) || []).map(x => Number(x.match(/(\d+)/)[1]))
     ok(grams.every(g => g <= 500), '克数无离谱值（≤500g，复合营养折算生效）', JSON.stringify(grams.slice(0, 8)))
   }
-  ok(/BMI 27\.8/.test(diet), 'BMI 数值+分类都渲染（27.8 超重）')
+  ok(/消耗 2990/.test(diet) && /摄入 2789/.test(diet), '饮食卡展示估算消耗与摄入目标')
 
   // 宏观调控卡：演示数据刻意造成"掉得偏快"，必须给出真实结论而不是空卡
   ok(/宏观调控/.test(diet), '饮食页有「宏观调控」卡')
@@ -688,7 +688,7 @@ section('食物库：只列常见 + 实时联想搜索')
   ok(commonNames >= 40, '常见食材 ≥40 个（源码级名单）', String(commonNames))
   // 旧版把 1246 条全 join 出来 —— 现在必须不这么干（用户原话：看着占位置、点了没反应）
   ok(!/鸡枞|鸡肫|马铃薯|籼米|粳米/.test(diet), '没有把整库平铺出来（只留常见项）')
-  ok(dietSrc.includes('输入一个字就出结果'), '文案写清了打一个字就出结果')
+  ok(dietSrc.includes('搜索食物，例如米饭、鸡蛋'), '文案写清了打一个字就出结果')
 
   // 名单里每个名字都必须真能在库里查到，否则点开是空的
   const badNames = vm.runInContext(

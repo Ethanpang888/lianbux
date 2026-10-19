@@ -15,6 +15,7 @@ const gamify = require('./lib/gamify.js')
 const journal = require('./lib/journal.js')
 const calc = require('./lib/calc.js')
 const kb = require('./lib/kb.js')
+const progression=require('./lib/progression.js')
 const macro = require('./lib/macro.js')
 const cultivation = require('./lib/cultivation.js')
 
@@ -157,13 +158,15 @@ function sanitizeCheckin(raw, uid) {
 
   const exs = Array.isArray(raw.exercises) ? raw.exercises.slice(0, 30) : []
   const exercises = exs.map(e => ({
+    oid:String((e&&e.oid)||'').slice(0,100),
+    target:progression.cleanTarget(e&&e.target),progressReady:!!(e&&e.progressReady),
     name: String((e && e.name) || '').slice(0, 40),
     role: ROLE_OK.indexOf(e && e.role) >= 0 ? e.role : '其他',
     sets: String((e && e.sets) || '').slice(0, 20),
     log: (Array.isArray(e && e.log) ? e.log : []).slice(0, 12).map(s => ({
       weight: Math.max(0, Math.min(1000, Number(s && s.weight) || 0)),
       reps: Math.max(0, Math.min(200, Number(s && s.reps) || 0)),
-      done: !!(s && s.done)
+      done: !!(s && s.done),type:s&&s.type==='warmup'?'warmup':'work'
     }))
   }))
 
@@ -825,8 +828,9 @@ function mpCkToWeb(c, webUid) {
     uid: webUid, date: c.date,
     trained: !!c.trained,
     exercises: (c.exercises || []).map(e => ({
+      oid:String(e.oid||'').slice(0,100),target:progression.cleanTarget(e.target),progressReady:!!e.progressReady,
       name: e.name, role: e.role || '其他', sets: e.sets || '',
-      log: (e.log || []).map(s => ({ weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, done: !!s.done }))
+      log: (e.log || []).map(s => ({ weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, done:!!s.done,type:s.type==='warmup'?'warmup':'work' }))
     })),
     dietLog: (c.dietLog || []).map(d => ({ name: d.name, grams: Number(d.grams) || 0, kcal: Number(d.kcal) || 0, protein: Number(d.protein) || 0, carbs: Number(d.carbs) || 0, fat: Number(d.fat) || 0, fiber: Number(d.fiber) || 0 })),
     waterMl: Number(c.waterMl) || 0,
@@ -845,8 +849,9 @@ function webCkToMp(c, openid) {
     _openid: openid, date: c.date,
     trained: !!c.trained,
     exercises: (c.exercises || []).map(e => ({
+      oid:String(e.oid||'').slice(0,100),target:progression.cleanTarget(e.target),progressReady:!!e.progressReady,
       name: e.name, role: e.role || '其他', sets: e.sets || '',
-      log: (e.log || []).map(s => ({ weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, done: !!s.done }))
+      log: (e.log || []).map(s => ({ weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, done:!!s.done,type:s.type==='warmup'?'warmup':'work' }))
     })),
     dietLog: (c.dietLog || []).map(d => ({ name: d.name, grams: Number(d.grams) || 0, kcal: Number(d.kcal) || 0, protein: Number(d.protein) || 0, carbs: Number(d.carbs) || 0, fat: Number(d.fat) || 0, fiber: Number(d.fiber) || 0 })),
     waterMl: Number(c.waterMl) || 0,

@@ -1,6 +1,8 @@
 const app = getApp()
 const kb = require('../../utils/kb.js')
 const calc = require('../../utils/calc.js')
+const progression=require('../../utils/progression.js')
+const restTimer = require('../../utils/rest-timer.js')
 
 // 体质 → 今日宜忌（取自概念库，合规措辞：宜忌/建议/信号，无诊断/处方）
 const TIP_MAP = {
@@ -38,12 +40,12 @@ function extractOid(gif) {
 // —— 重量/次数滚轮选项 ——
 const WEIGHT_OPTIONS = (function () {
   const a = [0]                                   // 0 = 自重（无器械动作）
-  for (let w = 2.5; w <= 120.0001; w += 2.5) a.push(Math.round(w * 10) / 10)
+  for (let w = .5; w <= 300.0001; w += .5) a.push(Math.round(w * 10) / 10)
   return a
 })()
 const REP_OPTIONS = (function () {
   const a = []
-  for (let r = 1; r <= 30; r++) a.push(r)
+  for (let r = 1; r <= 180; r++) a.push(r)
   return a
 })()
 
@@ -158,6 +160,7 @@ Page({
   },
 
   onShow() {
+    this.restoreRest()
     if (this.getTabBar) this.getTabBar().setData({ selected: 1 })
     this.load()
   },
@@ -187,7 +190,8 @@ Page({
     const relLabel = off === 0 ? '今天' : (off > 0 ? `${off}天后` : `${-off}天前`)
     const day = kb.dayContent(plan, idx, profile, plan.home)
     // 动作编辑持久化（2026-10-16 用户反馈「删了明天又回来」）：本机按循环槽位记住删/换
-    const slotN = ((idx % microLen) + microLen) % microLen
+    const logical=kb.schedulePosition(plan,idx).index
+    const slotN = ((logical % microLen) + microLen) % microLen
     this._slotN = slotN
     const de = this.readDayEdit(plan, slotN)
     const planEx = (day.exercises || [])
@@ -217,21 +221,21 @@ Page({
     }
     if (day.type === 'rest') {
       this.setData(Object.assign(common, {
-        isRest: true, restNote: day.note, focus: '休息日',
+        isRest: true, restNote: day.note, focus: day.focus || '休息日',
         exercises: [], warmup: null, cardio: null, mainNote: '', srcTag: '',
         week: day.week || 1, deload: false,
-        cycleLabel: plan.micro ? `第 ${idx + 1} 天 · 循环第${Math.floor(idx / microLen) + 1}周 · 第${(idx % microLen) + 1}/${microLen}单元` : `第 ${idx + 1} 天`
+        cycleLabel: plan.micro ? `第 ${idx + 1} 天 · 循环第${Math.floor(logical / microLen) + 1}周 · 第${(logical % microLen) + 1}/${microLen}单元` : `第 ${idx + 1} 天`
       }))
       this.recalcDiet(); this.loadCheckin(viewDate, idx); return
     }
     const exdb = kb.EX || []
-    const exercises = planEx.map(e => mapExercise(e, exdb, profile))
+    const exercises = planEx.map(e => {const ex=mapExercise(e,exdb,profile),ts=(profile||{}).todayState||{},recovery=!!day.deload||(ts.date===viewDate&&!['ok','good'].includes(ts.key)),t=progression.targetFor(ex,plan,this._progressHistory||[],viewDate,recovery);if(t){ex.target=t;ex.sets=t.sets+'×'+t.reps+(t.kind==='time'?'秒':'');ex.suggest=t.weight;ex.log=Array.from({length:t.sets},()=>({weight:t.weight,reps:t.reps,done:false,type:'work'}))}return ex})
     this.setData(Object.assign(common, {
-      isRest: false, focus: day.focus, exercises,
+      isRest: false, focus: day.focus, exercises:this.decorateProgression(exercises,this._progressHistory||[],viewDate),
       week: day.week || 1, deload: !!day.deload, srcTag: day.src || '',
       warmup: day.warmup || null, mainNote: (kb.METHOD && kb.METHOD.MAIN_NOTE) || '',
       cardio: day.cardio || null,
-      cycleLabel: plan.micro ? `第 ${idx + 1} 天 · 循环第${Math.floor(idx / microLen) + 1}周 · 第${(idx % microLen) + 1}/${microLen}单元 · ${day.focus}` : `第 ${idx + 1} 天`
+      cycleLabel: plan.micro ? `第 ${idx + 1} 天 · 循环第${Math.floor(logical / microLen) + 1}周 · 第${(logical % microLen) + 1}/${microLen}单元 · ${day.focus}` : `第 ${idx + 1} 天`
     }))
     this.recalcDiet(); this.loadCheckin(viewDate, idx)
     this.restoreRest()
@@ -315,22 +319,25 @@ Page({
 
   loadCheckin(viewDate, idx) {
     const db = wx.cloud.database()
-    db.collection('checkins').where({ _openid: app.globalData.openid, date: viewDate }).get()
+    const plan=app.globalData.plan,before=JSON.stringify(this.data.exercises.map(e=>e.log))
+    db.collection('checkins').where({_openid:app.globalData.openid,date:db.command.lte(viewDate)}).orderBy('date','desc').limit(100).get()
       .then(res => {
-        if (!res.data.length) return
-        const c = res.data[0]
+        if(this.data.viewDate!==viewDate||app.globalData.plan!==plan)return
+        this._progressHistory=res.data||[]
+        const c=(res.data||[]).find(x=>x.date===viewDate)||{exercises:[]}
         const ex = this.data.exercises.map(e => {
+          if(JSON.stringify(this.data.exercises.map(x=>x.log))!==before)return e
           // 优先按 oid 匹配（改动作库/改名字也不会丢历史），名字兜底
           let rec = e.oid ? (c.exercises || []).find(x => x.oid && x.oid === e.oid) : null
           if (!rec) rec = (c.exercises || []).find(x => x.name === e.name)
           if (rec && rec.log && rec.log.length) {
-            // 历史组数可能与当前不一致：以当前组数为准，逐组回填
-            e.log = e.log.map((s, k) => rec.log[k] ? { weight: rec.log[k].weight || '', reps: rec.log[k].reps || '', done: !!rec.log[k].done } : s)
-          }
+            e.log=rec.log.map(s=>({weight:s.weight===0?0:(s.weight||''),reps:s.reps||'',done:!!s.done,type:s.type==='warmup'?'warmup':'work'}))
+            e.target=progression.cleanTarget(rec.target);e.progressReady=!!rec.progressReady;e.sets=rec.sets||e.sets
+          }else{const ts=(app.globalData.profile||{}).todayState||{},t=progression.targetFor(e,plan,this._progressHistory,viewDate,!!this.data.deload||(ts.date===viewDate&&!['ok','good'].includes(ts.key)));if(t){e.target=t;e.sets=t.sets+'×'+t.reps+(t.kind==='time'?'秒':'');e.log=Array.from({length:t.sets},()=>({weight:t.weight,reps:t.reps,done:false,type:'work'}));e.suggest=t.weight}}
           return e
         })
         this.setData({
-          exercises: ex, dietLog: c.dietLog || [],
+          exercises:this.decorateProgression(ex,this._progressHistory), dietLog: c.dietLog || [],
           trained: !!c.trained, waterMl: c.waterMl || 0, sleepHours: c.sleepHours || 0,
           weight: c.weight ? String(c.weight) : '', note: c.note || ''
         })
@@ -367,53 +374,14 @@ Page({
   /** 组间倒计时浮条：勾组自动开始 / +30s / 跳过；到点震动提醒。
    *  2026-10-18 线上复查修复：剩余时间按「截止时间戳」存本机 —— 切页/刷新/杀进程回来都能接着跑
    *  （旧版 onHide 直接清零，切去饮食再回训练倒计时就没了）。 */
-  restKey() { return 'lbgym_rest_' + (app.globalData.openid || 'demo') + '_' + todayStr() },
-  startRest(sec, label) {
-    this.clearRestTimer()
-    const total = Math.max(30, Math.min(600, Number(sec) || 120))
-    this.setData({ restLeft: total, restTotal: total, restLabel: label || '组间休息' })
-    try { wx.setStorageSync(this.restKey(), { left: total, deadline: Date.now() + total * 1000, label: label || '组间休息' }) } catch (e) {}
-    this._rt = setInterval(() => this.restTick(), 1000)
-  },
-  restTick() {
-    const left = this.data.restLeft - 1
-    if (left <= 0) {
-      this.clearRestTimer()
-      this.setData({ restLeft: 0 })
-      try { wx.removeStorageSync(this.restKey()) } catch (e) {}
-      try { wx.vibrateShort({ type: 'heavy' }) } catch (e) { /* 老机型无参 */ }
-      wx.showToast({ title: '休息结束，下一组！', icon: 'none' })
-    } else this.setData({ restLeft: left })
-  },
-  /** 恢复本机未过期的休息计时（onShow/render 时调；没有就不显示，保持「不常驻」原则） */
-  restoreRest() {
-    if (this.data.restLeft > 0 || this._rt) return
-    let st = null
-    try { st = wx.getStorageSync(this.restKey()) } catch (e) { return }
-    if (!st || !st.deadline) return
-    const left = Math.ceil((st.deadline - Date.now()) / 1000)
-    if (left <= 0) { try { wx.removeStorageSync(this.restKey()) } catch (e) {}; return }
-    this.setData({ restLeft: left, restTotal: st.left || left, restLabel: st.label || '组间休息' })
-    this._rt = setInterval(() => this.restTick(), 1000)
-  },
-  addRest30() {
-    if (this.data.restLeft > 0) {
-      const left = this.data.restLeft + 30
-      this.setData({ restLeft: left, restTotal: this.data.restTotal + 30 })
-      try {
-        const st = wx.getStorageSync(this.restKey())
-        if (st) wx.setStorageSync(this.restKey(), { left: st.left, deadline: Date.now() + left * 1000, label: st.label })
-      } catch (e) {}
-    }
-  },
-  skipRest() {
-    this.clearRestTimer(); this.setData({ restLeft: 0 })
-    try { wx.removeStorageSync(this.restKey()) } catch (e) {}
-  },
-  clearRestTimer() { if (this._rt) { clearInterval(this._rt); this._rt = null } },
-  onUnload() { this.clearRestTimer(); this.fmStop() },
-  // 2026-10-18：不再清零 —— 切页只是停表，storage 里的截止时间留着，onShow 由 restoreRest 接着跑
-  onHide() { this.clearRestTimer(); this.fmStop() },
+  startRest(sec,label){restTimer.connect(app.globalData.openid);restTimer.start(sec,label);this.restoreRest()},
+  restTick(){const t=restTimer.current();this.setData({restLeft:t?t.left:0,restTotal:t?t.total:0,restLabel:t?t.label:''})},
+  restoreRest(){restTimer.connect(app.globalData.openid);if(!this._restUnsub)this._restUnsub=restTimer.subscribe(t=>this.setData({restLeft:t?t.left:0,restTotal:t?t.total:0,restLabel:t?t.label:''}));this.restTick()},
+  addRest30(){restTimer.add()},
+  skipRest(){restTimer.end()},
+  clearRestTimer(){if(this._restUnsub){this._restUnsub();this._restUnsub=null}},
+  onUnload(){this.clearRestTimer();this.fmStop()},
+  onHide(){this.clearRestTimer();this.fmStop()},
 
   // ───── 专注训练全屏（2026-10-16 用户需求：带着用户一起练）─────
   // 大倒计时 + 动作大图 + 当前组重量/次数步进 + 「完成这一组」= 打勾并进入休息倒计时
@@ -461,7 +429,7 @@ Page({
       on: true, ei: cur.ei, si: cur.si,
       exName: ex.name, gif: gifArr, equipment: ex.equipment || '',
       points: ex.points || '',
-      totalSets: ex.log.length,
+      totalSets:ex.log.length,unit:ex.target&&ex.target.kind==='time'?'秒':'次',weightStep:ex.target?ex.target.step:2.5,hasRack:!!(ex.target&&ex.target.weights.length),
       // 空重量预填参考重量（2026-10-18 用户截图反馈同款问题：初始「自重」，±2.5 从 0 起跳太难调）
       weight: (s.weight !== '' && s.weight !== null && s.weight !== undefined) ? s.weight : (ex.suggest ? String(ex.suggest) : ''),
       reps: s.reps || String((String(ex.sets).split(/[×x]/i)[1] || '10').trim()),
@@ -481,11 +449,11 @@ Page({
     const s = ex.log[cur.si]
     if (f === 'weight') {
       const base = s.weight === '' ? (Number(ex.suggest) || 0) : Number(s.weight)
-      const v = Math.max(0, Math.min(180, Math.round((base + Number(d) * 2.5) * 10) / 10))
+      const v = progression.adjustWeight(ex.target,base,Number(d),2.5)
       this.setData({ ['exercises[' + cur.ei + '].log[' + cur.si + '].weight']: v, 'fm.weight': v })
     } else {
       const base = s.reps === '' ? (parseInt(String(ex.sets).split(/[×x]/i)[1], 10) || 10) : Number(s.reps)
-      const v = Math.max(1, Math.min(50, base + Number(d)))
+      const v = Math.max(1, Math.min(ex.target&&ex.target.kind==='time'?180:100,base+Number(d)))
       this.setData({ ['exercises[' + cur.ei + '].log[' + cur.si + '].reps']: v, 'fm.reps': v })
     }
   },
@@ -601,10 +569,9 @@ Page({
     this.setData({ curMeal: e.currentTarget.dataset.k })
     this.paintMealPanel()
   },
-  openFoodPanel() {
-    this.setData({ showFoodPanel: true, mealPanel: this.data.mealPanel || 'lib' })
-    if (this.data.mealPanel === 'freq' || this.data.mealPanel === 'recent') this.loadFreqFoods()
-    if (this.data.mealPanel === 'tpl') this.loadMealTpls()
+  openFoodPanel(e) {
+    const meal=(e&&e.currentTarget.dataset.k)||this.data.curMeal||'b'
+    wx.navigateTo({url:'/pages/food/food?meal='+meal+'&date='+this.data.viewDate})
   },
   closeFoodPanel() { this.setData({ showFoodPanel: false }) },
   setMealPanel(e) {
@@ -1007,8 +974,8 @@ Page({
     // 「目标 vs 已吃」4 条进度（超额变橙）
     const mt = this.data.macroTarget || {}
     const mk = (key, label, got, tg, unit) => {
-      const pct = tg > 0 ? Math.min(100, Math.round(got / tg * 100)) : 0
-      return { key, label, got: Math.round(got), target: Math.round(tg || 0), unit: unit || 'g', pct, over: tg > 0 && got > tg * 1.05 }
+      const pct = tg > 0 ? Math.round(got / tg * 100) : 0
+      return { key, label, got: Math.round(got), target: Math.round(tg || 0), unit: unit || 'g', pct, width:Math.min(100,pct), over: tg > 0 && got > tg }
     }
     const progress = [
       mk('kcal', '热量', total.kcal, mt.kcal, 'kcal'),
@@ -1023,7 +990,11 @@ Page({
         sum: items.length ? items.length + ' 项 · ' + Math.round(items.reduce((a, f) => a + (f.kcal || 0), 0)) + ' kcal' : '还没记' }
     })
     this.setData({
+      goalName:(app.globalData.profile||{}).goal||'塑形',
       mealGroups,
+      calorieProgress: progress[0], nutrientProgress: progress.slice(1),
+      dietRemain: Math.abs(Math.round((mt.kcal||0)-total.kcal)), dietOver:total.kcal>(mt.kcal||0),
+      ringStyle:'background:conic-gradient('+(progress[0].over?'#e05252':'#df9656')+' '+Math.min(100,progress[0].pct)+'%,var(--line) 0)',
       dietTotal: total,
       progress,
       dietOk: this.data.dietLog.length > 0,
@@ -1061,41 +1032,19 @@ Page({
   goDiet() { wx.navigateTo({ url: '/pages/diet/diet' }) },
 
   // —— 重量/次数 滚轮 ——
-  openWheel(e) {
-    const i = Number(e.currentTarget.dataset.i)
-    const j = Number(e.currentTarget.dataset.j)
-    const ex = this.data.exercises[i]
-    if (!ex) return
-    const cur = ex.log[j] || {}
-    const hasW = cur.weight !== '' && cur.weight !== null && cur.weight !== undefined
-    const hasR = cur.reps !== '' && cur.reps !== null && cur.reps !== undefined
-    const wIdx = hasW ? Math.max(0, WEIGHT_OPTIONS.indexOf(Number(cur.weight))) : Math.max(0, WEIGHT_OPTIONS.indexOf(ex.suggest || 0))
-    const rIdx = hasR ? Math.max(0, REP_OPTIONS.indexOf(Number(cur.reps))) : 11   // 默认 12 次
-    this.setData({
-      showWheel: true, wheelEx: i, wheelSet: j, wheelExName: ex.name,
-      wheelSuggest: ex.suggest || 0,
-      wheelValue: [wIdx, rIdx]
-    })
+  openWheel(e){this.showProgressWheel(Number(e.currentTarget.dataset.i),Number(e.currentTarget.dataset.j),false)},
+  showProgressWheel(i,j,focus){
+    const ex=this.data.exercises[i];if(!ex)return;const row=focus?this.data.fm:ex.log[j]||{},current=row.weight!==''&&row.weight!=null?Number(row.weight):Number(ex.suggest)||0,
+      weights=progression.weightChoices(ex.target,current,WEIGHT_OPTIONS),reps=Number(row.reps)||12
+    this.setData({showWheel:true,wheelTarget:focus?'fm':'',wheelEx:i,wheelSet:j,wheelExName:ex.name,wheelSuggest:ex.suggest||0,weightOptions:weights,wheelUnit:ex.target&&ex.target.kind==='time'?'秒':'次',wheelValue:[weights.indexOf(current),Math.max(0,REP_OPTIONS.indexOf(reps))]})
   },
-  onWheelChange(e) { this.setData({ wheelValue: e.detail.value }) },
-  closeWheel() { this.setData({ showWheel: false }) },
-  /* 专注模式：点重量/次数值 → 复用滚轮直选（不用一下下点 +2.5；卧推直接滚到自己的重量） */
-  fmPickW() {
-    const fm = this.data.fm || {}
-    const hasW = fm.weight !== '' && fm.weight !== null && fm.weight !== undefined
-    const wIdx = hasW ? Math.max(0, WEIGHT_OPTIONS.indexOf(Number(fm.weight))) : Math.max(0, WEIGHT_OPTIONS.indexOf(Number(fm.suggest || 0)))
-    const rIdx = fm.reps ? Math.max(0, REP_OPTIONS.indexOf(Number(fm.reps))) : 11
-    this.setData({ showWheel: true, wheelTarget: 'fm', wheelEx: -1, wheelSet: -1, wheelExName: fm.exName || '', wheelSuggest: Number(fm.suggest || 0), wheelValue: [wIdx, rIdx] })
-  },
-  fmPickR() {
-    const fm = this.data.fm || {}
-    const wIdx = (fm.weight !== '' && fm.weight !== null && fm.weight !== undefined) ? Math.max(0, WEIGHT_OPTIONS.indexOf(Number(fm.weight))) : Math.max(0, WEIGHT_OPTIONS.indexOf(Number(fm.suggest || 0)))
-    const rIdx = fm.reps ? Math.max(0, REP_OPTIONS.indexOf(Number(fm.reps))) : 11
-    this.setData({ showWheel: true, wheelTarget: 'fm', wheelEx: -1, wheelSet: -1, wheelExName: fm.exName || '', wheelSuggest: Number(fm.suggest || 0), wheelValue: [wIdx, rIdx] })
-  },
+  onWheelChange(e){this.setData({wheelValue:e.detail.value})},
+  closeWheel(){this.setData({showWheel:false})},
+  fmPickW(){if(this._fmCur)this.showProgressWheel(this._fmCur.ei,this._fmCur.si,true)},
+  fmPickR(){this.fmPickW()},
   confirmWheel() {
     const v = this.data.wheelValue
-    const w = WEIGHT_OPTIONS[v[0]] || 0
+    const w = this.data.weightOptions[v[0]] || 0
     const r = REP_OPTIONS[v[1]] || 12
     // 专注模式目标：写 fm 显示 + 同步写 log（只写显示不写 log 的话，完成这一组重量就丢了）
     if (this.data.wheelTarget === 'fm') {
@@ -1159,7 +1108,7 @@ Page({
         if (!r1.confirm) return
         const w = String(r1.content || '').trim()
         wx.showModal({
-          title: '手动输入次数', editable: true, placeholderText: '如 12',
+          title:'手动输入'+(this.data.wheelUnit||'次'), editable: true, placeholderText: '如 12',
           success: (r2) => {
             if (!r2.confirm) return
             const reps = String(r2.content || '').trim() || '12'
@@ -1168,7 +1117,8 @@ Page({
               ['exercises[' + i + '].log[' + j + '].weight']: wv,
               ['exercises[' + i + '].log[' + j + '].reps']: reps
             })
-            this.applyToRest(i, wv, reps, j)
+            if(this.data.wheelTarget==='fm')this.setData({'fm.weight':wv,'fm.reps':reps})
+            else this.applyToRest(i,wv,reps,j)
           }
         })
       }
@@ -1204,7 +1154,7 @@ Page({
       waterMl: this.data.waterMl || 0, sleepHours: this.data.sleepHours || 0,
       weight: this.data.weight ? Number(this.data.weight) : '',
       note: this.data.note,
-      exercises: this.data.exercises.map(e => ({ oid: e.oid || '', name: e.name, sets: e.sets, role: e.role || '', log: e.log })),
+      exercises: this.data.exercises.map(e => ({ oid: e.oid || '', name: e.name, sets: e.sets, role:e.role||'',target:e.target||null,progressReady:!!e.progressReady,log:e.log })),
       dietLog: this.data.dietLog
     }
     db.collection('checkins').where({ _openid: app.globalData.openid, date: this.data.viewDate }).get()
@@ -1218,6 +1168,7 @@ Page({
         return save()
       })
       .then(() => {
+        this._progressHistory=[doc].concat((this._progressHistory||[]).filter(x=>x.date!==doc.date));this.setData({exercises:this.decorateProgression(this.data.exercises,this._progressHistory)});
         this.setData({ savedTip: true }); setTimeout(() => this.setData({ savedTip: false }), 1500)
         if (app.loadCultivation) app.loadCultivation(true)   // 修炼摘要当日缓存失效（EXP 变了）
         // 双端互通：绑定了网站账号的话，把今天这条打卡镜像过去（不绑定就静默跳过）
@@ -1226,6 +1177,16 @@ Page({
       })
       .catch(err => wx.showToast({ title: '保存失败', icon: 'none' }))
   },
+
+  decorateProgression(exercises,history,viewDate){const g=app.globalData,plan=g.plan,P=progression,date=viewDate||this.data.viewDate||todayStr();return exercises.map(e=>{const c=P.configFor(e,plan),s=c&&P.suggestion(e,plan,history,shiftDate(date,1));return Object.assign({},e,{pgOn:!!c,pgLabel:P.label(e.target),pgSuggestion:s&&s.target?P.label(Object.assign({},s.target,s.value)):'',pgReason:s?s.reason:'',pgSource:s&&s.date?s.date+'：'+s.summary:'',pgCanAccept:!!(s&&s.source&&s.kind!=='calibrate'&&(!c.accepted||c.accepted.source!==s.source))})})},
+  pgToggleReady(e){const i=Number(e.currentTarget.dataset.i);this.setData({['exercises['+i+'].progressReady']:!!e.detail.value})},
+  pgToggleWarm(e){const i=Number(e.currentTarget.dataset.i),j=Number(e.currentTarget.dataset.j);this.setData({['exercises['+i+'].log['+j+'].type']:e.detail.value?'warmup':'work'})},
+  pgEdit(e){if(!this.data.isToday){wx.showToast({title:'请回到今天设置',icon:'none'});return}const i=Number(e.currentTarget.dataset.i),ex=this.data.exercises[i],P=progression,c=P.configFor(ex,app.globalData.plan),m=String(ex.sets).match(/(\d+)\s*[×x]\s*(\d+)/),kind=c?c.kind:/助力|辅助.*引体/.test(ex.name)?'assisted':/秒|平板|悬垂/.test(ex.sets+' '+ex.name)?'time':ex.equipment==='无器械'?'bodyweight':'load',kinds=['load','assisted','bodyweight','time'];this._pgPlan=app.globalData.plan;this.setData({pgOpen:true,pgIndex:i,pgName:ex.name,pgKinds:['负重动作','助力器械','自重次数','静态计时（秒）'],pgKindIndex:kinds.indexOf(kind),pgForm:{sets:c?c.sets:Number(m&&m[1])||3,min:c?c.min:kind==='time'?30:8,max:c?c.max:kind==='time'?60:12,weight:c?c.weight:0,step:c?c.step:ex.equipment==='哑铃'?1:2.5,weights:c?(c.weights||[]).join(','):''},pgHad:!!c,pgOff:false})},
+  pgInput(e){this.setData({['pgForm.'+e.currentTarget.dataset.k]:e.detail.value})},pgKind(e){this.setData({pgKindIndex:Number(e.detail.value)})},pgOff(e){this.setData({pgOff:!!e.detail.value})},pgClose(){this.setData({pgOpen:false})},
+  pgSave(){const g=app.globalData,plan=g.plan,P=progression,ex=this.data.exercises[this.data.pgIndex];if(plan!==this._pgPlan){wx.showToast({title:'计划已变化，请重新设置',icon:'none'});return}let c;try{if(!this.data.pgOff)c=P.normalizeConfig(Object.assign({},this.data.pgForm,{kind:['load','assisted','bodyweight','time'][this.data.pgKindIndex],id:Date.now()+'_'+Math.random().toString(36).slice(2),scope:P.scope(plan)}))}catch(err){wx.showToast({title:err.message,icon:'none'});return}const map=Object.assign({},plan.exerciseProgression);if(c)map[P.key(ex)]=c;else delete map[P.key(ex)];this.pgWrite(Object.assign({},plan,{exerciseProgression:map})).then(()=>{this.setData({pgOpen:false});let list=this.data.exercises.slice(),item=Object.assign({},list[this.data.pgIndex]);if(!item.log.some(s=>s.done)&&!(this._progressHistory||[]).some(c=>c.date===this.data.viewDate&&(c.exercises||[]).some(x=>x.name===item.name))){const t=P.targetFor(item,g.plan,this._progressHistory||[],this.data.viewDate,!!this.data.deload||((g.profile.todayState||{}).date===this.data.viewDate&&!['ok','good'].includes((g.profile.todayState||{}).key)));item.target=t;item.progressReady=false;if(!t){this.render();wx.showToast({title:'已恢复原计划',icon:'none'});return}if(t){item.sets=t.sets+'×'+t.reps+(t.kind==='time'?'秒':'');item.log=Array.from({length:t.sets},()=>({weight:t.weight,reps:t.reps,done:false,type:'work'}))}list[this.data.pgIndex]=item}this.setData({exercises:this.decorateProgression(list,this._progressHistory||[])});wx.showToast({title:'递进设置已保存',icon:'none'})}).catch(()=>wx.showToast({title:'保存失败，请重试',icon:'none'}))},
+  pgWrite(plan){const g=app.globalData;return wx.cloud.database().collection('users').doc(g.openid).update({data:{plan}}).then(()=>{g.plan=plan})},
+  pgAccept(e){const i=Number(e.currentTarget.dataset.i),ex=this.data.exercises[i],g=app.globalData,plan=g.plan,P=progression,c=P.configFor(ex,plan),s=c&&P.suggestion(ex,plan,this._progressHistory||[],shiftDate(this.data.viewDate,1));if(!s||!s.source)return;wx.showModal({title:'采用为下次目标？',content:P.label(Object.assign({},s.target,s.value))+'。'+s.reason+' 从本次记录之后的训练日起生效，历史不变。',success:r=>{if(!r.confirm)return;if(g.plan!==plan||P.suggestion(ex,plan,this._progressHistory||[],shiftDate(this.data.viewDate,1)).source!==s.source){wx.showToast({title:'数据已变化，请重新确认',icon:'none'});return}let next;try{next=P.accept(c,s)}catch(err){wx.showToast({title:err.message,icon:'none'});return}this.pgWrite(Object.assign({},plan,{exerciseProgression:Object.assign({},plan.exerciseProgression,{[P.key(ex)]:next})})).then(()=>wx.showToast({title:'下次目标已保存'})).catch(()=>wx.showToast({title:'保存失败',icon:'none'}))}})},
+  pgUndo(e){const ex=this.data.exercises[Number(e.currentTarget.dataset.i)],g=app.globalData,P=progression,c=P.configFor(ex,g.plan);if(!c||!c.accepted){wx.showToast({title:'没有可撤销的目标',icon:'none'});return}const next=Object.assign({},c,{accepted:c.previousAccepted||null,previousAccepted:null});this.pgWrite(Object.assign({},g.plan,{exerciseProgression:Object.assign({},g.plan.exerciseProgression,{[P.key(ex)]:next})})).then(()=>wx.showToast({title:'已撤销，记录保留',icon:'none'})).catch(()=>wx.showToast({title:'保存失败',icon:'none'}))},
 
   goAssess() { wx.navigateTo({ url: '/pages/assess/assess' }) },
   goCoach() { wx.navigateTo({ url: '/pages/coach/coach' }) },

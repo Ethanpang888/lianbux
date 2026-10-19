@@ -1,3 +1,4 @@
+<view wx:if="{{activeRest}}" class="card" bindtap="goToday"><view class="row between"><text>{{activeRest.label}} {{activeRest.left?'进行中':'已结束'}}</text><text>{{activeRest.time}}</text></view><view class="muted">返回训练 ›</view></view>
 <view wx:if="{{!profile}}" class="card center-empty">
   <view style="font-size:60rpx;margin-bottom:20rpx">💪</view>
   <view class="title">先完善你的资料</view>
@@ -62,18 +63,17 @@
       <view class="btn big" bindtap="goToday">{{doneToday ? '继续训练' : '开始训练'}}</view>
       <view class="row between" style="margin-top:16rpx">
         <text class="chip" bindtap="goTab" data-url="/pages/plan/plan">看完整计划</text>
-        <text class="chip" bindtap="go" data-url="/pages/coach/coach">今天没空？调整安排</text>
+        <text class="chip" bindtap="postponeTraining">今天没空？顺延训练</text>
       </view>
     </block>
   </view>
 
-  <!-- 今日饮食 -->
-  <view class="card daily-card">
-    <view class="section-label">今日饮食</view>
-    <view class="focus-title sm">给身体补充能量</view>
-    <view class="muted txs">目标 {{targetKcal}} kcal · 蛋白 {{targetProtein}}g</view>
-    <view class="muted txs" style="margin-top:8rpx">按时吃饭，也是修炼的一部分。</view>
-    <view class="btn ghost" style="margin-top:20rpx" bindtap="go" data-url="/pages/diet/diet">记一餐 →</view>
+  <!-- 饮食总览：明细与添加独立页面，食物再多也不拉长首页 -->
+  <view class="card compact-diet">
+    <view class="row between"><view class="title">今日饮食</view><text class="muted">目标 {{calTarget}} kcal</text></view>
+    <view class="diet-energy"><view><text class="diet-number">{{dietTotal.kcal||0}}</text> 大卡<view class="muted">{{dietOver?'已超目标':'距目标'}} {{dietRemain}} 大卡</view></view><view class="diet-ring" style="{{ringStyle}}"><view><text class="muted">目标进度</text><text>{{calorieProgress.pct||0}}%</text></view></view></view>
+    <view class="diet-macros"><view wx:for="{{nutrientProgress}}" wx:key="key" class="diet-macro pb-{{item.key}} {{item.over?'over':''}}"><view class="muted">{{item.label}}</view><view>{{item.got}} / {{item.target}}g</view><view class="muted">{{item.pct}}%</view><view class="pb-bar"><view class="pb-in pbin-{{item.key}} {{item.over?'over':''}}" style="width:{{item.width}}%"></view></view></view></view>
+    <view wx:if="{{energy}}" class="muted diet-note">{{goalName}} · 消耗 {{energy.tdee}} · 摄入 {{calTarget}} kcal · {{energy.deficit>0?'缺口':energy.deficit<0?'盈余':'持平'}} {{energy.deficit<0?-energy.deficit:energy.deficit}} kcal</view>
   </view>
 
   <!-- 今日恢复（网站 recoveryCard 同款：睡眠 chips + 补水） -->

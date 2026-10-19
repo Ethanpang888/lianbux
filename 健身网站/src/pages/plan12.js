@@ -75,7 +75,7 @@ const PagePlan12 = {
     let skel = ''
     const len = plan.micro.length
     for (let d = 0; d < len; d++) {
-      const day = ENGINE.kb.dayContent(plan, d, p, !!plan.home)
+      const day = ENGINE.kb.dayContent(Object.assign({},plan,{schedulePauses:[]}), d, p, !!plan.home)
       skel += '<div class="cyc-row" style="margin-top:4px"><div class="cyc-h"><b>Day ' + (d + 1) + '</b></div>' +
         (day.type === 'rest'
           ? '<div class="muted txs">休息 · 散步 / 拉伸 / 筋膜放松</div>'

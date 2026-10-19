@@ -7,9 +7,11 @@ const PageCoach = {
   picked: '',
   result: null,
 
-  render() {
+  render(args) {
+    if(args&&args[0]==='schedule'){this.schedulePage();return}
     document.getElementById('app').innerHTML =
-      Router.bar('调一下', '按规则算，不猜') +
+      Router.bar('训练与饮食调整', '选情况 → 查看建议 → 确认应用；临时没空请用顺延训练') +
+      '<div class="card"><b>今天临时没空，或前几天漏练了？</b><p class="muted txs">保留训练顺序，用顺延安排休息；长期练不过来，再调整训练频率。</p><button class="btn ghost" onclick="Router.go(\'coach/schedule\')">顺延训练 ›</button><p class="muted txs">本页按规则算，结合现有数据给建议，不会自动改计划。疲劳重量微调需完整版；已有自定饮食目标时，饮食偏移不会覆盖它。</p></div>' +
       this.picker() +
       '<div id="coachOut"></div>' +
       this.aiHint()
@@ -134,11 +136,37 @@ const PageCoach = {
       } else {
         UI.toast('这条还不支持自动应用'); return
       }
-      UI.toast('已应用 —— 计划已经改了')
+      Store.saveCache()
+      UI.toast(a.type==='state'?'已记录今日疲劳状态；重量建议按权益生效':a.type==='macro'||a.type==='hunger'?'已保存饮食调整；自定参考目标需另行复核':'已更新训练计划')
       this.result = null
       this.picked = ''
       this.render()
     } catch (e) { UI.toast('应用失败：' + ((e && e.message) || e)) }
+  },
+
+  schedulePage(){
+    const u=Store.state.user||{},plan=u.plan,today=Fmt.todayStr()
+    if(!plan){document.getElementById('app').innerHTML=Router.bar('顺延训练')+'<div class="card">请先建立训练计划。</div>';return}
+    const list=plan.schedulePauses||[]
+    document.getElementById('app').innerHTML=Router.bar('顺延训练','临时休息，后续接着原顺序练')+
+      '<div class="card"><h2>这次休息几天？</h2><p class="muted txs">今天没空选1天；要补回前几天漏练的安排，可修改开始日期。只插入休息日，不移动过去的周期起点。</p><label>从哪天开始 <input id="pauseFrom" class="pro-input" type="date" max="'+today+'" value="'+today+'"></label><div class="schedule-options">'+[1,2,3,5,7].map(n=>'<button class="chip" onclick="PageCoach.openSchedule('+n+')">休息 / 顺延'+n+'天</button>').join('')+'</div><p class="muted txs">已完成的训练不能补设为休息。未完成的部分组数保留在原日期，不自动复制到恢复日。</p></div>'+
+      (list.length?'<div class="card"><h2>最近的顺延</h2>'+list.slice().reverse().slice(0,5).map(x=>'<p>'+Fmt.esc(x.fromDate||Fmt.shiftDate(plan.cycleStart,x.at))+'起 · '+x.days+'天</p>').join('')+'<button class="btn line" onclick="PageCoach.undoSchedule()">撤销最近一次顺延</button></div>':'')+
+      '<button class="btn line" onclick="Router.go(\'plan\')">查看完整计划</button><button class="btn line" onclick="Router.go(\'home\')">返回洞府</button>'
+  },
+  completedIn(from,days){return (Store.state.checkins||[]).some(c=>c.date>=from&&c.trained)},
+  openSchedule(days){
+    const u=Store.state.user||{},plan=u.plan,from=(document.getElementById('pauseFrom')||{}).value||Fmt.todayStr()
+    let next;try{if(from>Fmt.todayStr())throw new Error('开始日期请选择今天或之前');if(this.completedIn(from,days))throw new Error('开始日期之后已有完成训练，请从之后的未练日期顺延');next=ENGINE.kb.postponePlan(plan,from,days)}catch(e){UI.toast(e.message);return}
+    const resume=Fmt.shiftDate(from,days),preview=Array.from({length:Math.min(7,days+3)},(_,i)=>{const date=Fmt.shiftDate(from,i),idx=ENGINE.calc.dayIndexFromStart(plan.cycleStart,date),d=ENGINE.kb.dayContent(next,idx,u.profile,next.home);return '<div><span>'+date+'</span><b>'+Fmt.esc(d.focus||'休息')+'</b></div>'}).join('')
+    UI.modal({title:'确认顺延'+days+'天？',body:'<p>'+from+'起安排临时休息，'+resume+'起接着原顺序。历史打卡保留；原日期未完成的组数不自动算到恢复日。</p><div class="schedule-preview">'+preview+'</div>',okText:'确认顺延',onOk:()=>{
+      if(Store.state.user.plan!==plan){UI.toast('计划已变化，请重新预览');return true}
+      const p=Object.assign({},u.profile),ts=p.todayState||{};if(ts.date>=from&&ts.date<resume)delete p.todayState
+      Store.patchUser({plan:next,profile:p});UI.toast('已顺延，可撤销');Router.go('coach/schedule');this.schedulePage()
+    }})
+  },
+  undoSchedule(){const u=Store.state.user||{},plan=u.plan,list=(plan&&plan.schedulePauses)||[];if(!list.length)return;const last=list[list.length-1],from=last.fromDate||Fmt.shiftDate(plan.cycleStart,last.at)
+    if((Store.state.checkins||[]).some(c=>c.trained&&c.date>=from)){UI.toast('顺延后已有完成训练，请保留历史并重新安排后续');return}
+    UI.modal({title:'撤销最近一次顺延？',body:'<p>将恢复这次顺延前的后续排期，已有记录保留。</p>',onOk:()=>{if(Store.state.user.plan!==plan){UI.toast('计划已变化，请重新预览');return true}Store.patchUser({plan:Object.assign({},plan,{schedulePauses:list.slice(0,-1)})});this.schedulePage();UI.toast('已撤销顺延')}})
   },
 
   /** AI 顾问已上线：规则算不出的一半交给知识库 + 大模型 */

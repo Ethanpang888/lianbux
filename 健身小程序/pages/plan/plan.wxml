@@ -1,3 +1,4 @@
+<view wx:if="{{hasPlan}}" class="card"><view class="title">临时没空，顺延训练</view><view class="muted">插入休息日，后续按原顺序接着练；历史打卡保留。</view><view wx:for="{{upcoming}}" wx:key="date" class="muted">{{item.date}} · {{item.focus}}</view><button bindtap="postponeTraining">顺延 / 补回漏练 / 撤销</button></view>
 <view wx:if="{{!hasPlan}}" class="card center-empty">
   <view class="title">还没有计划</view>
   <view class="btn block" bindtap="goAssess">去测评生成计划</view>

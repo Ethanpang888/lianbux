@@ -24,9 +24,10 @@ const PagePlan = {
     }
     const idx = Math.max(0, ENGINE.calc.dayIndexFromStart(plan.cycleStart || today, today))
     const len = plan.micro.length
-    const cycle = Math.floor(idx / len)
+    const logical=ENGINE.kb.schedulePosition(plan,idx)
+    const cycle = Math.floor(Math.max(0,logical.index) / len)
     const week = cycle + 1
-    const slotToday = ((idx % len) + len) % len
+    const slotToday = logical.paused?-1:((logical.index % len) + len) % len
     const sp = ENGINE.kb.SPLITS ? (ENGINE.kb.SPLITS[plan.split] || {}) : {}
     // 计划人格化（竞品「轻盈行动」做法，用户 10/15 确认）：分化挂上知识源的博主名
     const AUTHOR = { ppl: '谭成义', cpbsl: '凯圣王', five: '谭成义', full: '综合' }
@@ -36,22 +37,22 @@ const PagePlan = {
 
     // 周期日历条：每天一格，当天高亮
     const cells = plan.micro.map((f, i) => {
-      const isToday = i === slotToday
+      const isToday = i === 0
       const cls = isToday ? 'background:var(--green);color:#fff;border-color:var(--green)' : ''
-      const nm = f === 'rest' ? '休' : (ENGINE.kb.dayContent(plan, i, u.profile, !!plan.home).focus || f).slice(0, 1)
+      const d=ENGINE.kb.dayContent(plan,idx+i,u.profile,!!plan.home);const nm=d.type==='rest'?'休':(d.focus||f).slice(0,1)
       return '<div style="' + cls + ';border:1px solid var(--line);border-radius:10px;padding:8px 0;text-align:center;font-size:13px;font-weight:700">' +
-        'D' + (i + 1) + '<br><span style="font-weight:600">' + Fmt.esc(nm) + '</span></div>'
+        Fmt.shiftDate(today,i).slice(5) + '<br><span style="font-weight:600">' + Fmt.esc(nm) + '</span></div>'
     }).join('')
 
     // 每天的卡：动作清单（点击某天 → 今日训练页看详情；非今天也能看）
     const cards = plan.micro.map((f, i) => {
-      const day = ENGINE.kb.dayContent(plan, cycle * len + i, u.profile, !!plan.home)
-      const targetDate = Fmt.shiftDate(start, cycle * len + i)
-      const isToday = i === slotToday
-      const rest = day.type === 'rest' || f === 'rest'
+      const day = ENGINE.kb.dayContent(plan, idx + i, u.profile, !!plan.home)
+      const targetDate = Fmt.shiftDate(today, i)
+      const isToday = i === 0
+      const rest = day.type === 'rest'
       const names = (day.exercises || []).map(e => Fmt.esc(e.name + ' ' + e.sets)).join('、')
       return '<div class="card" style="' + (isToday ? 'border:2px solid var(--green)' : '') + '">' +
-        '<h2>第 ' + (i + 1) + ' 天 · ' + Fmt.esc(day.focus || f) +
+        '<h2>' + targetDate.slice(5) + ' · ' + Fmt.esc(day.focus || f) +
           (isToday ? ' <span class="tag gold">今天</span>' : '') + '</h2>' +
         '<div class="muted txs" style="margin-top:4px">' +
           (rest ? '休息日 —— 全休或散步 20 分钟，别安排力量' : names || '—') + '</div>' +
@@ -69,9 +70,9 @@ const PagePlan = {
         // 节假日 / 停练顺延：把整个循环往后挪，练腿日照原顺序落到你有空的那天
         '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">' +
           '<b style="font-size:13px">节假日 / 没空停练？把计划顺延</b>' +
-          '<div class="muted txs" style="margin-top:4px">停了几天就顺延几天 —— 比如原定 12 号练腿、你休到 14 号，顺延 3 天后 15 号正好轮到腿，节奏不乱。</div>' +
+          '<div class="muted txs" style="margin-top:4px">插入临时休息日，之后按原顺序接着练。可补顺延漏练的日期，确认前预览，历史打卡保留。</div>' +
           '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
-            [1, 2, 3, 4, 5].map(n => '<button class="chip" onclick="PagePlan.delay(' + n + ');Router.go()">顺延 ' + n + ' 天</button>').join('') +
+            [1, 2, 3, 4, 5].map(n => '<button class="chip" onclick="PagePlan.delay(' + n + ')">顺延 ' + n + ' 天</button>').join('') +
           '</div>' +
         '</div>' +
       '</div>' + cards +
@@ -93,14 +94,8 @@ const PagePlan = {
       '<div style="height:20px"></div>'
   },
 
-  /** 停练顺延：cycleStart 往后挪 n 天 —— 整个循环平移，练腿日照原顺序落到你有空那天 */
-  delay(n) {
-    const u = Store.state.user || {}
-    if (!u.plan || !u.plan.cycleStart) { UI.toast('先完成建档'); return '' }
-    const ns = Fmt.shiftDate(u.plan.cycleStart, n)
-    Store.patchUser({ plan: Object.assign({}, u.plan, { cycleStart: ns }) })
-    return ns
-  },
+  /** 插入临时休息日，先预览确认，保留历史周期起点。 */
+  delay(n) { PageCoach.openSchedule(n) },
 
   /** 切场景（居家/健身房）：分化频率不变，按新场景重挑动作，保留自定义挂载与周期进度 */
   switchHome(home) {
@@ -111,6 +106,7 @@ const PagePlan = {
     const np = ENGINE.kb.generatePlan(u.profile, {
       split: plan.split, freq: plan.freq, home: home, dietMode: plan.dietMode
     })
+    np.schedulePauses = plan.schedulePauses || []
     np.cycleStart = plan.cycleStart
     np.slotExercises = plan.slotExercises || {}
     const p = Object.assign({}, u.profile, { home: home })

@@ -83,6 +83,19 @@
         </view>
         <view wx:if="{{item.expanded}}" class="ex-b">
           <view class="equiptag {{item.equipment==='无器械'?'home':'gym'}}">{{item.equipment==='无器械'?'🏠 居家 · 无器械':'🏋 ' + item.equipment}}</view>
+          <view class="pg-box">
+            <view class="pg-title">训练递进 · {{item.pgOn?'已启用':'可选'}}</view>
+            <view wx:if="{{item.pgOn}}">
+              <view class="muted">此动作按工作组推进，替代周期加重。</view>
+              <view>本次目标：{{item.pgLabel||'保留原记录，下次生效'}}</view>
+              <view class="row"><switch data-i="{{index}}" checked="{{item.progressReady}}" bindchange="pgToggleReady"/><text class="muted">动作稳定、没有疼痛，仍有约2次余力</text></view>
+              <view class="muted">{{item.pgSource}}</view><view class="muted">{{item.pgReason}}</view>
+              <view wx:if="{{item.pgSuggestion}}">下次建议：{{item.pgSuggestion}}</view>
+              <button wx:if="{{item.pgCanAccept}}" size="mini" data-i="{{index}}" bindtap="pgAccept">确认采用下次目标</button>
+              <button size="mini" data-i="{{index}}" bindtap="pgUndo">撤销上次采用</button>
+            </view>
+            <button size="mini" data-i="{{index}}" bindtap="pgEdit">{{item.pgOn?'调整 / 关闭递进':'设置递进起点'}}</button>
+          </view>
           <view wx:if="{{item.gif}}" class="gifwrap" bindtap="fmOpen" data-i="{{index}}"><frame-gif frames="{{item.gif}}" speed="{{420}}" equip="{{item.equipment}}" interactive="{{true}}"/><view class="gif-hint">👆 点图进入专注训练</view></view>
           <view wx:if="{{item.points}}" class="expo fm-go" bindtap="fmOpen" data-i="{{index}}">{{item.points}}<view class="fm-go-hint">点这里进入「专注训练」：大图大字带着你一组一组练</view></view>
           <view class="exops">
@@ -96,11 +109,11 @@
           <view class="setrow setrow-h">
             <text class="setno">组</text>
             <text class="setcol">重量 (kg)</text>
-            <text class="setcol">次数</text>
+            <text class="setcol">{{item.target.kind==='time'?'秒数':'次数'}}</text>
             <text class="done-h">完成</text>
           </view>
           <view wx:for="{{item.log}}" wx:for-item="s" wx:for-index="j" wx:key="j" class="setrow">
-            <text class="setno">第{{j+1}}组</text>
+            <view class="setno">第{{j+1}}组<view wx:if="{{item.target}}"><switch data-i="{{index}}" data-j="{{j}}" checked="{{s.type==='warmup'}}" bindchange="pgToggleWarm"/><text>热身</text></view></view>
             <view class="setbox {{s.weight!==''?'fill':''}}" data-i="{{index}}" data-j="{{j}}" bindtap="openWheel">
               <text>{{s.weight!=='' ? s.weight : '参考' + item.suggest}}</text>
             </view>
@@ -131,52 +144,14 @@
     </view>
   </block>
 
-  <!-- 饮食记录 -->
-  <view class="card">
-    <view class="row between">
-      <view class="title">今日饮食</view>
-      <view class="modesw">
-        <view class="ms {{dietMode==='recipe'?'on':''}}" data-m="recipe" bindtap="setDietMode">配好菜</view>
-        <view class="ms {{dietMode==='simple'?'on':''}}" data-m="simple" bindtap="setDietMode">只给克数</view>
-      </view>
-    </view>
-
-    <!-- 每日消耗与热量目标 -->
-    <view wx:if="{{energy}}" class="ebox">
-      <view class="emain">每日消耗 <b>{{energy.tdee}}</b> kcal　→　热量目标 <b>{{calTarget}}</b> kcal</view>
-      <view class="esub">基础代谢 {{energy.bmr}} × 活动系数 {{energy.factor}}（{{energy.actName}}）· 缺口 {{energy.deficit}} kcal</view>
-      <view wx:if="{{energy.warn}}" class="ewarn">缺口偏离较大，去「我的 → 修改资料」复核日常活动量</view>
-    </view>
-
-    <!-- 目标 vs 已吃：4 条进度（四色 + 百分比，超 100% 变红；2026-10-19 与网站合并卡一致） -->
-    <view class="pbs">
-      <view class="pb pb-{{item.key}}" wx:for="{{progress}}" wx:key="key">
-        <view class="pb-h">
-          <text class="pb-l">{{item.label}}</text>
-          <text class="pb-v {{item.over?'over':''}}">{{item.got}} / {{item.target}}{{item.unit}} · {{item.pct}}%</text>
-        </view>
-        <view class="pb-bar"><view class="pb-in pbin-{{item.key}} {{item.over?'over':''}}" style="width:{{item.pct}}%"></view></view>
-      </view>
-    </view>
-
-    <!-- 加吃了什么：主页只留按钮（添加面板收进弹层，2026-10-19 用户反馈：主页越拉越长） -->
-    <view class="foodbox-h">＋ 加吃了什么</view>
-    <view class="btn" style="margin-top:10rpx" bindtap="openFoodPanel">＋ 添加食物（选餐次 · 搜索 · 常用 · 套餐）</view>
-
-    <!-- 已吃清单：按四餐分组（每餐小计） -->
-    <view class="dlog-h">已吃记录（{{dietLog.length}} 项）</view>
-    <view wx:for="{{mealGroups}}" wx:key="k" wx:for-item="g" style="margin-top:10rpx">
-      <view class="muted" style="font-size:24rpx"><text class="strong">{{g.name}}</text> · {{g.sum}}</view>
-      <view wx:for="{{g.items}}" wx:key="index" wx:for-item="f" class="dlog-i">
-        <text class="dlog-n">{{f.name}}{{f.unknown?'（营养未知）':''}}</text>
-        <text class="dlog-g">{{f.grams}}g</text>
-        <text class="dlog-k">{{f.kcal}}kcal</text>
-        <text class="dlog-x" data-i="{{f._idx}}" catchtap="removeFood">✕</text>
-      </view>
-    </view>
-    <view wx:if="{{dietLog.length===0}}" class="dlog-empty">还没记录。在上面输入框打「牛肉」这类词，联想出来后点一下，填克数就记上了。</view>
-    <view wx:if="{{dietLog.length}}" class="btn ghost block" style="margin-top:14rpx" bindtap="clearDiet">清空今日饮食</view>
-    <view class="collapse" bindtap="goDiet">📐 今天吃什么 · 分餐方案 ›</view>
+  <!-- 饮食总览：明细与添加独立页面，食物再多也不拉长首页 -->
+  <view class="card compact-diet">
+    <view class="row between"><view class="title">今日饮食</view><text class="muted">目标 {{calTarget}} kcal</text></view>
+    <view class="diet-reference" bindtap="goDiet"><view>我的饮食参考<view class="muted">查看与调整食材、份量</view></view><text>›</text></view>
+    <view class="diet-energy"><view><text class="diet-number">{{dietTotal.kcal||0}}</text> 大卡<view class="muted">{{dietOver?'已超目标':'距目标'}} {{dietRemain}} 大卡</view></view><view class="diet-ring" style="{{ringStyle}}"><view><text class="muted">目标进度</text><text>{{calorieProgress.pct||0}}%</text></view></view></view>
+    <view class="diet-macros"><view wx:for="{{nutrientProgress}}" wx:key="key" class="diet-macro pb-{{item.key}} {{item.over?'over':''}}"><view class="muted">{{item.label}}</view><view>{{item.got}} / {{item.target}}g</view><view class="muted">{{item.pct}}%</view><view class="pb-bar"><view class="pb-in pbin-{{item.key}} {{item.over?'over':''}}" style="width:{{item.width}}%"></view></view></view></view>
+    <view wx:if="{{energy}}" class="muted diet-note">{{goalName}} · 消耗 {{energy.tdee}} · 摄入 {{calTarget}} kcal · {{energy.deficit>0?'缺口':energy.deficit<0?'盈余':'持平'}} {{energy.deficit<0?-energy.deficit:energy.deficit}} kcal</view>
+    <view class="diet-meals"><view wx:for="{{mealGroups}}" wx:key="k" data-k="{{item.k}}" bindtap="openFoodPanel"><view class="meal-icon">{{item.k==='b'?'☀':item.k==='l'?'◷':item.k==='d'?'☾':'＋'}}</view><view>{{item.name}}</view><view class="muted">{{item.items.length?item.sum:'去记录'}}</view></view></view>
   </view>
 
   <!-- 微饿循环（谭成义理论） -->
@@ -231,7 +206,7 @@
           <view wx:for="{{weightOptions}}" wx:key="*this" class="wheel-i">{{item===0 ? '自重' : item + ' kg'}}</view>
         </picker-view-column>
         <picker-view-column>
-          <view wx:for="{{repOptions}}" wx:key="*this" class="wheel-i">{{item}} 次</view>
+          <view wx:for="{{repOptions}}" wx:key="*this" class="wheel-i">{{item}} {{wheelUnit || "次"}}</view>
         </picker-view-column>
       </picker-view>
       <view class="row" style="gap:16rpx;margin-top:20rpx">
@@ -296,13 +271,13 @@
   <view class="fm-timer {{fm.restLeft>0?'resting':''}}">{{fm.restLeft>0 ? fm.restLeft : '─'}}<text wx:if="{{fm.restLeft>0}}" class="fm-ts">s</text></view>
   <view class="fm-sub">{{fm.restLeft>0 ? fm.restLabel : '做这一组 —— 重量次数先调好，练完点大按钮'}}</view>
   <view class="fm-fill">
-    <view class="fm-step" data-f="weight" data-d="-1" bindtap="fmAdj">−2.5</view>
+    <view class="fm-step" data-f="weight" data-d="-1" bindtap="fmAdj">{{fm.hasRack ? '上一档' : '−' + fm.weightStep}}</view>
     <view class="fm-val fm-pick" bindtap="fmPickW">{{fm.weight!=='' && fm.weight!==null && fm.weight!==undefined ? fm.weight + ' kg' : '自重'}}</view>
-    <view class="fm-step" data-f="weight" data-d="1" bindtap="fmAdj">+2.5</view>
+    <view class="fm-step" data-f="weight" data-d="1" bindtap="fmAdj">{{fm.hasRack ? '下一档' : '+' + fm.weightStep}}</view>
   </view>
   <view class="fm-fill">
     <view class="fm-step" data-f="reps" data-d="-1" bindtap="fmAdj">−1</view>
-    <view class="fm-val fm-pick" bindtap="fmPickR">{{fm.reps}} 次</view>
+    <view class="fm-val fm-pick" bindtap="fmPickR">{{fm.reps}} {{fm.unit}}</view>
     <view class="fm-step" data-f="reps" data-d="1" bindtap="fmAdj">+1</view>
   </view>
   <view class="fm-done" bindtap="fmDone">✓ 完成这一组</view>
@@ -348,50 +323,17 @@
   </view>
 </view>
 
-<!-- 添加食物弹层（2026-10-19：收进弹层，主页不再拉长；先选餐次 → 页签：常用/食物库/最近/套餐） -->
-<view wx:if="{{showFoodPanel}}" class="mask" bindtap="closeFoodPanel">
-  <view class="sheet" catchtap="noop" style="max-height:80vh;overflow-y:auto">
-    <view class="title" style="margin-bottom:10rpx">添加食物 → 记入「{{curMeal==='b'?'早餐':curMeal==='l'?'午餐':curMeal==='d'?'晚餐':'加餐'}}」</view>
-    <view class="fcat">
-      <view wx:for="{{mealTabs}}" wx:key="k" class="fcat-i {{curMeal===item.k?'on':''}}" data-k="{{item.k}}" catchtap="setMeal">{{item.name}}</view>
-    </view>
-    <view class="fcat" style="margin-top:10rpx">
-      <view wx:for="{{[{p:'lib',n:'食物库'},{p:'freq',n:'常用'},{p:'recent',n:'最近'},{p:'tpl',n:'套餐'}]}}" wx:key="p" class="fcat-i {{mealPanel===item.p?'on':''}}" data-p="{{item.p}}" catchtap="setMealPanel">{{item.n}}</view>
-    </view>
-    <block wx:if="{{mealPanel==='lib'}}">
-      <view class="fcat" style="margin-top:10rpx">
-        <view wx:for="{{foodCats}}" wx:key="*this" class="fcat-i {{foodCat===item?'on':''}}" data-c="{{item}}" catchtap="onFoodCat">{{item}}</view>
-      </view>
-      <view class="fgrid" wx:if="{{!foodInput}}">
-        <view wx:for="{{foodGrid}}" wx:key="name" class="fgrid-i" data-i="{{index}}" catchtap="pickFoodGrid">
-          <text class="fgrid-n">{{item.name}}</text>
-          <text class="fgrid-m">{{item.kcal}}kcal · 蛋白{{item.protein}}g</text>
-        </view>
-      </view>
-      <input class="search search-lg foodsearch" placeholder="或直接打字搜，如：牛肉" value="{{foodInput}}" bindinput="foodSearchInput" confirm-type="search"/>
-      <scroll-view wx:if="{{foodResults.length || foodInput}}" scroll-y class="sug">
-        <view wx:for="{{foodResults}}" wx:key="name" class="sug-i" data-i="{{index}}" catchtap="pickFoodResult">
-          <text>{{item.name}}</text><text class="eq">{{item.kcal}}kcal/100g · 蛋白{{item.protein}}g</text>
-        </view>
-        <view wx:if="{{foodInput}}" class="sug-add" catchtap="openCustomFoodFromInput">+ 没找到？直接添加「{{foodInput}}」（自填营养，填一次就记住）</view>
-      </scroll-view>
-    </block>
-    <block wx:if="{{mealPanel==='freq' || mealPanel==='recent'}}">
-      <view wx:for="{{panelList}}" wx:key="name" class="dlog-i" data-n="{{item.name}}" catchtap="pickPanelFood">
-        <text class="dlog-n">{{item.name}}</text>
-        <text class="dlog-g">{{item.meta}}</text>
-        <text class="dlog-k">＋ 记</text>
-      </view>
-      <view wx:if="{{!panelList.length}}" class="dlog-empty">{{mealPanel==='freq'?'还没有常用食物——记过几次就有了。':'还没有记录。'}}</view>
-    </block>
-    <block wx:if="{{mealPanel==='tpl'}}">
-      <view class="btn ghost block" style="margin:10rpx 0" catchtap="tplSaveCurrent">💾 把当前餐次已记的存成套餐</view>
-      <view wx:for="{{mealTpls}}" wx:key="name" class="dlog-i">
-        <text class="dlog-n" data-n="{{item.name}}" catchtap="tplUse">{{item.name}}</text>
-        <text class="dlog-g">{{item.meta}}</text>
-        <text class="dlog-x" data-n="{{item.name}}" catchtap="tplDel">✕</text>
-      </view>
-      <view wx:if="{{!mealTpls.length}}" class="dlog-empty">还没有套餐——记完一餐存起来，下次直接套用。</view>
-    </block>
-  </view>
+
+<view wx:if="{{pgOpen}}" class="pg-mask">
+ <scroll-view scroll-y class="pg-panel"><view class="title">{{pgName}} · 递进起点</view><view class="muted">按实际能力设置。哑铃按每只重量，助力越小越难，已完成记录保留。</view>
+ <picker range="{{pgKinds}}" value="{{pgKindIndex}}" bindchange="pgKind"><view class="pg-field">类型：{{pgKinds[pgKindIndex]}} ›</view></picker>
+ <view class="pg-field">工作组数<input type="number" value="{{pgForm.sets}}" data-k="sets" bindinput="pgInput"/></view>
+ <view class="pg-field">次数 / 秒数下限<input type="number" value="{{pgForm.min}}" data-k="min" bindinput="pgInput"/></view>
+ <view class="pg-field">次数 / 秒数上限<input type="number" value="{{pgForm.max}}" data-k="max" bindinput="pgInput"/></view>
+ <view class="pg-field">起始重量kg（自重 / 计时填0）<input type="digit" value="{{pgForm.weight}}" data-k="weight" bindinput="pgInput"/></view>
+ <view class="pg-field">最小加重档位kg<input type="digit" value="{{pgForm.step}}" data-k="step" bindinput="pgInput"/></view>
+ <view class="pg-field">可用重量档位（选填，逗号分隔）<input value="{{pgForm.weights}}" data-k="weights" bindinput="pgInput" placeholder="例如 2,4,6,8"/></view>
+ <view wx:if="{{pgHad}}" class="pg-field"><switch checked="{{pgOff}}" bindchange="pgOff"/>关闭递进，恢复原计划</view>
+ <button bindtap="pgSave">确认设置</button><button bindtap="pgClose">取消</button><view style="height:40rpx"></view>
+ </scroll-view>
 </view>

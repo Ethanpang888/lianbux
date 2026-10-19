@@ -2,6 +2,7 @@ const app = getApp()
 const calc = require('../../utils/calc.js')
 const dietLib = require('../../utils/diet.js')
 const kb = require('../../utils/kb.js')
+const records = require('../../utils/diet-records.js')
 
 function todayStr() {
   const d = new Date()
@@ -55,7 +56,7 @@ Page({
     // 三餐参考（2026-10-19 与网站 refMeals 同逻辑：主食+蛋白+蔬菜+油脂组合，复合营养折算）
     const refMeals = this.buildRefMeals(diet)
     this.setData({
-      refMeals, diet, dietMode: mode, dayPlan,
+      refMeals, refTotal:dietLib.referenceSum(refMeals.reduce((a,m)=>a.concat(m.items),[])), diet, dietMode: mode, dayPlan,
       energy: {
         bmr: diet.bmr, factor: diet.activity.factor, actName: diet.activity.name,
         tdee: diet.tdee, targetKcal: diet.targetKcal, deficit: diet.deficit, warn: diet.warn
@@ -67,69 +68,15 @@ Page({
   },
 
   // ───── 三餐参考（与网站 diet.js refMeals 同步；改一边必须改另一边）─────
-  REF_PCT: { b: 0.27, l: 0.35, s: 0.10, d: 0.28 },
-  buildRefMeals(e) {
-    const P = ['米饭(熟)', '燕麦片', '红薯', '全麦面包', '面条(熟)']
-    const B = ['鸡胸肉', '鸡蛋', '牛肉(瘦)', '虾', '三文鱼']
-    const V = ['西兰花', '菠菜', '番茄', '生菜']
-    const F = ['橄榄油', '花生', '牛油果', '杏仁']
-    const FOODS = kb.FOODS
-    const per100 = n => { const x = FOODS.find(y => y.name === n) || {}; return { kcal: x.kcal || 0, protein: x.protein || 0, carbs: x.carbs || 0, fat: x.fat || 0 } }
-    const seed = daySeed()
-    const pick = (arr, off) => arr[(seed + off) % arr.length]
-    const MEALS = [{ k: 'b', name: '早餐' }, { k: 'l', name: '午餐' }, { k: 's', name: '加餐（练后）' }, { k: 'd', name: '晚餐' }]
-    return MEALS.map((m, mi) => {
-      const pct = this.REF_PCT[m.k]
-      const ck = (e.kcal || 0) * pct, pg = (e.protein || 0) * pct, cb = (e.carb || 0) * pct, ft = (e.fat || 0) * pct
-      let items = []
-      if (m.k === 's') {
-        items = [{ name: '香蕉', g: 1, unit: '根', ...per100('香蕉') }, { name: '蛋白粉(乳清)', g: 30, unit: 'g', ...per100('蛋白粉(乳清)') }]
-      } else {
-        const bn = pick(B, mi), sn = pick(P, mi), vn = pick(V, mi + 1), fn = pick(F, mi)
-        const bp = per100(bn), sp = per100(sn), fp = per100(fn)
-        const isEgg = bn === '鸡蛋'
-        let bg = Math.round(pg * 0.80 / (bp.protein / 100 || 1))
-        if (isEgg) { const eggs = Math.max(1, Math.round(bg / 50)); bg = eggs * 50 }
-        const fatFromB = bp.fat * bg / 100
-        const sg = Math.round(cb * 0.85 / (sp.carbs / 100 || 1))
-        const fg = Math.max(5, Math.round((ft - fatFromB) / (fp.fat / 100 || 1)))
-        items = [
-          { name: bn, g: bg, unit: isEgg ? 'g（' + Math.round(bg / 50) + ' 个）' : 'g', ...bp },
-          { name: sn, g: sg, unit: 'g', ...sp },
-          { name: vn, g: 250, unit: 'g', ...per100(vn) },
-          { name: fn, g: fg, unit: 'g', ...fp }
-        ]
-      }
-      const sum = items.reduce((a, x) => ({ k: a.k + (x.kcal || 0) * (x.g || 0) / 100, p: a.p + (x.protein || 0) * (x.g || 0) / 100 }), { k: 0, p: 0 })
-      return { meal: m.k, name: m.name, items, sumK: Math.round(sum.k), sumP: Math.round(sum.p), targetK: Math.round(ck), targetP: Math.round(pg) }
-    })
-  },
-  /** 把三餐参考的某一餐写进今日 checkin.dietLog（today 页 onShow 会拉到） */
-  refLog(e) {
-    const k = e.currentTarget.dataset.k
-    const m = (this.data.refMeals || []).find(x => x.meal === k)
-    if (!m) return
-    const db = wx.cloud.database()
-    const docId = app.globalData.openid + '_' + todayStr()
-    wx.showLoading({ title: '记入中', mask: true })
-    db.collection('checkins').doc(docId).get().then(r => {
-      const log = (r.data && r.data.dietLog) || []
-      const add = m.items.map(x => {
-        const f = kb.FOODS.find(y => y.name === x.name)
-        const k100 = (x.g || 0) / 100
-        return { name: x.name, grams: x.g, meal: k,
-          kcal: Math.round((x.kcal || (f ? f.kcal : 0)) * k100),
-          protein: Math.round((x.protein || (f ? f.protein : 0)) * k100 * 10) / 10,
-          carbs: Math.round((x.carbs || (f ? f.carbs : 0)) * k100 * 10) / 10,
-          fat: Math.round((x.fat || (f ? f.fat : 0)) * k100 * 10) / 10,
-          fiber: Math.round(((f ? f.fiber : 0) || 0) * k100 * 10) / 10 }
-      })
-      return db.collection('checkins').doc(docId).update({ data: { dietLog: log.concat(add), updatedAt: Date.now() } })
-    }).then(() => {
-      wx.hideLoading()
-      wx.showToast({ title: '已记入「' + m.name + '」', icon: 'none' })
-    }).catch(() => { wx.hideLoading(); wx.showToast({ title: '记入失败（今天还没打过卡）', icon: 'none' }) })
-  },
+  saveReferenceProfile(p){return wx.cloud.database().collection('users').doc(app.globalData.openid).update({data:{profile:p}})},
+  refKey(){return 'lbgym_reference_mp_'+app.globalData.openid+'_'+dietLib.referenceBasis(app.globalData.profile)},
+  buildRefMeals(e){try{const saved=wx.getStorageSync(this.refKey());if(saved&&saved.length===4)return saved.map(m=>Object.assign({},m,{sum:dietLib.referenceSum(m.items)}))}catch(err){};return dietLib.buildReference(e)},
+  refEdit(e){const mi=e.currentTarget.dataset.mi,i=e.currentTarget.dataset.i;this._edits=this._edits||{};this._edits[mi+':'+i]=e.detail.value},
+  readEdits(){const meals=JSON.parse(JSON.stringify(this.data.refMeals));Object.keys(this._edits||{}).forEach(k=>{const [mi,i]=k.split(':').map(Number),v=this._edits[k],g=Number(v);if(v===''||!Number.isFinite(g)||g<0||g>5000)throw new Error('请填写0–5000克');meals[mi].items[i].g=g});meals.forEach(m=>m.sum=dietLib.referenceSum(m.items));this._edits={};this.setData({refMeals:meals,refTotal:dietLib.referenceSum(meals.reduce((a,m)=>a.concat(m.items),[]))});return meals},
+  refSave(){try{const meals=this.readEdits();wx.setStorageSync(this.refKey(),meals);wx.showToast({title:'已保存参考，未计入摄入',icon:'none'})}catch(e){wx.showToast({title:e.message||'保存失败',icon:'none'})}},
+  refAsTarget(){let meals;try{meals=this.readEdits()}catch(e){wx.showToast({title:e.message,icon:'none'});return}const t=dietLib.referenceSum(meals.reduce((a,m)=>a.concat(m.items),[]));if(t.k<=0){wx.showToast({title:'全天参考不能为零',icon:'none'});return}wx.showModal({title:'设为每日目标？',content:'替换档案估算目标，不计入实际摄入，可随时恢复。',success:r=>{if(!r.confirm)return;const p=Object.assign({},app.globalData.profile,{dietReferenceTarget:{basis:dietLib.referenceBasis(app.globalData.profile),kcal:t.k,protein:t.p,carb:t.c,fat:t.f}});this.saveReferenceProfile(p).then(()=>{app.globalData.profile=p;wx.setStorageSync(this.refKey(),meals);this.refresh();wx.showToast({title:'每日目标已更新'})}).catch(()=>wx.showToast({title:'目标保存失败，请重试',icon:'none'}))}})},
+  refReset(){const p=Object.assign({},app.globalData.profile);delete p.dietReferenceTarget;this.saveReferenceProfile(p).then(()=>{app.globalData.profile=p;this.refresh();wx.showToast({title:'已恢复档案目标'})}).catch(()=>wx.showToast({title:'恢复失败，请重试',icon:'none'}))},
+  refLog(e){let meals;try{meals=this.readEdits()}catch(err){wx.showToast({title:err.message,icon:'none'});return}const m=meals.find(x=>x.meal===e.currentTarget.dataset.k);if(!m||this._recording)return;wx.showModal({title:'确认实际吃的 · '+m.name,content:'按编辑份量追加 '+Math.round(m.sum.k)+' kcal。已有记录保留，请避免重复记入。',success:r=>{if(!r.confirm||this._recording)return;this._recording=true;const add=m.items.filter(x=>x.g>0).map(x=>{const f={name:x.name,grams:x.g,meal:m.meal};['kcal','protein','carbs','fat','fiber'].forEach(k=>f[k]=Math.round((x[k]||0)*x.g/100*10)/10);return f});records.mutate(app.globalData.openid,records.dateStr(),log=>log.concat(add)).then(()=>wx.showToast({title:'已记入实际摄入'})).catch(err=>wx.showToast({title:err.message||'保存失败，请重试',icon:'none'})).then(()=>{this._recording=false})}})},
 
   // 近 3 周体重 → 趋势与调控建议（谭成义：固定吃 7-10 天再看；降太快加碳水、不动减碳水）
   loadTrend() {
@@ -184,5 +131,8 @@ Page({
     }).catch(() => { wx.hideLoading(); this.refresh() })
   },
 
+  recalcReference(){try{this.readEdits()}catch(e){wx.showToast({title:e.message,icon:'none'})}},
+  toggleBasis(){this.setData({basisOpen:!this.data.basisOpen})},
+  toggleAdjust(){this.setData({adjustOpen:!this.data.adjustOpen})},
   goAssess() { wx.navigateTo({ url: '/pages/assess/assess' }) }
 })

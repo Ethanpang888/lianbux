@@ -170,34 +170,13 @@ const PageHome = {
         (doneSets ? '继续训练' : '开始训练') + '</button>' +
       '<div class="row between" style="margin-top:8px">' +
         '<button class="chip sm" onclick="Router.go(\'plan\')">看完整计划</button>' +
-        '<button class="chip sm" onclick="Router.go(\'coach\')">今天没空？调整安排</button>' +
+        '<button class="chip sm" onclick="Router.go(\'coach/schedule\')">今天没空？顺延训练</button>' +
       '</div>' +
     '</div>'
   },
 
   /** 今日饮食卡：目标 / 已记录 / 剩余（口径与饮食页完全一致：本机饮食记录 + 引擎目标） */
   dietCard(u, today) {
-    let e = null
-    try { e = ENGINE.calc.energyPlan(u.profile, Store.adj()) } catch (err) { e = null }
-    if (!e || !e.kcal) return ''
-    const list = PageDiet.logOf(today)
-    const tot = list.reduce((a, f) => ({ k: a.k + (f.kcal || 0), p: a.p + (f.protein || 0) }), { k: 0, p: 0 })
-    const left = Math.max(0, Math.round(e.kcal - tot.k))
-    const pct = Math.min(100, Math.round(tot.k / (e.kcal || 1) * 100))
-    return '<div class="card today-card">' +
-      '<div class="section-label">今日饮食</div><h2>给身体补充能量</h2><div class="muted txs">目标 ' + Fmt.num(e.kcal) + ' kcal · 蛋白 ' + Fmt.num(e.protein) + 'g</div>' +
-      '<div class="hero-exp" style="margin:8px 0 2px">' +
-        '<div class="lab"><span>已记录 ' + list.length + ' 笔</span><span>' +
-          Fmt.num(Math.round(tot.k)) + ' / ' + Fmt.num(e.kcal) + ' kcal</span></div>' +
-        '<div class="track"><div class="fill" style="width:' + pct + '%"></div></div>' +
-      '</div>' +
-      '<div class="muted txs" style="margin-top:6px">' +
-        (list.length
-          ? '还剩 <b>' + Fmt.num(left) + ' kcal</b>、蛋白还差 <b>' + Math.max(0, Math.round(e.protein - tot.p)) + 'g</b>' +
-            ' —— ' + (tot.k > e.kcal ? '已超过参考目标，正常安排下一餐' : pct >= 85 ? '快到线了，很稳' : '别饿着自己，按时吃')
-          : '按时吃饭，也是修炼的一部分。') +
-      '</div>' +
-      '<button class="btn ghost" style="margin-top:10px" onclick="Router.go(\'diet\')">记一餐 →</button>' +
-    '</div>'
+    try {return PageDiet.goalCard(ENGINE.calc.energyPlan(u.profile,Store.adj()),u.profile||{},u,{compact:true})}catch(e){return ''}
   }
 }

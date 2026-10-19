@@ -124,6 +124,14 @@ function energyPlan(profile, adj) {
   // 否则训练量大的用户（TDEE 3300+）碳水被压住、缺口又被拉到 900，等于白算 TDEE。
   const carb = Math.round(clampNum(carbFlex, 1.5 * w, 6.5 * w))
   const kcal = round(m.protein * 4 + m.fat * 9 + carb * 4)
+  const custom = p.dietReferenceTarget
+  if (custom && custom.basis === require('./diet.js').referenceBasis(p) &&
+      ['kcal','protein','carb','fat'].every(k => Number.isFinite(custom[k]) && custom[k] >= 0) && custom.kcal > 0) {
+    return { bmr:b, activity:act, tdee:td, targetKcal:custom.kcal,
+      kcal:custom.kcal, protein:custom.protein, carb:custom.carb, fat:custom.fat,
+      protG:round(custom.protein/w,2), carbG:round(custom.carb/w,2), fatG:round(custom.fat/w,2),
+      deficit:td-custom.kcal, wantDeficit:td-custom.kcal, warn:false, source:'reference' }
+  }
   const deficit = td - kcal                           // 正数=缺口，负数=盈余
   // 期望缺口：宏观调控是「有意的」偏离，不该再触发"偏离期望"告警
   const wantDeficit = -kcalAdjOf(goal) - kcalAdj

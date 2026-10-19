@@ -444,7 +444,34 @@ function buildDay(plan, dayIndex, profile, home) {
 }
 
 // 统一取某天内容：兼容旧 plan.days 与新模式
+// 临时停练只插入日历休息日，不改变周期起点、训练顺序与历史。
+function schedulePosition(plan, calendarIndex) {
+  let removed=0
+  const pauses=(plan.schedulePauses||[]).slice().sort((a,b)=>a.at-b.at)
+  for(const p of pauses){
+    if(!Number.isInteger(p.at)||!Number.isInteger(p.days)||p.days<=0)continue
+    if(calendarIndex<p.at)break
+    if(calendarIndex<p.at+p.days)return {paused:true,index:p.at-removed,pause:p}
+    removed+=p.days
+  }
+  return {paused:false,index:calendarIndex-removed}
+}
+function postponePlan(plan, fromDate, days) {
+  if(!plan||!plan.cycleStart||!plan.micro)throw new Error('先建立训练计划')
+  if(!Number.isInteger(days)||days<1||days>30)throw new Error('顺延天数需为1–30天')
+  const parse=d=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(d))throw new Error('日期无效');const x=new Date(d+'T00:00:00Z');if(!Number.isFinite(x.getTime())||x.toISOString().slice(0,10)!==d)throw new Error('日期无效');return x.getTime()}
+  const at=Math.round((parse(fromDate)-parse(plan.cycleStart))/86400000)
+  if(at<0)throw new Error('不能早于计划开始日期')
+  const pauses=(plan.schedulePauses||[]).slice()
+  if(pauses.some(p=>at<p.at+p.days&&at+days>p.at))throw new Error('这些日期已经安排临时休息，请先撤销或选择其他日期')
+  pauses.push({at,days,fromDate,id:Date.now()+'_'+Math.random()})
+  return Object.assign({},plan,{schedulePauses:pauses})
+}
+
 function dayContent(plan, dayIndex, profile, home) {
+  const pos=schedulePosition(plan,dayIndex)
+  if(pos.paused)return {type:'rest',focus:'临时休息',note:'训练已顺延，恢复后接着原顺序练',paused:true,exercises:[]}
+  dayIndex=pos.index
   if (plan.micro) return buildDay(plan, dayIndex, profile, home)
   if (plan.days && plan.days[dayIndex]) return plan.days[dayIndex]
   return { type: 'rest', focus: '休息日', note: '' }
@@ -478,6 +505,7 @@ function migratePlan(profile, plan) {
   }
   np.cycleStart = plan.cycleStart || todayStr()
   np.slotExercises = plan.slotExercises || {}
+  np.schedulePauses = plan.schedulePauses || []
   return np
 }
 
@@ -2045,3 +2073,6 @@ module.exports = {
   // 食物分类
   FOOD_CATS, foodCatOf, foodByCat
 }
+
+module.exports.schedulePosition=schedulePosition
+module.exports.postponePlan=postponePlan

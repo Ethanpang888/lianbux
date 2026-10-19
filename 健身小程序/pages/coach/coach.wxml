@@ -1,3 +1,4 @@
+<view class="card"><view class="title">训练与饮食调整</view><view class="muted">选情况，查看规则建议，再确认应用。临时没空请在洞府或计划里顺延；这里用于饮食、疲劳和长期训练频率调整。疲劳重量微调按完整版权益生效，自定饮食目标不会被偏移自动覆盖。</view></view>
 <view class="card" wx:if="{{!hasPlan}}">
   <view class="title" style="font-size:30rpx">先有计划，才能调</view>
   <view class="muted" style="margin:10rpx 0 20rpx">填一次测评，AI 给你定制 28 天计划，然后这里就能按你的反馈调计划。</view>

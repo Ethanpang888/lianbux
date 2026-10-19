@@ -173,3 +173,35 @@ body.has-workout-timer #app{padding-bottom:260px}
 .kcal-big b{font-size:34px;font-weight:800}
 .kcal-big span{font-size:12px;color:var(--sub);margin-left:4px}
 .kcal-left{font-size:12px;color:var(--sub)}
+
+/* 饮食：紧凑总览、独立选餐页，与参考食材编辑 */
+.diet-overview{padding:20px!important}.diet-overview h2{margin:0!important;font-size:18px}
+.diet-ref-link{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 14px;margin:16px 0;border:1px solid var(--line);border-radius:14px;background:var(--green-soft,rgba(120,160,100,.1));color:inherit;text-align:left;cursor:pointer}
+.diet-ref-link small,.food-select-row small,.ref-food small{display:block;color:var(--sub);font-size:12px;margin-top:4px}
+.diet-energy{display:flex;justify-content:space-between;align-items:center;gap:10px}.diet-energy strong{font-size:46px;letter-spacing:-2px;line-height:1.1}.diet-energy p{font-size:13px;color:var(--sub);margin:8px 0}
+.diet-ring{flex:none;width:98px;height:98px;border-radius:50%;padding:6px;background:conic-gradient(#df9656 var(--pct),var(--line) 0)}.diet-ring>div{height:100%;border-radius:50%;background:var(--card,#fff);display:flex;flex-direction:column;justify-content:center;align-items:center}.diet-ring small{font-size:11px;color:var(--sub)}.diet-ring b{font-size:23px}.diet-ring.is-over{background:conic-gradient(#e05252 var(--pct),var(--line) 0)}
+.diet-macros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0 8px}.diet-macro{--macro:#da9172;font-size:12px;min-width:0}.diet-macro>span{color:var(--sub)}.diet-macro>div:not(.gc-bar){margin:5px 0;white-space:normal;font-size:12px}.diet-macro.g-carb{--macro:#c1ad5e}.diet-macro.g-fat{--macro:#69a990}.diet-macro .gc-bar{height:4px;background:var(--line);border-radius:5px;margin-top:6px;overflow:hidden}.diet-macro .gc-bar i{display:block;height:100%;background:var(--macro)}.diet-macro.is-over{color:#e05252;--macro:#e05252}.diet-macro small{font-size:11px}
+.diet-goal-note{font-size:11px;line-height:1.7;color:var(--sub);padding:8px 0;margin:0}.diet-meals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;border-top:1px solid var(--line);padding-top:12px}.diet-meals button{background:transparent;border:0;color:inherit;cursor:pointer;min-width:0;padding:6px 0}.diet-meals button>span,.diet-meals b,.diet-meals small{display:block}.diet-meals button>span{font-size:25px}.diet-meals b{font-size:13px;margin-top:4px}.diet-meals small{font-size:10px;color:var(--sub);margin-top:4px}
+.food-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:15px}.food-tabs .chip{padding:10px 4px!important}.food-categories{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:14px 0}.food-categories .chip{margin:0!important;text-align:center}.food-select-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 0;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:inherit;text-align:left;font-size:14px;cursor:pointer}.food-select-row>span:first-child{flex:1;min-width:0}.food-plus{font-size:25px;color:#df9656}.ref-food{display:grid;grid-template-columns:minmax(0,1fr) 80px 22px;align-items:center;gap:8px;border-top:1px solid var(--line);padding:12px 0;font-size:14px}.ref-food input{width:100%;padding:8px!important;text-align:center;margin:0!important;font-size:16px!important}
+@media(max-width:360px){.diet-overview{padding:15px!important}.diet-macros{gap:7px}.diet-energy strong{font-size:38px}.diet-ring{width:88px;height:88px}}
+
+/* 两列按内容自然收高，不让饮食卡强制拉长训练卡。 */
+.home-daily{align-items:start}.home-daily>.card{align-self:start}.home-daily .today-card>.btn{margin-top:16px!important}
+.schedule-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.schedule-preview{display:grid;gap:7px;font-size:13px;margin:14px 0}.schedule-preview>div{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0}
+
+/* 首页仅保留营养摘要，详细入口放在饮食页。 */
+.home-daily{grid-template-columns:repeat(2,minmax(0,1fr))}
+.home-daily .today-card.rest>h2,.home-daily .diet-overview h2,.home-daily .today-card>.section-label{font-size:18px;line-height:1.4;font-weight:700;color:var(--tx)}
+.home-daily .today-card.rest>h2{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.home-daily .diet-overview .diet-energy{margin-top:16px}
+.home-daily .diet-ring{width:72px;height:72px;padding:5px}
+.home-daily .diet-ring b{font-size:20px}
+.home-daily .diet-ring small{font-size:10px}
+.home-daily .diet-energy strong{font-size:38px}
+.home-daily .diet-energy p{margin:6px 0;font-size:12px}
+.home-daily .diet-macros{gap:10px;margin:12px 0 6px}
+.home-daily .diet-goal-note{padding:4px 0 0;font-size:10px}
+
+.progression-box{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:12px}.progression-box summary{cursor:pointer;color:var(--green-dark);font-weight:600}.progression-box .chip{margin:4px 5px 0 0}.progression-ready{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.6}.progression-ready input,.warmup-label input{width:16px!important;min-width:16px;margin:2px 0!important}.warmup-label{display:flex;align-items:center;gap:2px;font-size:10px}
+
+.setgrid.has-progression{grid-template-columns:58px minmax(0,1fr) minmax(0,1fr) 40px}.setgrid .warmup-label{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:10px;margin-top:3px}.setgrid .warmup-label input[type=checkbox]{width:14px!important;height:14px!important;min-height:14px;flex:none}

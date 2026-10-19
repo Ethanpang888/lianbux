@@ -28,6 +28,7 @@ const MODULES = [
   { id: 'gamify.js',         file: path.join(ROOT, 'shared', 'gamify.js') },
   { id: 'macro.js',          file: path.join(ROOT, 'shared', 'macro.js') },
   { id: 'journal.js',        file: path.join(ROOT, 'shared', 'journal.js') },
+  { id: 'progression.js', file: path.join(UTILS,'progression.js') },
   { id: 'pro.js',            file: path.join(ROOT, 'shared', 'pro.js') },
   { id: 'coach.js',          file: path.join(ROOT, 'shared', 'coach.js') },
   { id: 'secret.js',         file: path.join(ROOT, 'shared', 'secret.js') },
@@ -70,7 +71,7 @@ function main() {
   parts.push('  root.ENGINE = {')
   parts.push("    kb: req('kb.js'), calc: req('calc.js'), method: req('method.js'),")
   parts.push("    diet: req('diet.js'), recipes: req('recipes-data.js'), gamify: req('gamify.js'),")
-  parts.push("    macro: req('macro.js'), journal: req('journal.js'), pro: req('pro.js'), coach: req('coach.js'), secret: req('secret.js'), planBackup: req('plan-backup.js'), plus: req('plus.js'),")
+  parts.push("    progression: req('progression.js'), macro: req('macro.js'), journal: req('journal.js'), pro: req('pro.js'), coach: req('coach.js'), secret: req('secret.js'), planBackup: req('plan-backup.js'), plus: req('plus.js'),")
   parts.push('    __md5: ' + JSON.stringify(fingerprints) + ',')
   parts.push("    __build: '" + new Date().toISOString() + "'")
   parts.push('  };')

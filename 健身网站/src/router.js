@@ -38,7 +38,7 @@ const Router = {
     // 未登录守卫：除 login/privacy 外，未登录走演示模式（M1 起改为强制跳登录）
     const modal = document.getElementById('modalbox')
     if (modal) modal.innerHTML = ''
-    if (typeof WorkoutTimer !== 'undefined') WorkoutTimer.unmount()
+    if (typeof FocusMode !== 'undefined') FocusMode.close()
     this.current = r.path
     document.body.dataset.page = r.path
     document.getElementById('tabbar').style.display = (r.opts.noTab ? 'none' : 'grid')
@@ -49,7 +49,7 @@ const Router = {
       document.getElementById('app').innerHTML =
         '<div class="card"><h2>页面出错了</h2><p class="muted">' + Fmt.esc(e.message) + '</p></div>'
     }
-    if (r.opts.noTab) {
+    if (r.opts.noTab && !r.opts.ownBack) {
       const bar = document.querySelector('#app .appbar')
       if (bar || document.getElementById('app')) {
         const back = document.createElement('button')
@@ -59,6 +59,7 @@ const Router = {
       }
     }
     if (typeof Tabbar !== 'undefined') Tabbar.mark(r.path)
+    if (typeof WorkoutTimer !== 'undefined') WorkoutTimer.mount()
     window.scrollTo(0, 0)
   },
 
