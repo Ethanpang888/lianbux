@@ -64,7 +64,8 @@ Page({
         cat: s.cat || 'advanced', append,
         catLabel: meta.label + ' · ' + grade, grade,
         glyph: append ? '衡' : meta.glyph,
-        using: s.key === using, free
+        using: s.key === using, free,
+        tags: s.tags || []
       }
     })
     const road = (SECRET.ROADMAP || []).map(x => ({ name: x.name, why: x.why }))

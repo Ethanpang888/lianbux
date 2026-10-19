@@ -105,13 +105,16 @@ const PageSecret = {
   },
 
   card(s, cur, on) {
-    const using = cur && cur.key === s.key
+    const using = cur && s.key === cur.key
     const meta = this.catMeta(s.cat)
     const free = this.isFree(s)
+    const tags = Array.isArray(s.tags) && s.tags.length
+      ? '<div class="muted" style="font-size:11px;margin-top:4px">' + Fmt.esc(s.tags.join(' · ')) + '</div>' : ''
     return '<button class="manual-card manual-ink" data-access="' + (free ? 'free' : 'advanced') + '" data-cat="' + Fmt.esc(s.cat || 'advanced') + '" data-secret="' + Fmt.esc(s.key) + '">' +
       '<div class="manual-top"><span>' + meta.label + ' · ' + this.gradeOf(s) + '</span><span class="access-paid">' + (using ? '使用中' : free ? '免费' : on ? '已解锁' : '会员') + '</span></div>' +
       '<div class="manual-glyph">' + (s.kind === 'append' ? '衡' : meta.glyph) + '</div><h2>' + Fmt.esc(s.name) + '</h2>' +
-      '<p>' + Fmt.esc(s.tagline) + '</p><div class="manual-bottom"><span>' + s.weeks + ' 周</span><b>查看详情 ↗</b></div></button>'
+      '<p>' + Fmt.esc(s.tagline) + '</p>' + tags +
+      '<div class="manual-bottom"><span>' + s.weeks + ' 周</span><b>查看详情 ↗</b></div></button>'
 
   },
 
