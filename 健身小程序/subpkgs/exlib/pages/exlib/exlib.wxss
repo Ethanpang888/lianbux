@@ -1,10 +1,10 @@
 .homebanner { margin: 16rpx 24rpx; padding: 22rpx; border-radius: 16rpx; background: linear-gradient(135deg,var(--green-soft),var(--green-soft)); color: var(--green-dark); font-size: 28rpx; font-weight: 600; text-align: center; border: 1rpx solid var(--line); }
-.homebanner.on { background: var(--green); color: #12291b; border-color: var(--green); }
+.homebanner.on { background: var(--green); color: var(--button-text); border-color: var(--green); }
 .filters { background: var(--card); padding: 20rpx 24rpx; }
 .flab { font-size: 22rpx; color: var(--sub); margin: 10rpx 0 6rpx; }
 .chips { display: flex; flex-wrap: wrap; gap: 10rpx; }
 .chip { background: var(--bg); color: var(--sub); padding: 10rpx 22rpx; border-radius: 999rpx; font-size: 24rpx; }
-.chip.on { background: var(--green); color: #12291b; }
+.chip.on { background: var(--green); color: var(--button-text); }
 .qbar { padding: 16rpx 30rpx; font-size: 24rpx; color: var(--sub); }
 .clear { color: var(--green); margin-left: 12rpx; }
 .grid { display: flex; flex-wrap: wrap; padding: 10rpx; }

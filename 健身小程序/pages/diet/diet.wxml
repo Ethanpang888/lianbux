@@ -1,8 +1,23 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view wx:if="{{!hasProfile}}" class="card"><view class="title">请先完善身体资料</view><button bindtap="goAssess">去填写</button></view>
 <block wx:else>
+ <view class="page-heading">饮食<view class="page-sub">记下实际吃的，参考和目标分开看。</view></view>
+ <view class="date-nav"><text data-d="-1" bindtap="shiftDate">‹ 前一天</text><picker mode="date" value="{{viewDate}}" bindchange="dateChange">{{viewDate}} ▾</picker><text data-d="1" bindtap="shiftDate">后一天 ›</text></view>
+ <view wx:if="{{actualLoading}}" class="card muted">正在读取饮食记录…</view>
+ <view wx:elif="{{actualError}}" class="card"><view>饮食记录读取失败</view><button bindtap="loadActual">重新读取</button></view>
+ <view wx:else class="card compact-diet">
+ <view class="row between"><view class="title">每日目标</view><text class="muted">{{calTarget}} kcal</text></view>
+ <view class="diet-reference" bindtap="toggleReference"><view>我的饮食参考<view class="muted">查看与调整食材、份量</view></view><text>{{referenceOpen?'−':'›'}}</text></view>
+ <view class="diet-energy"><view><text class="diet-number {{dietOver?'over':''}}">{{dietTotal.kcal||0}}</text> 大卡<view class="muted">{{dietOver?'已超目标':'距目标'}} {{dietRemain}} 大卡</view></view><view class="diet-ring" style="{{ringStyle}}"><view><text class="muted">目标进度</text><text>{{calorieProgress.pct||0}}%</text></view></view></view>
+ <view class="diet-macros"><view wx:for="{{nutrientProgress}}" wx:key="key" class="diet-macro pb-{{item.key}} {{item.over?'over':''}}"><view class="muted">{{item.label}}</view><view>{{item.got}} / {{item.target}}g</view><view>{{item.pct}}% {{item.over?'已超目标':''}}</view><view class="pb-bar"><view class="pb-in pbin-{{item.key}} {{item.over?'over':''}}" style="width:{{item.width}}%"></view></view></view></view>
+ <view class="muted diet-note">消耗 {{energy.tdee}} · 摄入 {{calTarget}} kcal · {{energy.deficit>0?'缺口':energy.deficit<0?'盈余':'持平'}} {{energy.deficit<0?-energy.deficit:energy.deficit}} kcal</view>
+ <view class="diet-meals"><view wx:for="{{mealGroups}}" wx:key="k" data-k="{{item.k}}" bindtap="openFoodPanel"><view class="meal-icon">{{item.k==='b'?'☀':item.k==='l'?'◷':item.k==='d'?'☾':'＋'}}</view><view>{{item.name}}</view><view class="muted">{{item.items.length?item.sum:'去记录'}}</view></view></view>
+ </view>
+ <block wx:if="{{referenceOpen}}">
  <view class="card"><view class="title">我的饮食参考</view><view class="muted">可编辑份量；保存参考不等于实际吃过。食量与目标有差额时，可以调整搭配，不必硬吃。</view></view>
  <view wx:for="{{refMeals}}" wx:for-index="mi" wx:key="meal" class="card"><view class="row between"><view class="title">{{item.name}}</view><text>{{item.sum.k}} 大卡</text></view><view class="muted">蛋白质 {{item.sum.p}}g · 碳水 {{item.sum.c}}g · 脂肪 {{item.sum.f}}g</view><view wx:for="{{item.items}}" wx:for-item="f" wx:for-index="fi" wx:key="name" class="ref-food"><view>{{f.name}}<view wx:if="{{f.name==='鸡蛋'}}" class="muted">去壳约50g/个</view></view><input type="digit" value="{{f.g}}" data-mi="{{mi}}" data-i="{{fi}}" bindinput="refEdit" bindblur="recalcReference"/><text>克</text></view><button class="btn ghost" data-k="{{item.meal}}" bindtap="refLog">记录实际吃的 ›</button></view>
  <view class="card"><view class="title">全天参考 {{refTotal.k}} kcal</view><view class="muted">当前目标 {{diet.kcal}} kcal · 消耗 {{energy.tdee}} kcal</view><button bindtap="refSave">保存参考份量</button><button bindtap="refAsTarget">保存并用全天参考作为每日目标</button><button bindtap="refReset">恢复按档案计算目标</button></view>
+ </block>
  <view class="card"><view class="title" bindtap="toggleBasis">来源与计算说明 {{basisOpen?'−':'＋'}}</view><view wx:if="{{basisOpen}}" class="muted">营养来自现有食物库，按所有食材完整营养累加。米饭熟重、燕麦干重，鸡蛋去壳、香蕉去皮；肉和蔬菜按库内可食部，烹调油单列。正常份量上限可能使参考低于目标，并非精准定制。品牌、烹调方式会带来误差。资料或目标改变后，自定目标失效。</view></view>
  <view class="card"><view class="title" bindtap="toggleAdjust">目标计算与饮食调整 {{adjustOpen?'−':'＋'}}</view><block wx:if="{{adjustOpen}}"><view class="muted">基础代谢 {{energy.bmr}} × 活动系数 {{energy.factor}} = 消耗 {{energy.tdee}} kcal；当前摄入目标 {{diet.kcal}} kcal。</view><view class="muted">{{trend.advice||trend.note||'体重趋势数据不足'}}</view><button wx:if="{{trend.step}}" bindtap="applyTrend">采纳趋势调整</button><view class="chk"><button data-v="很饿" bindtap="setHunger">很饿</button><button data-v="微饿" bindtap="setHunger">微饿</button><button data-v="不饿" bindtap="setHunger">不饿</button></view></block></view>
 </block>

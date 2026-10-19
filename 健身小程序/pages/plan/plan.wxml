@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view wx:if="{{hasPlan}}" class="card"><view class="title">临时没空，顺延训练</view><view class="muted">插入休息日，后续按原顺序接着练；历史打卡保留。</view><view wx:for="{{upcoming}}" wx:key="date" class="muted">{{item.date}} · {{item.focus}}</view><button bindtap="postponeTraining">顺延 / 补回漏练 / 撤销</button></view>
 <view wx:if="{{!hasPlan}}" class="card center-empty">
   <view class="title">还没有计划</view>
@@ -103,7 +104,7 @@
         </view>
         <view wx:if="{{!exSuggestions.length}}" class="muted" style="padding:32rpx;text-align:center">没有找到，换个词试试</view>
       </scroll-view>
-      <view class="pk-tip">加进来会在这个训练日<b>每个循环都出现</b>；或手动输入动作名 →</view>
+      <view class="pk-tip">加进来会在这个训练日<text class="strong">每个循环都出现</text>；或手动输入动作名 →</view>
       <view class="row" style="padding:16rpx 28rpx;gap:16rpx">
         <input class="pk-search" style="margin:0;flex:1" placeholder="自定义动作名，如：上斜哑铃卧推" value="{{exCustomName}}" bindinput="exCustomInput"/>
         <view class="btn" style="flex:none;padding:0 30rpx" bindtap="submitCustomEx">添加</view>

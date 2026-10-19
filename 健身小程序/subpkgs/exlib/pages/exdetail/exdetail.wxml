@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view wx:if="{{ex}}" class="wrap">
   <view class="gifbox">
     <frame-gif frames="{{ex.gif}}" speed="{{420}}" equip="{{ex.equipment}}" interactive="{{true}}"/>

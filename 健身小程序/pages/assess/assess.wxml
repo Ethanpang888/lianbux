@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view class="card">
   <view class="field"><text>性别</text>
     <view class="seg">
@@ -80,12 +81,12 @@
 <view wx:if="{{result}}" class="card" style="background:var(--green-soft)">
   <view class="title" style="font-size:28rpx;color:var(--green-dark)">你的每日消耗与目标</view>
   <view class="muted" style="margin-top:8rpx;line-height:1.8">
-    基础代谢 <b>{{result.bmr}}</b> kcal × 活动系数 <b>{{result.factor}}</b>（{{result.actName}}）= 每日总消耗 <b>{{result.tdee}}</b> kcal
+    基础代谢 <text class="strong">{{result.bmr}}</text> kcal × 活动系数 <text class="strong">{{result.factor}}</text>（{{result.actName}}）= 每日总消耗 <text class="strong">{{result.tdee}}</text> kcal
   </view>
   <view class="row" style="margin-top:12rpx">
-    <view class="kv"><b style="color:{{result.catColor}}">{{result.bmi}}</b><text>BMI·{{result.cat}}</text></view>
-    <view class="kv"><b>{{result.kcal}}</b><text>每日热量目标</text></view>
-    <view class="kv"><b>{{result.protein}}g</b><text>蛋白质</text></view>
+    <view class="kv"><text class="strong" style="color:{{result.catColor}}">{{result.bmi}}</text><text>BMI·{{result.cat}}</text></view>
+    <view class="kv"><text class="strong">{{result.kcal}}</text><text>每日热量目标</text></view>
+    <view class="kv"><text class="strong">{{result.protein}}g</text><text>蛋白质</text></view>
   </view>
   <view class="muted" style="margin-top:8rpx">碳水 {{result.carb}}g · 脂肪 {{result.fat}}g</view>
   <view class="row" style="margin-top:10rpx;gap:10rpx;flex-wrap:wrap">

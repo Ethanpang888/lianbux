@@ -27,6 +27,7 @@ const ORDER = [
   'components/journal.js',
   'pages/login.js',
   'pages/home.js',
+  'pages/tcm.js',
   'pages/training-flow.js',
   'pages/today.js',
   'pages/diet.js',
@@ -61,6 +62,7 @@ function sweepOld(dir, pattern, keep) {
 }
 
 function main() {
+  require('./sync-parity.js').sync(false)
   fs.mkdirSync(DIST, { recursive: true })
 
   // 1) app.js
@@ -93,7 +95,7 @@ function main() {
   // 3) index.html（引用带哈希的文件名）
   const tpl = fs.readFileSync(path.join(ROOT, 'template', 'app.html'), 'utf8')
   const html = tpl
-    .replace('</style>', fs.readFileSync(path.join(ROOT, 'template', 'redesign.css'), 'utf8') + '\n</style>')
+    .replace('</style>', fs.readFileSync(path.join(ROOT, 'template', 'redesign.css'), 'utf8') + '\n' + fs.readFileSync(path.join(ROOT,'template','parity-tokens.css'),'utf8') + '\n</style>')
     .replace('<!--__ENGINE__-->', '<script src="' + engineName + '"></script>')
     .replace('<!--__APP__-->', '<script src="' + appName + '"></script>')
   fs.writeFileSync(path.join(DIST, 'index.html'), html)

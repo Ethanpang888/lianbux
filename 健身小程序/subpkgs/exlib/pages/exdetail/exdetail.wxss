@@ -3,7 +3,7 @@
 .ttl { font-size:38rpx; font-weight:700; margin:24rpx 4rpx 12rpx; color:var(--text); }
 .row { display:flex; align-items:center; gap:16rpx; margin:8rpx 4rpx 24rpx; }
 .badge { font-size:24rpx; padding:6rpx 18rpx; border-radius:30rpx; color:#fff; }
-.badge.home { color: #12291b; background:var(--green); }
+.badge.home { color: var(--button-text); background:var(--green); }
 .badge.gym { background:#44534a; }
 .meta { font-size:26rpx; color:var(--sub); }
 .sec { background:var(--card); border-radius:16rpx; padding:24rpx; margin-bottom:24rpx; }

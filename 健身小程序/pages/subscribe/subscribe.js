@@ -1,6 +1,6 @@
 const app = getApp()
 
-Page({
+require('../../utils/page.js')({
   data: {
     email: '',
     agreed: false,

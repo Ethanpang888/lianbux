@@ -1,7 +1,7 @@
 const data = require('../../utils/exercises-data.js')
 const EX = Array.isArray(data) ? data : (data.EX || [])
 
-Page({
+require('../../../../utils/page.js')({
   data: { ex: null },
   onLoad(o) {
     const name = decodeURIComponent(o.name || '')

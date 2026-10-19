@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view class="homebanner {{home?'on':''}}" bindtap="onHome">🏠 居家训练 · 无需器械</view>
 <view class="filters">
   <view class="flab">部位</view>

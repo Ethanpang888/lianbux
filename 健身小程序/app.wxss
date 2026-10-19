@@ -3,18 +3,19 @@
    --bg:#101713 --card:#19221d --tx:#e6ede7 --sub:#9aa99e --line:#2a372f
    --green:#90c8a4 --green-dark:#a2d4b2 --green-soft:#233c2c --gold:#d5bd87 */
 page {
-  --green: #90c8a4;
-  --green-dark: #a2d4b2;
-  --green-soft: #233c2c;
-  --bg: #101713;
-  --card: #19221d;
-  --text: #e6ede7;
-  --sub: #9aa99e;
-  --line: #2a372f;
-  --warn: #d5bd87;
-  --warn-soft: #392f20;
-  --gold: #d5bd87;
-  --danger: #e5726f;
+  --bg: #f4f6f2;
+  --card: #ffffff;
+  --text: #25342f;
+  --sub: #738078;
+  --line: #e5eae4;
+  --green: #287b59;
+  --green-dark: #22694d;
+  --green-soft: #edf4ed;
+  --warn: #9d713c;
+  --warn-soft: #faf3e8;
+  --gold: #b18a4d;
+  --danger: #d94f4f;
+  --button-text: #ffffff;
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
@@ -35,7 +36,7 @@ page {
 }
 .btn {
   background: var(--green);
-  color: #12291b;
+  color: var(--button-text);
   border-radius: 24rpx;
   text-align: center;
   padding: 24rpx;
@@ -96,3 +97,6 @@ page {
 input, textarea { color: var(--text); }
 input { background: transparent; }
 input::-webkit-input-placeholder, textarea::-webkit-input-placeholder { color: #5f6b60; }
+
+/* Same mobile surface and type scale as website redesign.css. */
+page{padding-top:32rpx;line-height:1.65}.card{margin:0 40rpx 28rpx;padding:40rpx;border-radius:40rpx}.title{font-size:32rpx;font-weight:600}.btn{font-size:28rpx;font-weight:550;min-height:92rpx;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:20rpx 24rpx;color:var(--button-text)}button{font:inherit;color:var(--text);background:var(--green-soft);border-radius:24rpx;border:0;font-size:26rpx;margin-top:16rpx}button::after{border:0}.btn.ghost{color:var(--green-dark)}.page-heading{margin:8rpx 40rpx 40rpx;font-size:44rpx;font-weight:650}.page-sub{font-size:24rpx;color:var(--sub);font-weight:400;margin-top:8rpx}.fold-head{display:flex;justify-content:space-between;align-items:center;color:var(--sub);font-size:26rpx;min-height:52rpx}.fold-body{margin-top:24rpx}.over{color:var(--danger)!important}b{font-weight:600}

@@ -51,7 +51,7 @@ function wrapText(ctx, text, x, y, maxW, lh) {
   if (line) ctx.fillText(line, x, yy)
 }
 
-Page({
+require('../../utils/page.js')({
   data: { ready: false, img: '', stats: null, mode: 'today' },
 
   onLoad(options) {

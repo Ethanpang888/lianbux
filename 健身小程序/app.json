@@ -16,7 +16,8 @@
     "pages/bind/bind",
     "pages/ai/ai",
     "pages/poster/poster",
-    "pages/food/food"
+    "pages/food/food",
+    "pages/growth/growth"
   ],
   "subPackages": [
     {
@@ -42,10 +43,10 @@
     }
   },
   "window": {
-    "navigationBarBackgroundColor": "#101713",
-    "navigationBarTitleText": "健身减脂陪伴营",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#101713"
+    "navigationBarBackgroundColor": "#f4f6f2",
+    "navigationBarTitleText": "练不虚",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f4f6f2"
   },
   "tabBar": {
     "custom": true,
@@ -55,19 +56,19 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "洞府"
       },
       {
         "pagePath": "pages/today/today",
-        "text": "今日"
+        "text": "训练"
       },
       {
-        "pagePath": "pages/plan/plan",
-        "text": "计划"
+        "pagePath": "pages/diet/diet",
+        "text": "饮食"
       },
       {
-        "pagePath": "pages/tcm/tcm",
-        "text": "调理"
+        "pagePath": "pages/records/records",
+        "text": "修炼记录"
       },
       {
         "pagePath": "pages/profile/profile",

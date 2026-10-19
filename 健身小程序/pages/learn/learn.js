@@ -1,6 +1,6 @@
 const kb = require('../../utils/kb.js')
 
-Page({
+require('../../utils/page.js')({
   data: { list: [], openIdx: -1 },
   onLoad(q) {
     this.setData({ list: kb.LEARN })

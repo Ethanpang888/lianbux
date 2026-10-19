@@ -84,6 +84,7 @@ const FILES = [
   'src/components/journal.js',
   'src/components/tabbar.js',
   'src/pages/home.js',
+  'src/pages/tcm.js',
   'src/pages/today.js',
   'src/pages/diet.js',
   'src/pages/records.js',

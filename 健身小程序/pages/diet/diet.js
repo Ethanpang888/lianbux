@@ -15,7 +15,7 @@ function daySeed() {
   return Math.floor((d - start) / 86400000)
 }
 
-Page({
+require('../../utils/page.js')({
   data: {
     hasProfile: false,
     diet: null,
@@ -36,6 +36,8 @@ Page({
   },
 
   onShow() {
+    if(this.getTabBar&&this.getTabBar())this.getTabBar().setData({selected:2})
+    if(!this.data.viewDate)this.setData({viewDate:records.dateStr()})
     const g = app.globalData
     if (!g.openid) { setTimeout(() => this.onShow(), 300); return }
     if (!g.profile) { this.setData({ hasProfile: false }); return }
@@ -64,6 +66,7 @@ Page({
       dietState: { carbAdj: ds.carbAdj || 0, proteinAdj: ds.proteinAdj || 0, lastType: ds.lastType || '' },
       history7
     })
+    this.loadActual()
     this.loadTrend()
   },
 
@@ -76,7 +79,7 @@ Page({
   refSave(){try{const meals=this.readEdits();wx.setStorageSync(this.refKey(),meals);wx.showToast({title:'已保存参考，未计入摄入',icon:'none'})}catch(e){wx.showToast({title:e.message||'保存失败',icon:'none'})}},
   refAsTarget(){let meals;try{meals=this.readEdits()}catch(e){wx.showToast({title:e.message,icon:'none'});return}const t=dietLib.referenceSum(meals.reduce((a,m)=>a.concat(m.items),[]));if(t.k<=0){wx.showToast({title:'全天参考不能为零',icon:'none'});return}wx.showModal({title:'设为每日目标？',content:'替换档案估算目标，不计入实际摄入，可随时恢复。',success:r=>{if(!r.confirm)return;const p=Object.assign({},app.globalData.profile,{dietReferenceTarget:{basis:dietLib.referenceBasis(app.globalData.profile),kcal:t.k,protein:t.p,carb:t.c,fat:t.f}});this.saveReferenceProfile(p).then(()=>{app.globalData.profile=p;wx.setStorageSync(this.refKey(),meals);this.refresh();wx.showToast({title:'每日目标已更新'})}).catch(()=>wx.showToast({title:'目标保存失败，请重试',icon:'none'}))}})},
   refReset(){const p=Object.assign({},app.globalData.profile);delete p.dietReferenceTarget;this.saveReferenceProfile(p).then(()=>{app.globalData.profile=p;this.refresh();wx.showToast({title:'已恢复档案目标'})}).catch(()=>wx.showToast({title:'恢复失败，请重试',icon:'none'}))},
-  refLog(e){let meals;try{meals=this.readEdits()}catch(err){wx.showToast({title:err.message,icon:'none'});return}const m=meals.find(x=>x.meal===e.currentTarget.dataset.k);if(!m||this._recording)return;wx.showModal({title:'确认实际吃的 · '+m.name,content:'按编辑份量追加 '+Math.round(m.sum.k)+' kcal。已有记录保留，请避免重复记入。',success:r=>{if(!r.confirm||this._recording)return;this._recording=true;const add=m.items.filter(x=>x.g>0).map(x=>{const f={name:x.name,grams:x.g,meal:m.meal};['kcal','protein','carbs','fat','fiber'].forEach(k=>f[k]=Math.round((x[k]||0)*x.g/100*10)/10);return f});records.mutate(app.globalData.openid,records.dateStr(),log=>log.concat(add)).then(()=>wx.showToast({title:'已记入实际摄入'})).catch(err=>wx.showToast({title:err.message||'保存失败，请重试',icon:'none'})).then(()=>{this._recording=false})}})},
+  refLog(e){let meals;try{meals=this.readEdits()}catch(err){wx.showToast({title:err.message,icon:'none'});return}const m=meals.find(x=>x.meal===e.currentTarget.dataset.k);if(!m||this._recording)return;wx.showModal({title:'确认实际吃的 · '+m.name,content:'按编辑份量追加 '+Math.round(m.sum.k)+' kcal。已有记录保留，请避免重复记入。',success:r=>{if(!r.confirm||this._recording)return;this._recording=true;const add=m.items.filter(x=>x.g>0).map(x=>{const f={name:x.name,grams:x.g,meal:m.meal};['kcal','protein','carbs','fat','fiber'].forEach(k=>f[k]=Math.round((x[k]||0)*x.g/100*10)/10);return f});records.mutate(app.globalData.openid,this.data.viewDate||records.dateStr(),log=>log.concat(add)).then(()=>{this.loadActual();wx.showToast({title:'已记入实际摄入'})}).catch(err=>wx.showToast({title:err.message||'保存失败，请重试',icon:'none'})).then(()=>{this._recording=false})}})},
 
   // 近 3 周体重 → 趋势与调控建议（谭成义：固定吃 7-10 天再看；降太快加碳水、不动减碳水）
   loadTrend() {
@@ -131,6 +134,11 @@ Page({
     }).catch(() => { wx.hideLoading(); this.refresh() })
   },
 
+  loadActual(){const date=this.data.viewDate||records.dateStr();this.setData({actualLoading:true,actualError:false});return records.load(app.globalData.openid,date).then(rows=>{if(this.data.viewDate!==date)return;const log=(rows[0]||{}).dietLog||[];this.setData(Object.assign({actualLoading:false},require('../../utils/presentation.js').dietSummary(log,this.data.diet)))}).catch(()=>{if(this.data.viewDate===date)this.setData({actualLoading:false,actualError:true})})},
+  openFoodPanel(e){wx.navigateTo({url:'/pages/food/food?meal='+e.currentTarget.dataset.k+'&date='+this.data.viewDate})},
+  dateChange(e){this.setData({viewDate:e.detail.value});this.loadActual()},
+  shiftDate(e){const d=new Date(this.data.viewDate+'T12:00:00');d.setDate(d.getDate()+Number(e.currentTarget.dataset.d));const date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');this.setData({viewDate:date});this.loadActual()},
+  toggleReference(){this.setData({referenceOpen:!this.data.referenceOpen})},
   recalcReference(){try{this.readEdits()}catch(e){wx.showToast({title:e.message,icon:'none'})}},
   toggleBasis(){this.setData({basisOpen:!this.data.basisOpen})},
   toggleAdjust(){this.setData({adjustOpen:!this.data.adjustOpen})},

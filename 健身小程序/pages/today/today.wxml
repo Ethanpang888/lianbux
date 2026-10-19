@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view wx:if="{{!loaded}}" class="card center-empty">加载中…</view>
 
 <view wx:elif="{{!hasPlan}}" class="card center-empty">
@@ -23,22 +24,7 @@
       <text wx:if="{{srcTag==='推演'}}" class="htag tui">推演编排</text>
       <text wx:if="{{deload}}" class="htag deload">减载周 · 正式组 ×0.6</text>
     </view>
-    <view class="coach-link" bindtap="goCoach">今天没空 / 状态不好？调一下安排 ›</view>
-  </view>
-
-  <!-- 顺体质调理提示 -->
-  <view wx:if="{{tcmTip}}" class="card tcm-tip" bindtap="goTcm">
-    <view class="row between">
-      <view class="tcm-tip-h">🌿 顺体质调理 · {{tcmTip.name}}</view>
-      <text class="muted">›</text>
-    </view>
-    <view class="muted" style="margin-top:6rpx;line-height:1.6">{{tcmTip.tip}}</view>
-  </view>
-
-  <!-- 本周智能建议 -->
-  <view wx:if="{{weekTip}}" class="card week-tip">
-    <view class="wt-h">📈 本周智能建议</view>
-    <view wx:for="{{weekTip}}" wx:key="*this" class="wt-li">{{item}}</view>
+    <view class="row between"><text class="coach-link" bindtap="postponeTraining">今天没空？顺延训练</text><text class="coach-link" bindtap="goCoach">状态不好？调整训练 ›</text></view>
   </view>
 
   <!-- 休息日 -->
@@ -52,9 +38,9 @@
   <block wx:else>
     <!-- 热身 -->
     <view wx:if="{{warmup}}" class="card warm">
-      <view class="warm-h">🔥 热身 · {{warmup.minutes}} min</view>
-      <view wx:for="{{warmup.items}}" wx:key="*this" class="warm-i">· {{item}}</view>
-      <view wx:if="{{mainNote}}" class="warm-note">{{mainNote}}</view>
+      <view class="warm-h" bindtap="toggleWarmup">热身准备 · {{warmup.minutes}} 分钟 <text>{{warmupOpen?"−":"＋"}}</text></view><block wx:if="{{warmupOpen}}">
+      <view wx:for="{{warmupRows}}" wx:key="*this" class="warm-check" data-i="{{index}}" bindtap="checkWarmup"><text class="done {{warmChecks[index]?'on':''}}">{{warmChecks[index]?"✓":""}}</text><view><view>{{item[0]}}</view><view class="muted">{{item[1]}}</view></view></view>
+      <view wx:if="{{mainNote}}" class="warm-note">{{mainNote}}</view><button class="btn ghost" bindtap="startWarmup">开始 {{warmup.minutes}} 分钟热身计时</button></block>
     </view>
 
     <!-- 正式动作 -->
@@ -84,7 +70,7 @@
         <view wx:if="{{item.expanded}}" class="ex-b">
           <view class="equiptag {{item.equipment==='无器械'?'home':'gym'}}">{{item.equipment==='无器械'?'🏠 居家 · 无器械':'🏋 ' + item.equipment}}</view>
           <view class="pg-box">
-            <view class="pg-title">训练递进 · {{item.pgOn?'已启用':'可选'}}</view>
+            <view class="pg-title" data-i="{{index}}" bindtap="toggleProgression">训练递进 · {{item.pgOn?'已启用':'可选'}} <text>{{item.pgExpanded?"−":"＋"}}</text></view><block wx:if="{{item.pgExpanded}}">
             <view wx:if="{{item.pgOn}}">
               <view class="muted">此动作按工作组推进，替代周期加重。</view>
               <view>本次目标：{{item.pgLabel||'保留原记录，下次生效'}}</view>
@@ -94,7 +80,7 @@
               <button wx:if="{{item.pgCanAccept}}" size="mini" data-i="{{index}}" bindtap="pgAccept">确认采用下次目标</button>
               <button size="mini" data-i="{{index}}" bindtap="pgUndo">撤销上次采用</button>
             </view>
-            <button size="mini" data-i="{{index}}" bindtap="pgEdit">{{item.pgOn?'调整 / 关闭递进':'设置递进起点'}}</button>
+            <button size="mini" data-i="{{index}}" bindtap="pgEdit">{{item.pgOn?'调整 / 关闭递进':'设置递进起点'}}</button></block>
           </view>
           <view wx:if="{{item.gif}}" class="gifwrap" bindtap="fmOpen" data-i="{{index}}"><frame-gif frames="{{item.gif}}" speed="{{420}}" equip="{{item.equipment}}" interactive="{{true}}"/><view class="gif-hint">👆 点图进入专注训练</view></view>
           <view wx:if="{{item.points}}" class="expo fm-go" bindtap="fmOpen" data-i="{{index}}">{{item.points}}<view class="fm-go-hint">点这里进入「专注训练」：大图大字带着你一组一组练</view></view>
@@ -104,7 +90,7 @@
           </view>
           <view class="exmeta">
             <text wx:if="{{item.rest}}">组间休息 {{item.rest}}s</text>
-            <text wx:if="{{item.rpe}}"> · {{item.rpe}}</text>
+            <text wx:if="{{item.rpe}}"> · 留约 2 次余力，动作稳定优先</text>
           </view>
           <view class="setrow setrow-h">
             <text class="setno">组</text>
@@ -140,32 +126,9 @@
     <view wx:if="{{cardio}}" class="card cardio">
       <view class="cd-h">🏃 有氧（选做）· {{cardio.type}}</view>
       <view class="muted" style="line-height:1.6">{{cardio.detail}}{{cardio.alt ? ' / ' + cardio.alt : ''}} · 每周 {{cardio.perWeek}}</view>
-      <view class="muted" style="margin-top:6rpx;line-height:1.6">{{cardio.note}}</view>
+      <view class="muted" style="margin-top:6rpx;line-height:1.6">{{cardio.note}}</view><view class="row cardio-actions"><button class="btn ghost" data-seconds="900" bindtap="startCardio">轻松活动 · 15 分钟</button><button class="btn ghost" data-seconds="1200" bindtap="startCardio">走跑间歇 · 20 分钟</button></view><button bindtap="completeCardio">{{cardioCompleted?"已记录有氧 ✓":"记录本次有氧完成"}}</button>
     </view>
   </block>
-
-  <!-- 饮食总览：明细与添加独立页面，食物再多也不拉长首页 -->
-  <view class="card compact-diet">
-    <view class="row between"><view class="title">今日饮食</view><text class="muted">目标 {{calTarget}} kcal</text></view>
-    <view class="diet-reference" bindtap="goDiet"><view>我的饮食参考<view class="muted">查看与调整食材、份量</view></view><text>›</text></view>
-    <view class="diet-energy"><view><text class="diet-number">{{dietTotal.kcal||0}}</text> 大卡<view class="muted">{{dietOver?'已超目标':'距目标'}} {{dietRemain}} 大卡</view></view><view class="diet-ring" style="{{ringStyle}}"><view><text class="muted">目标进度</text><text>{{calorieProgress.pct||0}}%</text></view></view></view>
-    <view class="diet-macros"><view wx:for="{{nutrientProgress}}" wx:key="key" class="diet-macro pb-{{item.key}} {{item.over?'over':''}}"><view class="muted">{{item.label}}</view><view>{{item.got}} / {{item.target}}g</view><view class="muted">{{item.pct}}%</view><view class="pb-bar"><view class="pb-in pbin-{{item.key}} {{item.over?'over':''}}" style="width:{{item.width}}%"></view></view></view></view>
-    <view wx:if="{{energy}}" class="muted diet-note">{{goalName}} · 消耗 {{energy.tdee}} · 摄入 {{calTarget}} kcal · {{energy.deficit>0?'缺口':energy.deficit<0?'盈余':'持平'}} {{energy.deficit<0?-energy.deficit:energy.deficit}} kcal</view>
-    <view class="diet-meals"><view wx:for="{{mealGroups}}" wx:key="k" data-k="{{item.k}}" bindtap="openFoodPanel"><view class="meal-icon">{{item.k==='b'?'☀':item.k==='l'?'◷':item.k==='d'?'☾':'＋'}}</view><view>{{item.name}}</view><view class="muted">{{item.items.length?item.sum:'去记录'}}</view></view></view>
-  </view>
-
-  <!-- 微饿循环（谭成义理论） -->
-  <view class="card" style="background:var(--warn-soft);border-left:8rpx solid var(--warn)">
-    <view class="title" style="font-size:28rpx">🌾 微饿循环 · 谭成义增肌减脂底层逻辑</view>
-    <view class="muted" style="margin:6rpx 0;line-height:1.6">保持「微微饥饿」状态，增肌减脂效率最高。每天记一下饥饿感，自动微调你的碳水/蛋白目标。</view>
-    <view class="chk" style="margin-top:12rpx">
-      <view class="chk-i {{dietState.lastType==='很饿'?'on':''}}" data-v="很饿" bindtap="setHunger">很饿·加碳水</view>
-      <view class="chk-i {{dietState.lastType==='微饿'?'on':''}}" data-v="微饿" bindtap="setHunger">微饿·最佳</view>
-      <view class="chk-i {{dietState.lastType==='不饿'?'on':''}}" data-v="不饿" bindtap="setHunger">不饿·减碳水</view>
-    </view>
-    <view class="muted" style="margin-top:10rpx">当前微调：碳水 {{dietState.carbAdj>0?'+':''}}{{dietState.carbAdj}}g/kg · 蛋白 {{dietState.proteinAdj>0?'+':''}}{{dietState.proteinAdj}}g/kg</view>
-    <view class="collapse" style="margin-top:10rpx" bindtap="goDiet">📐 饮食计划详解 · 理论科普 ›</view>
-  </view>
 
   <!-- 学习卡 -->
   <view class="card" bindtap="toggleLearn">
@@ -243,14 +206,14 @@
 </block>
 
 <!-- 组间倒计时浮条（2026-10-16 与网站同步）：勾完一组自动出现 -->
-<view wx:if="{{restLeft > 0}}" class="rest-float">
-  <view class="rf-num">{{restLeft}}<text class="rf-s">s</text></view>
+<view wx:if="{{timerActive && !fm.on}}" class="rest-float">
+  <view class="rf-num">{{restDisplay}}</view>
   <view class="rf-mid">
     <view class="rf-label">{{restLabel}}</view>
-    <view class="rf-sub">休息结束震动提醒你</view>
+    <view class="rf-sub">{{restPhase || (restLeft?(restRunning?"计时中":"已暂停"):"计时结束")}}</view>
   </view>
-  <view class="rf-btn rf-focus" bindtap="fmOpen">专注训练</view>
-  <view class="rf-btn" bindtap="addRest30">+30s</view>
+  <view wx:if="{{timerKind==='rest'}}" class="rf-btn rf-focus" bindtap="fmOpen">专注训练</view>
+  <view wx:if="{{restLeft}}" class="rf-btn" bindtap="pauseRest">{{restRunning?"暂停":"继续"}}</view><view wx:if="{{restLeft && !restPhase}}" class="rf-btn" bindtap="addRest30">+30秒</view>
   <view class="rf-btn rf-skip" bindtap="skipRest">跳过</view>
 </view>
 

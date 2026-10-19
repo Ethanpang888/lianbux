@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view class="card"><view class="title">训练与饮食调整</view><view class="muted">选情况，查看规则建议，再确认应用。临时没空请在洞府或计划里顺延；这里用于饮食、疲劳和长期训练频率调整。疲劳重量微调按完整版权益生效，自定饮食目标不会被偏移自动覆盖。</view></view>
 <view class="card" wx:if="{{!hasPlan}}">
   <view class="title" style="font-size:30rpx">先有计划，才能调</view>
@@ -48,6 +49,6 @@
   </view>
 
   <view class="card">
-    <view class="muted" style="line-height:1.7">🧭 调整顾问按规则引擎算（不猜、不编）。算完点「应用」会直接改你的计划/饮食参数；更细的问题（比如「卧推肩膀不舒服怎么办」）去首页找<b style="color:var(--green-dark)">随身导师</b>。</view>
+    <view class="muted" style="line-height:1.7">🧭 调整顾问按规则引擎算（不猜、不编）。算完点「应用」会直接改你的计划/饮食参数；更细的问题（比如「卧推肩膀不舒服怎么办」）去首页找<text class="strong" style="color:var(--green-dark)">随身导师</text>。</view>
   </view>
 </block>

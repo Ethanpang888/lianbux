@@ -34,7 +34,7 @@ function slotOf(plan, today) {
   return ((idx % plan.micro.length) + plan.micro.length) % plan.micro.length
 }
 
-Page({
+require('../../utils/page.js')({
   data: {
     tabs: TABS,
     tab: 'all',

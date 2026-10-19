@@ -1,4 +1,4 @@
-<view wx:if="{{activeRest}}" class="card" bindtap="goToday"><view class="row between"><text>{{activeRest.label}} {{activeRest.left?'进行中':'已结束'}}</text><text>{{activeRest.time}}</text></view><view class="muted">返回训练 ›</view></view>
+<page-meta page-style="{{themeStyle}}"/>
 <view wx:if="{{!profile}}" class="card center-empty">
   <view style="font-size:60rpx;margin-bottom:20rpx">💪</view>
   <view class="title">先完善你的资料</view>
@@ -22,7 +22,7 @@
       <view class="hero-main">
         <view class="eyebrow">{{dateLabel}}</view>
         <view class="hero-who">
-          <b>{{nickname}}</b>
+          <text class="strong">{{nickname}}</text>
           <text class="realm-tag">{{culRealm || stageName}}</text>
         </view>
         <view class="hero-title" wx:if="{{culLevel}}">Lv.{{culLevel}} · {{culTitle}}</view>
@@ -32,15 +32,15 @@
           <view class="track"><view class="fill" style="width:{{culMaxed ? 100 : culPct}}%"></view></view>
         </view>
         <view class="hero-unlock" wx:if="{{culLevel && !culMaxed}}">再积累 {{culToNext}} 修为，升至 Lv.{{culLevel + 1}}</view>
-        <view class="hero-unlock" wx:elif="{{culLevel && culMaxed}}">继续修炼，记录每一次突破</view>
+        <view class="hero-unlock" wx:elif="{{culLevel && culMaxed}}">继续修炼，记录每一次突破</view><view class="hero-slogan">三月河东，三月河西，莫欺少年凡胎弱</view>
       </view>
       <view class="hero-av">
         <image src="/assets/characters/{{stageFile}}" mode="aspectFit"/>
       </view>
     </view>
     <view class="hero-footer">
-      <text>连续修炼 <b>{{streak}}</b> 天</text>
-      <text class="text-link" bindtap="go" data-url="/pages/records/records">查看成长 ›</text>
+      <text>连续修炼 <text class="strong">{{streak||0}}</text> 天</text>
+      <text class="text-link" bindtap="go" data-url="/pages/growth/growth">查看成长 ›</text>
     </view>
   </view>
 
@@ -54,22 +54,22 @@
       <view class="btn ghost" style="margin-top:20rpx" bindtap="goToday">看恢复安排</view>
     </block>
     <block wx:else>
-      <view class="focus-title">{{todayFocus}}</view>
+      <view class="focus-title">{{todayFocus || "建立训练计划"}}</view>
       <view class="today-stats">
-        <view><b>{{todayNEx}}</b><text>个动作</text></view>
-        <view><b>{{todayNSets}}</b><text>组</text></view>
-        <view><b>约 {{todayEstMin}}</b><text>分钟</text></view>
+        <view><text class="strong">{{todayNEx}}</text><text>个动作</text></view>
+        <view><text class="strong">{{todayNSets}}</text><text>组</text></view>
+        <view><text class="strong">约 {{todayEstMin}}</text><text>分钟</text></view>
       </view>
       <view class="btn big" bindtap="goToday">{{doneToday ? '继续训练' : '开始训练'}}</view>
       <view class="row between" style="margin-top:16rpx">
-        <text class="chip" bindtap="goTab" data-url="/pages/plan/plan">看完整计划</text>
+        <text class="chip" bindtap="go" data-url="/pages/plan/plan">看完整计划</text>
         <text class="chip" bindtap="postponeTraining">今天没空？顺延训练</text>
       </view>
     </block>
   </view>
 
   <!-- 饮食总览：明细与添加独立页面，食物再多也不拉长首页 -->
-  <view class="card compact-diet">
+  <view class="card compact-diet" bindtap="goDiet">
     <view class="row between"><view class="title">今日饮食</view><text class="muted">目标 {{calTarget}} kcal</text></view>
     <view class="diet-energy"><view><text class="diet-number">{{dietTotal.kcal||0}}</text> 大卡<view class="muted">{{dietOver?'已超目标':'距目标'}} {{dietRemain}} 大卡</view></view><view class="diet-ring" style="{{ringStyle}}"><view><text class="muted">目标进度</text><text>{{calorieProgress.pct||0}}%</text></view></view></view>
     <view class="diet-macros"><view wx:for="{{nutrientProgress}}" wx:key="key" class="diet-macro pb-{{item.key}} {{item.over?'over':''}}"><view class="muted">{{item.label}}</view><view>{{item.got}} / {{item.target}}g</view><view class="muted">{{item.pct}}%</view><view class="pb-bar"><view class="pb-in pbin-{{item.key}} {{item.over?'over':''}}" style="width:{{item.width}}%"></view></view></view></view>
@@ -102,38 +102,21 @@
   <view class="duo-row">
     <view class="duo" bindtap="go" data-url="/pages/ai/ai">
       <text class="duo-symbol">🧙</text>
-      <b>随身导师</b>
+      <text class="strong">随身导师</text>
       <text class="muted txs">遇到问题，随时问</text>
       <text class="duo-arrow">↗</text>
     </view>
     <view class="duo" bindtap="go" data-url="/pages/secret/secret">
       <text class="duo-symbol">📖</text>
-      <b>藏经阁</b>
+      <text class="strong">藏经阁</text>
       <text class="muted txs">找到适合你的功法</text>
       <text class="duo-arrow">↗</text>
     </view>
   </view>
 
-  <!-- 快捷入口（小程序保留：动作库/学习网站没有的入口） -->
-  <view class="grid">
-    <view class="gitem" bindtap="goTab" data-url="/pages/plan/plan"><view class="gi">📅</view><text>训练计划</text></view>
-    <view class="gitem" bindtap="go" data-url="/pages/records/records"><view class="gi">📈</view><text>我的记录</text></view>
-    <view class="gitem" bindtap="go" data-url="/subpkgs/exlib/pages/exlib/exlib"><view class="gi">🏋️</view><text>动作库</text></view>
-    <view class="gitem" bindtap="go" data-url="/pages/learn/learn"><view class="gi">📚</view><text>每天学一点</text></view>
-    <view class="gitem" bindtap="go" data-url="/pages/poster/poster?mode=today"><view class="gi">📸</view><text>今日战报</text></view>
-    <view class="gitem" bindtap="go" data-url="/pages/poster/poster?mode=life"><view class="gi">🏆</view><text>修行生涯</text></view>
-  </view>
-
-  <view class="record-link" bindtap="go" data-url="/pages/records/records">
-    <text>每一次坚持，都有迹可循</text>
-    <b>修炼记录 ›</b>
-  </view>
-
-  <view class="card" style="background:var(--green-soft);border-color:var(--line)">
-    <view class="title" style="font-size:28rpx;color:var(--green-dark)">🎁 免费领资料</view>
-    <view class="muted" style="margin:8rpx 0">加微信领《体质自测卡+热量表+7天计划》大礼包</view>
-    <view class="btn ghost block" bindtap="copyWx">复制微信号</view>
-  </view>
+  <view class="poster-links"><view class="chip" bindtap="go" data-url="/pages/poster/poster?mode=today">📸 昭告天下 · 晒今日战报</view><view class="chip" bindtap="go" data-url="/pages/poster/poster?mode=life">🏆 修行生涯卡 · 晒累计</view></view>
+  <view class="card conditioning" bindtap="go" data-url="/pages/tcm/tcm"><view class="row between"><view><view class="title">调理 · 内修</view><view class="muted">体质倾向、日常食养与训练恢复</view></view><text>›</text></view></view>
+  <view class="record-link" bindtap="go" data-url="/pages/records/records"><text>每一次坚持，都有迹可循</text><text class="strong">修炼记录 ›</text></view>
 </block>
 
 <!-- 破境/里程碑仪式卡（分层版：境界/形象/里程碑只说真实发生的事） -->

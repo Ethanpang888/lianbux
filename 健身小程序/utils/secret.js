@@ -900,13 +900,12 @@ const gluteGym = {
     '⚠️ 本本为通用训练思路，非医疗建议；腰突等特殊情况先看疼痛排查库'
   ]
 }
+// 健身房与居家臀部专项采用同一套饮食基础，避免新版秘籍缺少食养章节。
+gluteGym.eat = SECRETS.find(s => s.key === 'gluteH').eat.map(row => Object.assign({}, row))
 SECRETS.push(gluteGym)
 
 /** 当前在读哪本（挂在 profile.secret） */
-function currentOf(profile) {
-  const p = profile || {}
-  return p.secret && p.secret.key ? get(p.secret.key) : null
-}
+
 
 // ───────── 女性周期训练（2026-10-18 女性线：凯圣王×张丹玥《女性训练与健康系列》①②③④）─────────
 const femaleCycle = {

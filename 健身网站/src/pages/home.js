@@ -62,6 +62,7 @@ const PageHome = {
     document.getElementById('app').innerHTML = top +
       (Store.state.demo ? '<div class="demo-note"><span class="status-dot"></span>演示体验 · 示例档案，记录仅存本机<button class="text-link" onclick="Router.go(\'login\')">登录 ›</button></div>' : '') +      hero + '<div class="home-daily">' + this.trainCard(u,today) + this.dietCard(u,today) + '</div>' +
       this.recoveryCard(u, today) + duo +
+      '<button class="card conditioning" style="width:100%;text-align:left;color:var(--tx)" onclick="Router.go(\'tcm\')"><div class="row between"><div><h2 style="margin-bottom:4px">调理 · 内修</h2><div class="muted txs">体质倾向、日常食养与训练恢复</div></div><span>›</span></div></button>' +
       '<button class="record-link" onclick="Router.go(\'records\')"><span>每一次坚持，都有迹可循</span><b>修炼记录 ›</b></button>'
     this.bindRecovery(today)
     PageBreak.check()

@@ -1,0 +1,10 @@
+<page-meta page-style="{{themeStyle}}"/>
+<view wx:if="{{loading}}" class="card muted">正在加载成长记录…</view>
+<view wx:elif="{{error}}" class="card muted" bindtap="load">{{error}}</view>
+<block wx:elif="{{cul}}">
+ <view class="card"><view class="row between"><view class="title">{{cul.realm}} · Lv.{{cul.level}}</view><text class="muted">累计修为 {{cul.exp}}</text></view><view class="bar"><view class="bar-in" style="width:{{cul.pct}}%"></view></view><view class="muted">{{cul.level>=99?'已到顶，继续修炼':('再攒 '+cul.toNext+' 修为升下一级')}}</view><view class="muted">{{cul.realmNote}}</view></view>
+ <view class="card"><view class="title">前面的节点</view><view wx:for="{{nodes}}" wx:key="name" class="node"><text class="muted">{{item.name}}</text><view>{{item.value}}</view><view class="muted">{{item.note}}</view></view><view class="muted">每 10 级一座里程碑，记录你的坚持。</view></view>
+ <view class="card"><view class="title">本周任务</view><view wx:for="{{tasks}}" wx:key="name" class="node"><view class="row between"><text>{{item.name}}</text><text class="muted">{{item.paid?'已入账 ✓':'+'+item.exp+' 修为'}}</text></view><view class="bar"><view class="bar-in" style="width:{{item.pct}}%"></view></view><view class="muted">{{item.cur}} / {{item.target}}</view></view><view class="muted">每周一重算，按真实打卡结算。</view></view>
+ <view class="card"><view class="title">徽章墙 · {{got}} / {{badges.length}}</view><view wx:for="{{badges}}" wx:key="k" class="node"><view>{{item.got?'🏅':'○'}} {{item.displayName}}</view><view wx:if="{{!item.got}}" class="muted">{{item.displayCond}}</view><view wx:if="{{!item.got && item.prog && item.prog.target>1}}" class="muted">{{item.prog.cur}} / {{item.prog.target}}</view></view></view>
+</block>
+<view class="btn ghost block" bindtap="goHome">回洞府</view>

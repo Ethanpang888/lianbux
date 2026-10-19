@@ -1,14 +1,7 @@
 /* 训练流程：热身清单、统一计时与按需有氧。 */
 const TrainingFlow = {
   source:'谭成义《一次性看完三分化热身整套流程》本地笔记；次数、时长与新手替代为本站整理。',
-  warmup(day) {
-    const focus = day.focus || ''
-    let rows
-    if (/腿|下肢|臀/.test(focus)) rows=[['足踝活动','扶墙踝关节前移，每侧 8 次'],['髋关节活动','舒适范围的髋部前后移动，约 8 次'],['后侧链激活','扶物髋铰链，每侧 8 次；先保持躯干稳定'],['预演主项','徒手深蹲或轻重量硬拉 1–2 组，不做到疲劳']]
-    else if (/拉|背/.test(focus)) rows=[['胸椎与肩胛活动','轻柔胸椎活动、肩胛前伸后缩，各 8–10 次'],['弹力带拉开','保持躯干稳定，小幅度、有控制地做 10–12 次'],['肩胛稳定','墙面肩胛俯卧撑 8–10 次，作为进阶支撑动作的简化替代'],['预演主项','轻重量划船或下拉 1–2 组，熟悉今天的动作轨迹']]
-    else rows=[['肩部动态活动','肩环绕 8–10 次，在无痛范围内完成'],['弹力带激活','前后拉与小幅环绕各 8–12 次；躯干不前顶'],['下斜方肌激活','俯卧 Y 字 8–10 次，不抬头、不塌腰'],['前锯肌激活','墙面肩胛俯卧撑 8–10 次，作为原文支撑动作的简化替代']]
-    return [['先让身体温热','快走或原地踏步 2–3 分钟'],...rows,['主项递进准备组','轻重量开始，逐步接近工作重量；做 2–3 组，不计入正式组数']]
-  },
+  warmup(day) { return ENGINE.trainingFlow.warmup(day) },
   key(kind) {const u=Store.state.user||{};return 'lbgym_flow_'+(u._id||u.id||u.playerNo||(u.player||{}).no||'demo')+'_'+PageToday.date+'_'+kind},
   load(kind,fallback) {try {return JSON.parse(localStorage.getItem(this.key(kind))||'null')||fallback}catch(e){return fallback}},
   save(kind,value) {try{localStorage.setItem(this.key(kind),JSON.stringify(value))}catch(e){UI.toast('本机空间不足，训练流程进度未保存')}},

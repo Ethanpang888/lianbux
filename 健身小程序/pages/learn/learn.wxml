@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view class="tip">28 天，每天一个健身干货。点卡片展开看全文。</view>
 <view wx:for="{{list}}" wx:key="day" class="card learn">
   <view class="lh" bindtap="toggle" data-i="{{index}}">

@@ -1,9 +1,3 @@
-<view class="tabbar">
-  <view
-    wx:for="{{list}}"
-    wx:key="index"
-    class="tab {{selected === index ? 'on' : ''}}"
-    data-path="{{item.pagePath}}"
-    bindtap="switchTab"
-  >{{item.text}}</view>
-</view>
+<view style="{{themeStyle}}">
+<view wx:if="{{activeRest && selected!==1}}" class="global-rest"><view bindtap="goTraining" class="timer-main"><text class="timer-num">{{activeRest.time}}</text><view><text>{{activeRest.label}}</text><view class="timer-note">{{activeRest.phase || (activeRest.left?(activeRest.run?'返回训练 ›':'已暂停'):'计时结束')}}</view></view></view><text bindtap="pauseRest" wx:if="{{activeRest.left}}">{{activeRest.run?"暂停":"继续"}}</text><text bindtap="addRest" wx:if="{{activeRest.left && !activeRest.phase}}">+30秒</text><text bindtap="endRest">{{activeRest.left?'结束':'收起'}}</text></view>
+<view class="tabbar"><view wx:for="{{list}}" wx:key="key" class="tab {{selected===index?'on':''}}" data-path="{{item.pagePath}}" bindtap="switchTab"><image class="tab-icon" src="/assets/nav/{{item.key}}-{{theme==='dark'?'dark-':''}}{{selected===index?'on':'off'}}.svg"/><text>{{item.name}}</text></view></view></view>

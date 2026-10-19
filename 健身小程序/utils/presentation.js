@@ -1,0 +1,11 @@
+// 双端界面契约：导航、主题、饮食统计共用此源文件。
+const NAV = [{"key": "home", "name": "洞府", "pagePath": "/pages/index/index"}, {"key": "today", "name": "训练", "pagePath": "/pages/today/today"}, {"key": "diet", "name": "饮食", "pagePath": "/pages/diet/diet"}, {"key": "records", "name": "修炼记录", "pagePath": "/pages/records/records"}, {"key": "me", "name": "我的", "pagePath": "/pages/profile/profile"}]
+const THEMES = {"light": {"bg": "#f4f6f2", "card": "#ffffff", "text": "#25342f", "sub": "#738078", "line": "#e5eae4", "green": "#287b59", "green-dark": "#22694d", "green-soft": "#edf4ed", "warn": "#9d713c", "warn-soft": "#faf3e8", "gold": "#b18a4d", "danger": "#d94f4f", "button-text": "#ffffff"}, "dark": {"bg": "#101713", "card": "#19221d", "text": "#e6ede7", "sub": "#9aa99e", "line": "#2a372f", "green": "#90c8a4", "green-dark": "#a2d4b2", "green-soft": "#233c2c", "warn": "#d5bd87", "warn-soft": "#392f20", "gold": "#d5bd87", "danger": "#e5726f", "button-text": "#12291b"}}
+function themeStyle(name){const t=THEMES[name]||THEMES.light;return Object.keys(t).map(k=>'--'+k+':'+t[k]).join(';')+';background:'+t.bg+';color:'+t.text}
+function dietSummary(log,e){
+ const total={kcal:0,protein:0,carbs:0,fat:0};(log||[]).forEach(f=>Object.keys(total).forEach(k=>total[k]+=Number(f[k])||0));Object.keys(total).forEach(k=>total[k]=Math.round(total[k]));
+ const mk=(key,label,got,target)=>{target=Math.round(Number(target)||0);const pct=target>0?Math.round(got/target*100):0;return {key,label,got,target,pct,width:Math.min(100,Math.max(0,pct)),over:target>0&&got>target}};
+ const cp=mk('kcal','热量',total.kcal,e.kcal);
+ return {calTarget:e.kcal,dietTotal:total,calorieProgress:cp,nutrientProgress:[mk('protein','蛋白质',total.protein,e.protein),mk('carb','碳水',total.carbs,e.carb),mk('fat','脂肪',total.fat,e.fat)],dietOver:cp.over,dietRemain:Math.abs(Math.round(e.kcal-total.kcal)),ringStyle:'background:conic-gradient('+(cp.over?'#d94f4f':'#df9656')+' '+cp.width+'%,var(--line) 0)',mealGroups:[{k:'b',name:'早餐'},{k:'l',name:'午餐'},{k:'d',name:'晚餐'},{k:'s',name:'加餐'}].map(m=>{const items=(log||[]).map((f,i)=>Object.assign({},f,{idx:i})).filter(f=>(f.meal||'s')===m.k);return Object.assign({},m,{items,sum:Math.round(items.reduce((n,f)=>n+(Number(f.kcal)||0),0))+' kcal'})})}
+}
+module.exports={NAV,THEMES,themeStyle,dietSummary,VERSION:'2026.10.19-parity.1'}

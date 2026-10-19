@@ -8,8 +8,9 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-Page({
-  data: { profile: null, plan: null, dayIndex: 0, streak: 0, tcm: null, cul: null,
+require('../../utils/page.js')({
+  data: {
+    tools:[{name:'我的完整计划',note:'查看周期与调整安排',url:'/pages/plan/plan'},{name:'动作图鉴',note:'查动作与训练要领',url:'/subpkgs/exlib/pages/exlib/exlib'},{name:'随身导师',note:'训练与饮食答疑',url:'/pages/ai/ai'},{name:'藏经阁',note:'目标秘籍与训练方法',url:'/pages/secret/secret'}], profile: null, plan: null, dayIndex: 0, streak: 0, tcm: null, cul: null,
     inviteCode: '', inviteCount: -1, inviterCode: '',
     weekTasks: [], weekNote: '',
     badgeOpen: [] },
@@ -101,12 +102,14 @@ Page({
     })
   },
 
+  goTool(e){require('../../utils/navigation.js').go(e.currentTarget.dataset.url)},
+  setTheme(e){const theme=e.currentTarget.dataset.theme;wx.setStorageSync('lbgym_theme',theme);this.setData({theme,themeStyle:require('../../utils/presentation.js').themeStyle(theme)});wx.setNavigationBarColor({frontColor:theme==='dark'?'#ffffff':'#000000',backgroundColor:theme==='dark'?'#101713':'#f4f6f2'});if(this.getTabBar&&this.getTabBar())this.getTabBar().connect()},
   edit() { wx.navigateTo({ url: '/pages/assess/assess' }) },
-  goHistory() { wx.navigateTo({ url: '/pages/records/records' }) },
+  goHistory() { require('../../utils/navigation.js').go('/pages/records/records') },
   goRank() { wx.navigateTo({ url: '/pages/rank/rank' }) },
   goBind() { wx.navigateTo({ url: '/pages/bind/bind' }) },
-  goTcm() { wx.switchTab({ url: '/pages/tcm/tcm' }) },
-  goDiet() { wx.navigateTo({ url: '/pages/diet/diet' }) },
+  goTcm() { require('../../utils/navigation.js').go('/pages/tcm/tcm') },
+  goDiet() { require('../../utils/navigation.js').go('/pages/diet/diet') },
   goSubscribe() { wx.navigateTo({ url: '/pages/subscribe/subscribe' }) },
 
   /* ───── 收徒（2026-10-17 裂变）：邀请码 + 弟子数 + 绑定师傅 ───── */

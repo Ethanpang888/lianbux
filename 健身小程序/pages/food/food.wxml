@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view class="card">
  <view class="tabs"><button wx:for="{{meals}}" wx:key="k" class="{{meal===item.k?'on':''}}" data-k="{{item.k}}" bindtap="meal">{{item.name}}</button></view>
  <view class="tabs"><button wx:for="{{tabs}}" wx:key="k" class="{{tab===item.k?'on':''}}" data-k="{{item.k}}" bindtap="tab">{{item.name}}</button></view>

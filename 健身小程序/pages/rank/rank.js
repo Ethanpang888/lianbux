@@ -11,7 +11,7 @@ const BOARDS = [
   { k: 'volume', name: '本周榜', unit: '吨' }
 ]
 
-Page({
+require('../../utils/page.js')({
   data: {
     scope: 'city', board: 'level',
     BOARDS: BOARDS,

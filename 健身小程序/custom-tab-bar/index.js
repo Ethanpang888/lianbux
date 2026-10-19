@@ -1,20 +1,7 @@
-Component({
-  data: {
-    selected: 0,
-    color: "#999999",
-    selectedColor: "#0e9f6e",
-    list: [
-      { pagePath: "/pages/index/index", text: "首页" },
-      { pagePath: "/pages/today/today", text: "今日" },
-      { pagePath: "/pages/plan/plan", text: "计划" },
-      { pagePath: "/pages/tcm/tcm", text: "调理" },
-      { pagePath: "/pages/profile/profile", text: "我的" }
-    ]
-  },
-  methods: {
-    switchTab(e) {
-      const path = e.currentTarget.dataset.path
-      wx.switchTab({ url: path })
-    }
-  }
+const P=require('../utils/presentation.js'),rest=require('../utils/rest-timer.js')
+Component({data:{selected:0,list:P.NAV,theme:'light',themeStyle:'',activeRest:null},
+ lifetimes:{attached(){this.connect()},detached(){if(this._unsub)this._unsub()}},
+ pageLifetimes:{show(){this.connect()}},
+ methods:{connect(){const theme=wx.getStorageSync('lbgym_theme')||'light';this.setData({theme,themeStyle:P.themeStyle(theme)});rest.connect(getApp().globalData.openid);if(!this._unsub)this._unsub=rest.subscribe(t=>this.setData({activeRest:t?{time:t.time,label:t.label,left:t.left,run:t.run,phase:t.phase}:null}))},
+ switchTab(e){wx.switchTab({url:e.currentTarget.dataset.path})},goTraining(){wx.switchTab({url:'/pages/today/today'})},addRest(){rest.add()},pauseRest(){rest.toggle()},endRest(){rest.end()}}
 })

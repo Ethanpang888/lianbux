@@ -7,7 +7,7 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-Page({
+require('../../utils/page.js')({
   data: {
     hasPlan: false, dayIndex: 0, streak: 0, total: 0, completion: 0,
     weights: [], risks: [], summary: '', chat: [], input: '', aiBusy: false,
@@ -17,7 +17,9 @@ Page({
     weightInput: ''
   },
 
+  goCoach() { wx.navigateTo({url:'/pages/ai/ai'}) },
   onShow() {
+    if(this.getTabBar&&this.getTabBar())this.getTabBar().setData({selected:3})
     this.setData({ aiEnabled: !!app.globalData.aiEnabled })
     this.load()
   },

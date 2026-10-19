@@ -12,7 +12,7 @@ function todayStr() {
 
 /* 调整顾问（与网站 pages/coach.js 同一套规则引擎，零 AI 成本）：
    点一个情况 → 引擎按你最近的打卡/体重/计划算 → 给可执行调整 → 一键应用进计划 */
-Page({
+require('../../utils/page.js')({
   data: {
     sits: [], picked: '', hint: '',
     result: null, needPick: false, options: [],
@@ -110,6 +110,6 @@ Page({
     }
   },
 
-  goPlan() { wx.switchTab({ url: '/pages/plan/plan' }) },
+  goPlan() { require('../../utils/navigation.js').go('/pages/plan/plan') },
   goToday() { wx.switchTab({ url: '/pages/today/today' }) }
 })

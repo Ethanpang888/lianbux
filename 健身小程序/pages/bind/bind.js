@@ -1,7 +1,7 @@
 const app = getApp()
 
 /* 绑定网站账号：网站「我的」页生成 6 位码 → 这里输入 → 两端打卡数据互通（双向镜像） */
-Page({
+require('../../utils/page.js')({
   data: {
     bound: false, webNick: '', checking: true,
     code: '', busy: false, backfill: null

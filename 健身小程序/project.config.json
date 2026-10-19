@@ -38,21 +38,110 @@
   "simulatorPluginLibVersion": {},
   "packOptions": {
     "ignore": [
-      { "type": "folder", "value": "assets/exdb" },
-      { "type": "folder", "value": "assets/_removed" },
-      { "type": "folder", "value": "tools" },
-      { "type": "folder", "value": "licenses" },
-      { "type": "file", "value": "exdb-map.json" },
-      { "type": "file", "value": "GIF替换与上传指南.md" },
-      { "type": "file", "value": "图片域名配置说明.md" },
-      { "type": "file", "value": "动作图双帧化说明.md" },
-      { "type": "file", "value": "居家计划与要领补齐说明.md" },
-      { "type": "file", "value": "中医板块融合方案.md" },
-      { "type": "file", "value": "部署说明.md" },
-      { "type": "suffix", "value": "bak" },
-      { "type": "suffix", "value": "bak-localize" },
-      { "type": "glob", "value": "subpkgs/exlib/assets/ex/**/*b.jpg" },
-      { "type": "folder", "value": "subpkgs/exlib/assets/ex" }
+      {
+        "type": "folder",
+        "value": "assets/exdb"
+      },
+      {
+        "type": "folder",
+        "value": "assets/_removed"
+      },
+      {
+        "type": "folder",
+        "value": "tools"
+      },
+      {
+        "type": "folder",
+        "value": "licenses"
+      },
+      {
+        "type": "file",
+        "value": "exdb-map.json"
+      },
+      {
+        "type": "file",
+        "value": "GIF替换与上传指南.md"
+      },
+      {
+        "type": "file",
+        "value": "图片域名配置说明.md"
+      },
+      {
+        "type": "file",
+        "value": "动作图双帧化说明.md"
+      },
+      {
+        "type": "file",
+        "value": "居家计划与要领补齐说明.md"
+      },
+      {
+        "type": "file",
+        "value": "中医板块融合方案.md"
+      },
+      {
+        "type": "file",
+        "value": "部署说明.md"
+      },
+      {
+        "type": "suffix",
+        "value": "bak"
+      },
+      {
+        "type": "suffix",
+        "value": "bak-localize"
+      },
+      {
+        "type": "glob",
+        "value": "subpkgs/exlib/assets/ex/**/*b.jpg"
+      },
+      {
+        "type": "folder",
+        "value": "subpkgs/exlib/assets/ex"
+      },
+      {
+        "type": "file",
+        "value": "assets/characters/stage1@2x.png"
+      },
+      {
+        "type": "file",
+        "value": "assets/characters/stage2@2x.png"
+      },
+      {
+        "type": "file",
+        "value": "assets/characters/stage3@2x.png"
+      },
+      {
+        "type": "file",
+        "value": "assets/characters/stage4@2x.png"
+      },
+      {
+        "type": "file",
+        "value": "assets/characters/stage5@2x.png"
+      },
+      {
+        "type": "file",
+        "value": "utils/exercises-data.js.bak-imgfix"
+      },
+      {
+        "type": "file",
+        "value": "动作库核查画廊.html"
+      },
+      {
+        "type": "file",
+        "value": "admin.html"
+      },
+      {
+        "type": "file",
+        "value": "AGENTS.md"
+      },
+      {
+        "type": "folder",
+        "value": "docs"
+      },
+      {
+        "type": "glob",
+        "value": "**/.DS_Store"
+      }
     ],
     "include": []
   },

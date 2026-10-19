@@ -3,5 +3,5 @@
 .field input { text-align: right; width: 420rpx; }
 .agree { display: flex; gap: 14rpx; align-items: flex-start; margin-top: 18rpx; }
 .box { width: 36rpx; height: 36rpx; border: 2rpx solid var(--line); border-radius: 8rpx; flex: none; text-align: center; color: var(--card); font-size: 24rpx; line-height: 32rpx; }
-.box.on { background: var(--green); border-color: var(--green); color: #12291b; }
+.box.on { background: var(--green); border-color: var(--green); color: var(--button-text); }
 .agree-t { font-size: 22rpx; color: var(--sub); line-height: 1.5; }

@@ -19,6 +19,7 @@
 
     Tabbar.render()
     Router
+      .reg('tcm', () => PageTcm.render(), { noTab: true })
       .reg('home', () => PageHome.render(), { tab: true })
       .reg('today', a => PageToday.render(a), { tab: true })
       .reg('diet', () => PageDiet.render(), { tab: true })

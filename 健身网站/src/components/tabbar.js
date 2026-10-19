@@ -1,12 +1,6 @@
 /* src/components/tabbar.js —— 底部主入口（修炼命名：洞府=首页，修炼记录=记录；保留第五栏） */
 const Tabbar = {
-  items: [
-    { key: 'home', ic: '🏠', name: '洞府' },
-    { key: 'today', ic: '🏋', name: '训练' },
-    { key: 'diet', ic: '🍚', name: '饮食' },
-    { key: 'records', ic: '📈', name: '修炼记录' },
-    { key: 'me', ic: '👤', name: '我的' }
-  ],
+  get items() { return ENGINE.presentation.NAV },
   icon(key) {
     const paths = {
       home: '<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',

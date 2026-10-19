@@ -1,5 +1,5 @@
 .head .bar { height: 14rpx; background: var(--line); border-radius: 999rpx; margin-top: 16rpx; overflow: hidden; }
-.bar-in { color: #12291b; height: 100%; background: var(--green); }
+.bar-in { color: var(--button-text); height: 100%; background: var(--green); }
 .rest { text-align: center; }
 .ex { border-bottom: 1rpx solid var(--line); padding: 16rpx 0; }
 .ex:last-of-type { border-bottom: none; }
@@ -17,7 +17,7 @@
 .setno { width: 90rpx; color: var(--sub); font-size: 24rpx; }
 .sin { flex: 1; background: var(--bg); border-radius: 10rpx; padding: 14rpx; font-size: 24rpx; }
 .done { width: 60rpx; height: 60rpx; border-radius: 50%; background: var(--bg); display: flex; align-items: center; justify-content: center; color: #fff; }
-.done.on { color: #12291b; background: var(--green); }
+.done.on { color: var(--button-text); background: var(--green); }
 .addrow { display: flex; gap: 16rpx; margin-top: 14rpx; }
 .addbtn { flex: 1; text-align: center; background: var(--green-soft); color: var(--green-dark); padding: 18rpx; border-radius: 12rpx; font-size: 26rpx; }
 .chip { background: var(--bg); padding: 8rpx 18rpx; border-radius: 999rpx; font-size: 22rpx; margin: 6rpx; }
@@ -26,7 +26,7 @@
 .learnfull { margin-top: 14rpx; line-height: 1.7; }
 .chk { display: flex; gap: 14rpx; }
 .chk-i { flex: 1; text-align: center; padding: 20rpx; border-radius: 14rpx; background: var(--bg); color: var(--sub); }
-.chk-i.on { background: var(--green); color: #12291b; }
+.chk-i.on { background: var(--green); color: var(--button-text); }
 .field { display: flex; justify-content: space-between; align-items: center; padding: 16rpx 0; border-bottom: 1rpx solid var(--line); }
 .field text { color: var(--sub); font-size: 26rpx; }
 .field input { text-align: right; width: 360rpx; }
@@ -83,12 +83,12 @@
 /* ===== 饮食：模式切换 ===== */
 .modesw { display: flex; background: var(--bg); border-radius: 999rpx; padding: 4rpx; }
 .ms { font-size: 22rpx; padding: 8rpx 20rpx; border-radius: 999rpx; color: var(--sub); }
-.ms.on { background: var(--green); color: #12291b; font-weight: 600; }
+.ms.on { background: var(--green); color: var(--button-text); font-weight: 600; }
 
 /* ===== 饮食：每日消耗与热量目标 ===== */
 .ebox { background: var(--green-soft); border-radius: 12rpx; padding: 16rpx; margin: 14rpx 0 6rpx; border-left: 8rpx solid var(--green); }
 .emain { font-size: 26rpx; }
-.emain b { font-size: 32rpx; color: var(--green-dark); }
+.emain .strong { font-size: 32rpx; color: var(--green-dark); }
 .esub { font-size: 22rpx; color: var(--sub); margin-top: 6rpx; line-height: 1.6; }
 .ewarn { font-size: 20rpx; color: var(--warn); background: var(--warn-soft); border-radius: 8rpx; padding: 8rpx 10rpx; margin-top: 8rpx; line-height: 1.5; }
 
@@ -100,7 +100,7 @@
 .pb-v { font-size: 24rpx; color: var(--green-dark); font-weight: 600; }
 .pb-v.over { color: #EF9F27; }
 .pb-bar { height: 14rpx; background: var(--line); border-radius: 999rpx; overflow: hidden; }
-.pb-in { color: #12291b; height: 100%; background: var(--green); border-radius: 999rpx; }
+.pb-in { color: var(--button-text); height: 100%; background: var(--green); border-radius: 999rpx; }
 .pb-in.over { background: #EF9F27; }
 
 /* ===== 饮食：加食物 ===== */
@@ -126,7 +126,7 @@
 /* ===== 食物分类点选 ===== */
 .fcat { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 12rpx 0 10rpx; }
 .fcat-i { padding: 8rpx 22rpx; border-radius: 999rpx; background: var(--card); border: 2rpx solid var(--line); font-size: 26rpx; color: var(--sub); }
-.fcat-i.on { background: var(--green); border-color: var(--green); color: #12291b; font-weight: 600; }
+.fcat-i.on { background: var(--green); border-color: var(--green); color: var(--button-text); font-weight: 600; }
 .fgrid { display: flex; flex-wrap: wrap; gap: 12rpx; margin-bottom: 14rpx; }
 .fgrid-i { width: calc(50% - 6rpx); box-sizing: border-box; background: var(--card); border: 2rpx solid var(--line); border-radius: 12rpx; padding: 12rpx 16rpx; display: flex; flex-direction: column; gap: 4rpx; }
 .fgrid-i:active { border-color: var(--green); background: var(--green-soft); }
@@ -196,7 +196,7 @@
 .pk-search { margin: 12rpx 28rpx; padding: 20rpx 24rpx; border: 1rpx solid var(--line); border-radius: 20rpx; font-size: 28rpx; background: var(--bg); color: var(--tx); }
 .pk-cats { display: flex; gap: 12rpx; padding: 12rpx 28rpx; white-space: nowrap; }
 .pk-cat { flex-shrink: 0; font-size: 24rpx; padding: 8rpx 22rpx; border-radius: 999rpx; background: var(--bg); border: 1rpx solid var(--line); color: var(--sub); }
-.pk-cat.on { background: var(--green); color: #12291b; border-color: var(--green); font-weight: 700; }
+.pk-cat.on { background: var(--green); color: var(--button-text); border-color: var(--green); font-weight: 700; }
 .pk-list { flex: 1; min-height: 300rpx; max-height: 56vh; padding: 8rpx 20rpx 20rpx; box-sizing: border-box; }
 .pk-i { display: flex; justify-content: space-between; align-items: center; gap: 20rpx; padding: 22rpx 12rpx; border-bottom: 1rpx solid var(--line); }
 .pk-n { font-size: 28rpx; font-weight: 600; color: var(--tx); flex: 1; min-width: 0; }
@@ -233,3 +233,5 @@
 
 .pg-box{padding:20rpx;margin:20rpx 0;border:1rpx solid var(--line);border-radius:16rpx;font-size:24rpx;line-height:1.8}.pg-title{font-weight:700}.pg-box button{margin:10rpx 10rpx 0 0}.pg-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:flex-end}.pg-panel{max-height:85vh;background:var(--card,#fff);border-radius:24rpx 24rpx 0 0;padding:32rpx;box-sizing:border-box}.pg-field{padding:16rpx 0;border-bottom:1rpx solid var(--line);font-size:26rpx}.pg-field input{height:70rpx;background:rgba(128,128,128,.08);padding:0 12rpx;margin-top:8rpx}.setrow .sn switch{transform:scale(.55);transform-origin:left center;width:70rpx}.setrow .sn{font-size:20rpx}
 .setrow .setno switch{transform:scale(.45);transform-origin:left center;width:55rpx;height:36rpx}.setrow .setno{font-size:20rpx}
+
+.warm{border-left:1rpx solid var(--line);background:var(--card)}.warm-h{display:flex;justify-content:space-between;color:var(--text);font-size:30rpx}.warm-check{display:flex;gap:20rpx;align-items:center;margin-top:22rpx;font-size:26rpx}.warm-check .done{flex:none;border:1rpx solid var(--line);border-radius:10rpx;width:36rpx;height:36rpx}.warm-check .muted{font-size:22rpx;margin-top:4rpx}.cardio-actions{gap:16rpx}.cardio-actions button{flex:1;font-size:24rpx}.ex{border:1rpx solid var(--line);border-radius:28rpx;padding:0;margin-top:20rpx;overflow:hidden}.ex-h{padding:24rpx 28rpx}.ex-b{padding:0 28rpx 28rpx}.gifwrap{width:108rpx;height:108rpx;float:right;margin:0 0 12rpx 16rpx;overflow:hidden;padding:0}.gif-hint{display:none}.expo{background:transparent;font-size:22rpx;padding:0;min-height:100rpx}.exops{clear:both}.pg-title{display:flex;justify-content:space-between;font-size:24rpx;color:var(--sub);padding:12rpx 0}.pg-box{background:transparent;padding:0;border:none;border-bottom:1rpx solid var(--line);margin-bottom:20rpx}.setno{width:65rpx;font-size:20rpx}.setno switch{transform:scale(.55);transform-origin:left center;width:50rpx;height:42rpx}.done.on{color:var(--button-text)}.setbox{font-size:28rpx;border-radius:20rpx;min-width:0}.rest-float{left:24rpx;right:24rpx;bottom:calc(152rpx + env(safe-area-inset-bottom));gap:12rpx;padding:20rpx;background:var(--card);color:var(--text)}.rf-num{font-size:40rpx;min-width:108rpx;color:var(--green-dark)}.rf-label{color:var(--text);font-size:22rpx}.rf-sub{font-size:19rpx;color:var(--sub)}.rf-btn{font-size:20rpx;padding:12rpx 8rpx;background:var(--green-soft);color:var(--green-dark)}.rf-mid{min-width:0}.head .title{font-size:36rpx}.head .row{align-items:flex-start;flex-wrap:wrap;gap:12rpx}.head .bar{height:6rpx}.coach-link{font-size:22rpx}.fm{background:var(--bg);color:var(--text)}.fm-done{background:var(--green);color:var(--button-text)}

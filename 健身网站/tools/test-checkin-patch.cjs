@@ -1,0 +1,15 @@
+const assert=require('assert'),path=require('path');const {trainingPatch}=require(path.resolve(__dirname,'../../健身小程序/utils/checkin-patch.js'));
+const base={date:'2026-10-19',dietLog:[],dietOk:false,waterMl:0,sleepHours:0,weight:'60',note:{text:'原备注',photos:['keep']}};
+const doc={...base,weight:60,trained:true,exercises:[{name:'深蹲',log:[{done:true}]}]};
+const patch=trainingPatch(doc,base);for(const k of ['dietLog','dietOk','waterMl','sleepHours','weight','note'])assert(!Object.hasOwn(patch,k));
+const latest={dietLog:[{name:'鸡胸肉',grams:650}],waterMl:500,sleepHours:8,weight:61,note:{text:'新记录',photos:['photo']}};const saved={...latest,...patch};for(const k of Object.keys(latest))assert.deepEqual(saved[k],latest[k]);assert(saved.trained);
+assert.equal(trainingPatch({...doc,waterMl:250},base).waterMl,250);assert.equal(trainingPatch({...doc,weight:'61'},base).weight,61);
+assert.deepEqual(trainingPatch({...doc,note:'修改文字'},base).note,{text:'修改文字',photos:['keep']});
+assert(!Object.hasOwn(trainingPatch({...doc,date:'2026-10-20'},base),'dietLog'));assert(!Object.hasOwn(trainingPatch(doc,null),'waterMl'));
+console.log('PASS training save preserves newer meals, water, sleep, weight and photos; intentional edits retained; wrong-date baseline ignored');
+const fs=require('fs'),vm=require('vm');let page,writes=[],reads=0,dbDoc={...latest};
+const db={collection:()=>({where:()=>({get:async()=>{reads++;return {data:[{_id:'record'}]}}}),doc:()=>({update:async({data})=>{await new Promise(r=>setTimeout(r,5));writes.push(JSON.parse(JSON.stringify(data)));Object.assign(dbDoc,data)}})})};
+const app={globalData:{openid:'test'}};const ctx={getApp:()=>app,require:n=>n.endsWith('/page.js')?c=>page=c:n.endsWith('checkin-patch.js')?{trainingPatch}:{},wx:{cloud:{database:()=>db,callFunction:()=>Promise.resolve()},showToast(){}},setTimeout:()=>0,console,Promise,JSON,Number,String,Math,Date};
+vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'../../健身小程序/pages/today/today.js'),'utf8'),ctx);
+page.data={...doc,viewDate:doc.date,dayIndex:1,exercises:[{name:'深蹲',log:[{done:true,reps:8}]}]};page.setData=x=>Object.assign(page.data,x);page.decorateProgression=x=>x;
+(async()=>{await page.save();assert.equal(reads,0,'unloaded record must not write');page._checkinReadyDate=doc.date;page._checkinBaseline=base;const first=page.save();page.data.exercises[0].log[0].reps=12;const second=page.save();await Promise.all([first,second]);assert.equal(writes.length,2);assert.equal(writes[0].exercises[0].log[0].reps,8);assert.equal(writes[1].exercises[0].log[0].reps,12);assert.equal(dbDoc.waterMl,500);assert.deepEqual(dbDoc.dietLog,latest.dietLog);console.log('PASS actual save: load guard, immutable queued snapshots, ordered writes, preserve other-page nutrition')})().catch(e=>{console.error(e);process.exitCode=1});

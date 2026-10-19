@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
   <view wx:if="{{!hasPlan}}" class="card center-empty">
     <view class="title">还没有计划</view>
     <view class="btn block" bindtap="goAssess">去测评</view>
@@ -120,11 +121,11 @@
       <input value="{{input}}" bindinput="onInput" placeholder="问点什么，如：平台期怎么办？" />
       <view class="send" bindtap="sendChat">{{aiBusy?'…':'发送'}}</view>
     </view>
-    <view class="muted" style="margin-top:8rpx">可用知识库答疑：训练/饮食/康复问题（需先在 CloudBase 开通 AI 额度）</view>
+    <view class="muted" style="margin-top:8rpx">训练与饮食建议仅作参考，按实际状态调整。</view>
   </view>
 
-  <view class="card muted" wx:else>
-    <view style="font-size:26rpx;color:var(--text);font-weight:600">🤖 AI 答疑 · 即将上线</view>
-    <view style="margin-top:8rpx;line-height:1.7">测试阶段暂不接入 AI（避免产生费用）。等你验证小程序好用、准备收费时，再开通 CloudBase AI 额度即可一键启用「进度总结 + 教练对话」。</view>
+  <view class="card" wx:else bindtap="goCoach">
+    <view class="title">随身导师</view>
+    <view class="muted" style="margin-top:8rpx">对训练记录有疑问？找导师聊聊 ›</view>
   </view>
 </block>

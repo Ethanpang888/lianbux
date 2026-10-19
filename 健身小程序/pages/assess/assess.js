@@ -2,7 +2,7 @@ const app = getApp()
 const calc = require('../../utils/calc.js')
 const kb = require('../../utils/kb.js')
 
-Page({
+require('../../utils/page.js')({
   data: {
     gender: '男', age: '', height: '', weight: '',
     goal: '减脂', exp: '新手', days: 3,

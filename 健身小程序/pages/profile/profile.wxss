@@ -23,3 +23,5 @@
 /* 周任务/徽章进度条（2026-10-18 第一批） */
 .wk-bar { height: 14rpx; background: var(--bg); border: 1rpx solid var(--line); border-radius: 999rpx; overflow: hidden; }
 .wk-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), #4ade80); border-radius: 999rpx; }
+
+.tool-link{display:flex;justify-content:space-between;align-items:center;padding:24rpx 0;border-bottom:1rpx solid var(--line);font-size:26rpx}.tool-link:last-child{border:0}.tool-link .muted{font-size:22rpx;margin-top:6rpx}

@@ -51,15 +51,7 @@ const REP_OPTIONS = (function () {
 
 // 参考起步重量：按「动作角色 × 体重 × 经验 × 器械」粗估，只作滚轮默认值 + 灰字提示，用户可随意改
 function suggestWeight(profile, ex) {
-  const p = profile || {}
-  const w = Number(p.weight) || 70
-  const base = (ex.role === '主项' ? 0.50 : ex.role === '辅助' ? 0.30 : 0.12) * w
-  const expK = { 新手: 0.6, 进阶: 0.8, 熟练: 1.0 }[p.exp] || 0.6
-  const eqK = {
-    杠铃: 1, 器械: 0.9, 绳索: 0.5, 哑铃: 0.4, 壶铃: 0.5,
-    瑞士球: 0.3, 弹力带: 0.2, 无器械: 0
-  }[ex.equipment] || 0.5
-  return Math.max(0, Math.round(base * expK * eqK / 2.5) * 2.5)
+  return require('../../utils/pro.js').estimateW8(ex,profile || {})
 }
 
 // 旧计划动作名 → 最新动作名（中文名变化导致匹配失败时兜底）
@@ -125,7 +117,7 @@ function mapExercise(e, exdb, profile) {
   return out
 }
 
-Page({
+require('../../utils/page.js')({
   data: {
     loaded: false, hasPlan: false, dayIndex: 0, dayOffset: 0, viewDate: '', isToday: true,
     relLabel: '今天', cycleLabel: '', microLen: 1,
@@ -143,7 +135,7 @@ Page({
     // 动作库选择弹层（与网站 openPicker 同款）
     pk: { on: false, mode: 'add', cats: [], cat: '全部', q: '', list: [], tip: '' },
     // —— 完整版训练内容 ——
-    week: 1, deload: false, srcTag: '', warmup: null, mainNote: '', cardio: null,
+    week: 1, deload: false, srcTag: '', warmup: null, warmupOpen: true, mainNote: '', cardio: null,
     // —— 饮食双模式 + 进度 ——
     dietMode: 'simple', progress: [],
     // —— 重量/次数滚轮 ——
@@ -216,7 +208,7 @@ Page({
       calTarget: cal, macroTarget: m,
       dietMode: profile.dietMode || (plan && plan.dietMode) || 'simple',
       dietState: { carbAdj: dietState.carbAdj || 0, proteinAdj: dietState.proteinAdj || 0, lastType: dietState.lastType || '' },
-      waterTarget: calc.round(profile.weight * 35),
+      waterTarget: calc.round(profile.weight * 30),
       learn: kb.LEARN[((idx % 28) + 28) % 28], learnOpen: false
     }
     if (day.type === 'rest') {
@@ -226,18 +218,18 @@ Page({
         week: day.week || 1, deload: false,
         cycleLabel: plan.micro ? `第 ${idx + 1} 天 · 循环第${Math.floor(logical / microLen) + 1}周 · 第${(logical % microLen) + 1}/${microLen}单元` : `第 ${idx + 1} 天`
       }))
-      this.recalcDiet(); this.loadCheckin(viewDate, idx); return
+      this.loadFlow(); this.recalcDiet(); this.loadCheckin(viewDate, idx); return
     }
     const exdb = kb.EX || []
     const exercises = planEx.map(e => {const ex=mapExercise(e,exdb,profile),ts=(profile||{}).todayState||{},recovery=!!day.deload||(ts.date===viewDate&&!['ok','good'].includes(ts.key)),t=progression.targetFor(ex,plan,this._progressHistory||[],viewDate,recovery);if(t){ex.target=t;ex.sets=t.sets+'×'+t.reps+(t.kind==='time'?'秒':'');ex.suggest=t.weight;ex.log=Array.from({length:t.sets},()=>({weight:t.weight,reps:t.reps,done:false,type:'work'}))}return ex})
     this.setData(Object.assign(common, {
       isRest: false, focus: day.focus, exercises:this.decorateProgression(exercises,this._progressHistory||[],viewDate),
       week: day.week || 1, deload: !!day.deload, srcTag: day.src || '',
-      warmup: day.warmup || null, mainNote: (kb.METHOD && kb.METHOD.MAIN_NOTE) || '',
+      warmup: day.warmup || {minutes:8},warmupRows:require('../../utils/training-flow-data.js').warmup(day), mainNote: (kb.METHOD && kb.METHOD.MAIN_NOTE) || '',
       cardio: day.cardio || null,
       cycleLabel: plan.micro ? `第 ${idx + 1} 天 · 循环第${Math.floor(logical / microLen) + 1}周 · 第${(logical % microLen) + 1}/${microLen}单元 · ${day.focus}` : `第 ${idx + 1} 天`
     }))
-    this.recalcDiet(); this.loadCheckin(viewDate, idx)
+    this.loadFlow(); this.recalcDiet(); this.loadCheckin(viewDate, idx)
     this.restoreRest()
     this.maybePrecheck(viewDate, false)
   },
@@ -318,6 +310,7 @@ Page({
   },
 
   loadCheckin(viewDate, idx) {
+    this._checkinReadyDate = null
     const db = wx.cloud.database()
     const plan=app.globalData.plan,before=JSON.stringify(this.data.exercises.map(e=>e.log))
     db.collection('checkins').where({_openid:app.globalData.openid,date:db.command.lte(viewDate)}).orderBy('date','desc').limit(100).get()
@@ -342,7 +335,9 @@ Page({
           weight: c.weight ? String(c.weight) : '', note: c.note || ''
         })
         this.recalcDiet()
-      }).catch(() => {})
+        this._checkinReadyDate = viewDate
+        this._checkinBaseline = JSON.parse(JSON.stringify({date:viewDate,dietLog:this.data.dietLog,dietOk:this.data.dietOk,waterMl:this.data.waterMl,sleepHours:this.data.sleepHours,weight:this.data.weight,note:this.data.note}))
+      }).catch(() => { if(this.data.viewDate===viewDate)wx.showToast({title:'记录加载失败，请重新进入后保存',icon:'none'}) })
   },
 
   toggleExpand(e) {
@@ -375,9 +370,10 @@ Page({
    *  2026-10-18 线上复查修复：剩余时间按「截止时间戳」存本机 —— 切页/刷新/杀进程回来都能接着跑
    *  （旧版 onHide 直接清零，切去饮食再回训练倒计时就没了）。 */
   startRest(sec,label){restTimer.connect(app.globalData.openid);restTimer.start(sec,label);this.restoreRest()},
-  restTick(){const t=restTimer.current();this.setData({restLeft:t?t.left:0,restTotal:t?t.total:0,restLabel:t?t.label:''})},
-  restoreRest(){restTimer.connect(app.globalData.openid);if(!this._restUnsub)this._restUnsub=restTimer.subscribe(t=>this.setData({restLeft:t?t.left:0,restTotal:t?t.total:0,restLabel:t?t.label:''}));this.restTick()},
+  restTick(){const t=restTimer.current();this.setData({restLeft:t?t.left:0,restTotal:t?t.total:0,restDisplay:t?t.time:'00:00',restPhase:t?t.phase:'',restRunning:!!(t&&t.run),restLabel:t?t.label:'',timerActive:!!t,timerKind:t?t.kind||'rest':'rest'})},
+  restoreRest(){restTimer.connect(app.globalData.openid);if(!this._restUnsub)this._restUnsub=restTimer.subscribe(t=>this.setData({restLeft:t?t.left:0,restTotal:t?t.total:0,restDisplay:t?t.time:'00:00',restPhase:t?t.phase:'',restRunning:!!(t&&t.run),restLabel:t?t.label:'',timerActive:!!t,timerKind:t?t.kind||'rest':'rest'}));this.restTick()},
   addRest30(){restTimer.add()},
+  pauseRest(){restTimer.toggle()},
   skipRest(){restTimer.end()},
   clearRestTimer(){if(this._restUnsub){this._restUnsub();this._restUnsub=null}},
   onUnload(){this.clearRestTimer();this.fmStop()},
@@ -489,6 +485,16 @@ Page({
     if (this.data.fm && this.data.fm.on) this.setData({ fm: { on: false } })
   },
 
+  toggleWarmup(){this.setData({warmupOpen:!this.data.warmupOpen})},
+  checkWarmup(e){const i=Number(e.currentTarget.dataset.i),checks=Object.assign({},this.data.warmChecks||{});checks[i]=!checks[i];this.setData({warmChecks:checks});this.saveFlow('warmup',checks)},
+  flowKey(k){return 'lbgym_flow_mp_'+app.globalData.openid+'_'+this.data.viewDate+'_'+k},
+  saveFlow(k,v){try{wx.setStorageSync(this.flowKey(k),v)}catch(e){wx.showToast({title:'记录保存失败，请重试',icon:'none'})}},
+  loadFlow(){this.setData({warmChecks:wx.getStorageSync(this.flowKey('warmup'))||{},cardioCompleted:!!wx.getStorageSync(this.flowKey('cardio'))})},
+  startWarmup(){restTimer.start((this.data.warmup.minutes||8)*60,'热身准备','warmup');this.restoreRest()},
+  startCardio(e){restTimer.start(Number(e.currentTarget.dataset.seconds),Number(e.currentTarget.dataset.seconds)===1200?'走跑间歇':'轻松有氧','cardio',Number(e.currentTarget.dataset.seconds)===1200);this.restoreRest()},
+  completeCardio(){this.saveFlow('cardio',true);this.setData({cardioCompleted:true});wx.showToast({title:'有氧完成已存本机',icon:'none'})},
+  postponeTraining(){app.globalData.openSchedule=true;require('../../utils/navigation.js').go('/pages/plan/plan')},
+  toggleProgression(e){const i=Number(e.currentTarget.dataset.i);this.setData({['exercises['+i+'].pgExpanded']:!this.data.exercises[i].pgExpanded})},
   noop() {},
 
   // —— 今日饮食：单输入框（打字即联想 + 没找到自行输入）——
@@ -1029,7 +1035,7 @@ Page({
       wx.showToast({ title: '已记录·目标已微调', icon: 'none' })
     }).catch(() => { wx.hideLoading(); this.render() })
   },
-  goDiet() { wx.navigateTo({ url: '/pages/diet/diet' }) },
+  goDiet() { require('../../utils/navigation.js').go('/pages/diet/diet') },
 
   // —— 重量/次数 滚轮 ——
   openWheel(e){this.showProgressWheel(Number(e.currentTarget.dataset.i),Number(e.currentTarget.dataset.j),false)},
@@ -1147,6 +1153,7 @@ Page({
   },
 
   save() {
+    if(this._checkinReadyDate!==this.data.viewDate){wx.showToast({title:'记录尚未加载完成，请稍后保存',icon:'none'});return Promise.resolve()}
     const db = wx.cloud.database()
     const doc = {
       date: this.data.viewDate, dayIndex: this.data.dayIndex,
@@ -1157,25 +1164,33 @@ Page({
       exercises: this.data.exercises.map(e => ({ oid: e.oid || '', name: e.name, sets: e.sets, role:e.role||'',target:e.target||null,progressReady:!!e.progressReady,log:e.log })),
       dietLog: this.data.dietLog
     }
-    db.collection('checkins').where({ _openid: app.globalData.openid, date: this.data.viewDate }).get()
+    // Only fields edited here may be written. Other pages own newer nutrition/recovery data.
+    const patch = JSON.parse(JSON.stringify(require('../../utils/checkin-patch.js').trainingPatch(doc, this._checkinBaseline)))
+    const savedDate=doc.date
+    const persist = () => db.collection('checkins').where({ _openid: app.globalData.openid, date: savedDate }).get()
       .then(res => {
+        if(res.data.length>1)throw new Error('当天有重复记录，未覆盖')
         const save = () => {
           if (res.data.length) {
-            return db.collection('checkins').doc(res.data[0]._id).update({ data: doc })
+            return db.collection('checkins').doc(res.data[0]._id).update({ data: patch })
           }
-          return db.collection('checkins').add({ data: doc })
+          return db.collection('checkins').add({ data: patch })
         }
         return save()
       })
       .then(() => {
+        if(this.data.viewDate!==savedDate)return
+        this._checkinBaseline=JSON.parse(JSON.stringify(doc))
         this._progressHistory=[doc].concat((this._progressHistory||[]).filter(x=>x.date!==doc.date));this.setData({exercises:this.decorateProgression(this.data.exercises,this._progressHistory)});
         this.setData({ savedTip: true }); setTimeout(() => this.setData({ savedTip: false }), 1500)
         if (app.loadCultivation) app.loadCultivation(true)   // 修炼摘要当日缓存失效（EXP 变了）
         // 双端互通：绑定了网站账号的话，把今天这条打卡镜像过去（不绑定就静默跳过）
-        wx.cloud.callFunction({ name: 'webApi', data: { action: 'mpSyncCheckin', date: this.data.viewDate } })
+        wx.cloud.callFunction({ name: 'webApi', data: { action: 'mpSyncCheckin', date: savedDate } })
           .catch(() => {})
       })
-      .catch(err => wx.showToast({ title: '保存失败', icon: 'none' }))
+      .catch(err => wx.showToast({ title: '保存失败，请重试', icon: 'none' }))
+    this._saveQueue = (this._saveQueue || Promise.resolve()).then(persist, persist)
+    return this._saveQueue
   },
 
   decorateProgression(exercises,history,viewDate){const g=app.globalData,plan=g.plan,P=progression,date=viewDate||this.data.viewDate||todayStr();return exercises.map(e=>{const c=P.configFor(e,plan),s=c&&P.suggestion(e,plan,history,shiftDate(date,1));return Object.assign({},e,{pgOn:!!c,pgLabel:P.label(e.target),pgSuggestion:s&&s.target?P.label(Object.assign({},s.target,s.value)):'',pgReason:s?s.reason:'',pgSource:s&&s.date?s.date+'：'+s.summary:'',pgCanAccept:!!(s&&s.source&&s.kind!=='calibrate'&&(!c.accepted||c.accepted.source!==s.source))})})},
@@ -1197,7 +1212,7 @@ Page({
     const m = key ? TIP_MAP[key] : null
     this.setData({ tcmTip: m ? { name: m.name, tip: m.tip } : null })
   },
-  goTcm() { wx.switchTab({ url: '/pages/tcm/tcm' }) },
+  goTcm() { require('../../utils/navigation.js').go('/pages/tcm/tcm') },
 
   loadWeek() {
     const db = wx.cloud.database()

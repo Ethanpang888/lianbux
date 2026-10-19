@@ -36,7 +36,7 @@ const ERR_MAP = {
   AI_NOT_CONFIGURED: '导师还没配置好，过几天再来。'
 }
 
-Page({
+require('../../utils/page.js')({
   data: {
     messages: [],       // {id, role, content, nodes?}
     input: '', sending: false, err: '',

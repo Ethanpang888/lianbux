@@ -1,1 +1,4 @@
-{ "usingComponents": {}, "navigationBarTitleText": "我的记录" }
+{
+  "usingComponents": {},
+  "navigationBarTitleText": "修炼记录"
+}

@@ -3,10 +3,10 @@
 .field input { text-align: right; width: 320rpx; }
 .seg { display: flex; gap: 10rpx; }
 .seg-i { padding: 10rpx 24rpx; border-radius: 999rpx; background: var(--bg); color: var(--sub); font-size: 24rpx; }
-.seg-i.on { background: var(--green); color: #12291b; }
+.seg-i.on { background: var(--green); color: var(--button-text); }
 .picker { background: var(--bg); padding: 12rpx 24rpx; border-radius: 12rpx; color: var(--text); }
 .kv { flex: 1; text-align: center; }
-.kv b { display: block; font-size: 36rpx; }
+.kv .strong { display: block; font-size: 36rpx; }
 .kv text { font-size: 20rpx; color: var(--sub); }
 .prog { border: 2rpx solid var(--line); border-radius: 14rpx; padding: 18rpx 20rpx; margin-top: 12rpx; }
 .prog.on { border-color: var(--green); background: var(--green-soft); }

@@ -23,7 +23,7 @@ function stageOf(n) {
   return pick
 }
 
-Page({
+require('../../utils/page.js')({
   data: {
     profile: null, plan: null, hasPlan: false,
     dayIndex: 0, streak: 0, totalTrained: 0,
@@ -110,18 +110,12 @@ Page({
     this.loadDietSummary()
   },
 
-  postponeTraining(){app.globalData.openSchedule=true;wx.switchTab({url:'/pages/plan/plan'})},
-  goDiet(){wx.navigateTo({url:'/pages/diet/diet'})},
+  postponeTraining(){app.globalData.openSchedule=true;require('../../utils/navigation.js').go('/pages/plan/plan')},
+  goDiet(){require('../../utils/navigation.js').go('/pages/diet/diet')},
   openFoodPanel(e){wx.navigateTo({url:'/pages/food/food?meal='+e.currentTarget.dataset.k+'&date='+todayStr()})},
   loadDietSummary(){
     const e=calc.energyPlan(app.globalData.profile,app.globalData.dietState||{})
-    const paint=log=>{const t={kcal:0,protein:0,carbs:0,fat:0};log.forEach(f=>Object.keys(t).forEach(k=>t[k]+=Number(f[k])||0));Object.keys(t).forEach(k=>t[k]=Math.round(t[k]));
-      const mk=(key,label,got,target)=>{const pct=target>0?Math.round(got/target*100):0;return{key,label,got,target,pct,width:Math.min(100,pct),over:target>0&&got>target}}
-      const cp=mk('kcal','热量',t.kcal,e.kcal)
-      this.setData({goalName:(app.globalData.profile||{}).goal,calTarget:e.kcal,energy:{tdee:e.tdee,deficit:e.deficit},dietTotal:t,calorieProgress:cp,
-        nutrientProgress:[mk('protein','蛋白质',t.protein,e.protein),mk('carb','碳水',t.carbs,e.carb),mk('fat','脂肪',t.fat,e.fat)],dietOver:t.kcal>e.kcal,dietRemain:Math.abs(Math.round(e.kcal-t.kcal)),ringStyle:'background:conic-gradient('+(cp.over?'#e05252':'#df9656')+' '+cp.width+'%,var(--line) 0)',
-        mealGroups:[{k:'b',name:'早餐'},{k:'l',name:'午餐'},{k:'d',name:'晚餐'},{k:'s',name:'加餐'}].map(m=>{const a=log.filter(f=>(f.meal||'s')===m.k);return Object.assign({},m,{items:a,sum:Math.round(a.reduce((n,f)=>n+(Number(f.kcal)||0),0))+' kcal'})})})
-    }
+    const paint=log=>this.setData(Object.assign({goalName:(app.globalData.profile||{}).goal,energy:{tdee:e.tdee,deficit:e.deficit}},require('../../utils/presentation.js').dietSummary(log,e)))
     paint([])
     dietRecords.load(app.globalData.openid,todayStr()).then(rows=>paint((rows[0]||{}).dietLog||[])).catch(()=>wx.showToast({title:'饮食记录读取失败',icon:'none'}))
   },
@@ -173,14 +167,14 @@ Page({
     app.loadCultivation(true).then(cul => {
       if (!cul) return
       this.setData({
-        streak: cul.streak.cur,
-        doneToday: cul.todayTrained,
+        streak: cul.streak.cur, stageName: stageOf(cul.level).name, stageFile: stageOf(cul.level).file,
+
         culLevel: cul.level, culTitle: cul.title, culRealm: cul.realm,
         culExp: cul.exp,
         culPct: Math.max(0, Math.min(100, Math.round(cul.pct || 0))),
-        culCur: Math.round(cul.cur || 0), culSpan: Math.round((cul.next || 0) - (cul.cur || 0)),
+        culCur: Math.round((cul.exp || 0) - (cul.cur || 0)), culSpan: Math.round((cul.next || 0) - (cul.cur || 0)),
         culToNext: Math.round(cul.toNext || 0),
-        culMaxed: !cul.toNext
+        culMaxed: cul.level >= 99
       })
       this.checkBreak(cul)
     }).catch(() => {})
@@ -189,7 +183,7 @@ Page({
     db.collection('checkins').where({ _openid: app.globalData.openid, trained: true }).count()
       .then(r => {
         const total = (r && r.total) || 0
-        const st = stageOf(total)
+        const st = stageOf(this.data.culLevel || 1)
         this.setData({ totalTrained: total, stageName: st.name, stageFile: st.file })
       }).catch(() => {})
   },
@@ -201,7 +195,7 @@ Page({
     db.collection('checkins').where({ _openid: app.globalData.openid, date: todayStr() }).get()
       .then(res => {
         const ck = (res.data || [])[0] || {}
-        this.setData({ sleepHours: Number(ck.sleepHours) || 0, waterMl: Number(ck.waterMl) || 0 })
+        this.setData({ sleepHours: Number(ck.sleepHours) || 0, waterMl: Number(ck.waterMl) || 0, doneToday:(ck.exercises||[]).some(e=>(e.log||[]).some(s=>s.done)) })
       }).catch(() => {})
   },
   saveRecovery(patch) {
@@ -233,8 +227,8 @@ Page({
     this.saveRecovery({ waterMl: 0 })
   },
 
-  go(e) { wx.navigateTo({ url: e.currentTarget.dataset.url }) },
-  goTab(e) { wx.switchTab({ url: e.currentTarget.dataset.url }) },
+  go(e) { require('../../utils/navigation.js').go(e.currentTarget.dataset.url) },
+  goTab(e) { require('../../utils/navigation.js').go(e.currentTarget.dataset.url) },
   goToday() { wx.switchTab({ url: '/pages/today/today' }) },
   goProfile() { wx.switchTab({ url: '/pages/profile/profile' }) },
   goAssess() { wx.navigateTo({ url: '/pages/assess/assess' }) },

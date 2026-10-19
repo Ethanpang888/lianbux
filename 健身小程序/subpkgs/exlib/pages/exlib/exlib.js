@@ -1,6 +1,6 @@
 const kb = require('../../utils/kb.js')
 
-Page({
+require('../../../../utils/page.js')({
   data: {
     list: [], parts: kb.PARTS, equips: kb.EQUIP, levels: kb.LEVELS,
     part: '', equip: '', level: '', q: '', mode: '', home: false

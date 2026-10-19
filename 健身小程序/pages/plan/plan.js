@@ -37,7 +37,7 @@ function extractOid(gif) {
   return m ? m[1] : ''
 }
 
-Page({
+require('../../utils/page.js')({
   data: {
     hasPlan: false, plan: null, home: false,
     // 分化/频率清单从 kb 派生（旧版是页内硬编码一份，新增分化时页面看不到）
@@ -52,7 +52,6 @@ Page({
   },
 
   onShow() {
-    if (this.getTabBar) this.getTabBar().setData({ selected: 2 })
     this.load()
   },
 

@@ -1,5 +1,5 @@
 .bar { height: 14rpx; background: var(--line); border-radius: 999rpx; margin-top: 16rpx; overflow: hidden; }
-.bar-in { color: #12291b; height: 100%; background: var(--green); }
+.bar-in { color: var(--button-text); height: 100%; background: var(--green); }
 .export-bar .exp-btns { display: flex; gap: 12rpx; }
 .export-bar .btn.sm { font-size: 24rpx; padding: 10rpx 22rpx; margin: 0; }
 .export-bar .btn.ghost { background: var(--green-soft); color: var(--green-dark); border: 1rpx solid var(--line); }
@@ -10,11 +10,11 @@
 .rd { display: block; color: var(--sub); font-size: 24rpx; margin-top: 4rpx; line-height: 1.6; }
 .chat { margin-top: 12rpx; max-height: 480rpx; overflow: auto; }
 .bubble { max-width: 80%; padding: 16rpx 20rpx; border-radius: 16rpx; margin: 10rpx 0; font-size: 26rpx; line-height: 1.6; }
-.bubble.user { background: var(--green); color: #12291b; margin-left: auto; }
+.bubble.user { background: var(--green); color: var(--button-text); margin-left: auto; }
 .bubble.assistant { background: var(--bg); color: var(--text); }
 .chat-in { display: flex; gap: 12rpx; margin-top: 12rpx; }
 .chat-in input { flex: 1; background: var(--bg); border-radius: 999rpx; padding: 16rpx 24rpx; font-size: 26rpx; }
-.send { background: var(--green); color: #12291b; padding: 0 30rpx; border-radius: 999rpx; display: flex; align-items: center; font-size: 26rpx; }
+.send { background: var(--green); color: var(--button-text); padding: 0 30rpx; border-radius: 999rpx; display: flex; align-items: center; font-size: 26rpx; }
 
 /* ── 对齐网站记录页新增卡片 ── */
 /* 力量估算 */
@@ -28,7 +28,7 @@
 /* 本月热力月历 */
 .heat { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 14rpx; }
 .h-hdr, .h-cell { width: calc((100% - 48rpx) / 7); box-sizing: border-box; text-align: center; font-size: 22rpx; padding: 12rpx 0; border-radius: 8rpx; color: var(--sub); }
-.h-cell.hit { background: var(--green); color: #12291b; font-weight: 600; }
+.h-cell.hit { background: var(--green); color: var(--button-text); font-weight: 600; }
 .h-cell.part { background: var(--green-soft); color: var(--green-dark); }
 .h-cell.today { border: 1rpx solid var(--line); }
 .h-cell.empty { background: transparent; }

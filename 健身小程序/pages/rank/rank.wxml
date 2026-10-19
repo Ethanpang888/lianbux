@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view class="card rank-head">
   <view class="title" style="font-size:32rpx">排行榜</view>
   <view class="muted" style="margin-top:6rpx">只排坚持与容量：等级 / 连续 / 本周训练量。不排体重、不排体型。网站和小程序同一个榜。</view>

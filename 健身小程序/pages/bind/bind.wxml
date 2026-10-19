@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view class="card" wx:if="{{checking}}">
   <view class="muted">查询绑定状态…</view>
 </view>

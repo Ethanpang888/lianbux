@@ -1,6 +1,6 @@
 const app=getApp(),kb=require('../../utils/kb.js'),records=require('../../utils/diet-records.js')
 const MEALS=[{k:'b',name:'早餐'},{k:'l',name:'午餐'},{k:'d',name:'晚餐'},{k:'s',name:'加餐'}]
-Page({
+require('../../utils/page.js')({
  data:{meal:'b',meals:MEALS,tabs:[{k:'freq',name:'常用'},{k:'lib',name:'食物库'},{k:'tpl',name:'套餐'},{k:'recent',name:'最近'}],tab:'freq',q:'',cat:'全部',cats:[],foods:[],entries:[],tpls:[],busy:false,tplDraft:null},
  onLoad(o){this.date=o.date||records.dateStr();this.setData({meal:MEALS.some(m=>m.k===o.meal)?o.meal:'b',cats:['全部'].concat(kb.FOOD_CATS.filter(c=>c!=='全部'))});((app.globalData.profile||{}).customFoods||[]).forEach(f=>{if(!kb.FOODS.some(x=>x.name===f.name))kb.FOODS.push(f)});this.refresh();this.loadHistory()},
  loadHistory(){const db=wx.cloud.database();db.collection('checkins').where({_openid:app.globalData.openid}).orderBy('date','desc').limit(30).get().then(r=>{this.history=(r.data||[]).reduce((a,c)=>a.concat(c.dietLog||[]),[]);this.paintFoods()}).catch(()=>{})},

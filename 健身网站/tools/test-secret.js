@@ -142,9 +142,9 @@ section('6. get / list')
 section('7. append 型专项（体态 3 本 + 部位专项 4 本，2026-10-16 扩充）')
 {
   const appends = secret.SECRETS.filter(s => s.kind === 'append')
-  ok(appends.length === 7, 'append 型 7 本（圆肩/腰突/肱骨前移 + 腹肌/臀/胸/美背）', String(appends.length))
-  ok(appends.filter(s => s.cat === 'posture').length === 3 && appends.filter(s => s.cat === 'focus').length === 4,
-    '分类字段正确：体态 3 本 posture、部位 4 本 focus')
+  ok(appends.length === 8, 'append 型 8 本（含健身房翘臀专项）', String(appends.length))
+  ok(appends.filter(s => s.cat === 'posture').length === 3 && appends.filter(s => s.cat === 'focus').length === 5,
+    '分类字段正确：体态 3 本 posture、部位 5 本 focus')
   ok(appends.every(s => s.preset.goal === '' && !s.preset.split), 'append 型不动 goal / 不换分化')
   ok(appends.every(s => (s.preset.append || []).length >= 3), '每本都带 ≥3 个动作')
   // ⭐ 动作必须真实在库 —— 名字编了渲染就查无此动作（无图无要领）
@@ -160,8 +160,8 @@ section('7. append 型专项（体态 3 本 + 部位专项 4 本，2026-10-16 �
   ok(appends.every(s => (s.sources || []).length >= 2), '每本 sources ≥2 条')
   ok(appends.every(s => (s.outline || []).length >= 6), '每本大纲 ≥6 周')
   // 每本都有分类（藏经阁 tabs 依赖它）
-  ok(secret.SECRETS.every(s => ['home', 'focus', 'posture', 'advanced'].indexOf(s.cat) >= 0),
-    '全部 18 本都带合法 cat 字段')
+  ok(secret.SECRETS.every(s => ['home', 'focus', 'posture', 'advanced', 'female'].indexOf(s.cat) >= 0),
+    '全部秘籍都带合法 cat 字段（含女性周期）')
   const home3 = secret.get('home3')
   ok(home3 && home3.preset.home === true && home3.preset.split === 'ppl', '居家三分化 = ppl + home:true')
   const home5 = secret.get('home5')

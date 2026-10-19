@@ -89,8 +89,9 @@ App({
         // 旧 plan.days（28天）格式一次性迁移为 micro 无限循环，回写云端
         const plan = kb.migratePlan(this.globalData.profile, rawPlan)
         this.globalData.plan = plan
-        this.globalData.constitution = d.constitution || null
-        this.globalData.tcmResult = d.tcmResult || null
+        const profile = d.profile || {}
+        this.globalData.constitution = Object.prototype.hasOwnProperty.call(profile, 'constitution') ? profile.constitution : (d.constitution || null)
+        this.globalData.tcmResult = Object.prototype.hasOwnProperty.call(profile, 'tcmResult') ? profile.tcmResult : (d.tcmResult || null)
         this.globalData.email = d.email || ''
         this.globalData.subscribed = !!d.subscribed
         this.globalData.dietState = d.dietState || { carbAdj: 0, proteinAdj: 0, history: [] }
@@ -119,8 +120,15 @@ App({
         const cur = res.data || {}
         delete cur._id; delete cur._openid
         return db.collection('users').doc(openid).set({ data: Object.assign({}, cur, data) })
+      }, err => {
+        // 只有确实不存在才创建。网络/权限错误不能用部分数据覆盖原文档；
+        // 此拒绝回调只处理 get，不会吞掉前一个 set 的写入失败。
+        const message = String(err && (err.errMsg || err.message) || '')
+        if (!/document(?: does)? not exist|document.*not found|文档不存在/i.test(message)) throw err
+        const clean = Object.assign({}, data)
+        delete clean._id; delete clean._openid
+        return db.collection('users').doc(openid).set({ data: clean })
       })
-      .catch(() => db.collection('users').doc(openid).set({ data }))
   },
 
   // 今日日期 YYYY-MM-DD

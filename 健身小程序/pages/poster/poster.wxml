@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <!--pages/poster/poster.wxml——战报海报（与网站同款：今日战报 / 修行生涯卡）-->
 <view class="wrap">
   <canvas type="2d" id="pCanvas" class="pcv"></canvas>

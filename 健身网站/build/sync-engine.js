@@ -47,6 +47,7 @@ function buildList() {
 
 function main() {
   const write = process.argv.includes('--write')
+  require('./sync-parity.js').sync(write)
   const list = buildList()
   let drift = 0
 

@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <!--pages/ai/ai.wxml——随身导师-->
 
 <view class="topbar">

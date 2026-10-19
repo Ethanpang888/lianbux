@@ -1,3 +1,4 @@
+<page-meta page-style="{{themeStyle}}"/>
 <view class="card">
   <view class="title">每日计划邮件 <text class="mini" style="color:var(--gold,#d5bd87)">完整版权益</text></view>
   <view class="muted" style="margin:8rpx 0;line-height:1.6">每天 08:00 自动把「今日训练 + 饮食计划」发到你的邮箱；会员每晚 21:00 加发「明日预告 + 买菜清单」，配好菜三餐。个人小程序无法在微信内推送，邮件是唯一直达方式。</view>

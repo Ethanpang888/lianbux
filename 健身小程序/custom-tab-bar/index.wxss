@@ -1,11 +1,1 @@
-.tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  height: 100rpx; display: flex; background: #101713;
-  border-top: 1rpx solid #2a372f; padding-bottom: env(safe-area-inset-bottom);
-  z-index: 999;
-}
-.tab {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 26rpx; color: #9aa99e;
-}
-.tab.on { color: #a2d4b2; font-weight: 700; background: #233c2c; }
+.tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--bg);border-top:1rpx solid var(--line);padding:16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));z-index:999;color:var(--text)}.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8rpx;padding:12rpx 0;border-radius:24rpx;font-size:20rpx;color:var(--sub)}.tab.on{color:var(--green-dark);background:var(--green-soft);font-weight:500}.tab-icon{width:40rpx;height:40rpx}.global-rest{position:fixed;left:24rpx;right:24rpx;bottom:calc(150rpx + env(safe-area-inset-bottom));border:1rpx solid var(--line);border-radius:24rpx;background:var(--card);color:var(--text);padding:20rpx;z-index:998;display:flex;align-items:center;gap:24rpx;box-shadow:0 4rpx 24rpx #0002;font-size:22rpx}.timer-main{flex:1;display:flex;gap:18rpx;align-items:center}.timer-num{font-size:40rpx;color:var(--green-dark);font-variant-numeric:tabular-nums}.timer-note{font-size:20rpx;color:var(--sub)}
