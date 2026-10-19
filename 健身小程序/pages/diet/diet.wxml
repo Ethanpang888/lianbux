@@ -49,31 +49,21 @@
       </view>
     </view>
 
-    <block wx:if="{{dayPlan}}">
-      <view class="muted" style="margin:8rpx 0 14rpx;line-height:1.6">{{dayPlan.note}}</view>
+    <block wx:if="{{refMeals}}">
+      <view class="muted" style="margin:8rpx 0 14rpx;line-height:1.6">三餐参考 = 每餐「主食 + 蛋白 + 蔬菜 + 油脂」，克数按各自营养密度折算（蛋白食物自带的脂肪已从油脂里扣）。先在「今日」页打过卡，点「记入」才写进当天记录。</view>
 
-      <view wx:for="{{dayPlan.meals}}" wx:key="meal" class="meal">
+      <view wx:for="{{refMeals}}" wx:key="meal" class="meal">
         <view class="meal-h">
-          <text class="meal-n">{{item.mealName}}</text>
-          <text class="meal-t">蛋白{{item.got.protein}}g · 碳水{{item.got.carb}}g · 脂肪{{item.got.fat}}g · {{item.got.kcal}}kcal</text>
+          <text class="meal-n">{{item.name}}</text>
+          <text class="meal-t">参考 {{item.sumK}}kcal（目标 {{item.targetK}}）· 蛋白{{item.sumP}}g</text>
         </view>
-
-        <block wx:if="{{dietMode==='recipe'}}">
-          <view wx:for="{{item.dishes}}" wx:for-item="d" wx:key="name" class="dish">
-            <view class="dish-n">{{d.name}}<text class="dish-k">{{d.nutrition.kcal}}kcal · 蛋白{{d.nutrition.protein}}g</text></view>
-            <view class="dish-i">{{d.items}}</view>
-          </view>
-        </block>
-
-        <block wx:else>
-          <view class="smline"><text>蛋白 {{item.protein}}g</text><text>碳水 {{item.carb}}g</text><text>脂肪 {{item.fat}}g</text><text>{{item.kcal}}kcal</text></view>
-          <view wx:for="{{item.hints}}" wx:for-item="h" wx:key="*this" class="hint">{{h}}</view>
-        </block>
+        <view wx:for="{{item.items}}" wx:for-item="x" wx:key="name" class="smline">
+          <text>{{x.name}}</text><text>{{x.g}}{{x.unit}} · {{x.kcal}}kcal/100g</text>
+        </view>
+        <view class="btn ghost" style="margin-top:10rpx" data-k="{{item.meal}}" bindtap="refLog">✓ 按这个记入「{{item.name}}」</view>
       </view>
-
-      <view class="muted" style="margin-top:12rpx">全天目标 蛋白{{dayPlan.target.protein}}g · 碳水{{dayPlan.target.carb}}g · 脂肪{{dayPlan.target.fat}}g · {{dayPlan.target.kcal}}kcal</view>
     </block>
-    <view wx:else class="muted">暂时算不出来（先完成测评）。</view>
+        <view wx:else class="muted">暂时算不出来（先完成测评）。</view>
   </view>
 
   <view class="card" style="background:var(--warn-soft);border-left:8rpx solid var(--warn)">

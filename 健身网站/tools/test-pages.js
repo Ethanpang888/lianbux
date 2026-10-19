@@ -134,6 +134,7 @@ const body = `
     TEST.render('home', () => PageHome.render())
     TEST.render('today', () => PageToday.render([]))
     TEST.render('diet', () => PageDiet.render())
+    TEST.render('mealref', () => PageDiet.refPage())
     TEST.render('records', () => PageRecords.render())
     TEST.render('me', () => PageMe.render())
     TEST.render('login', () => PageLogin.render())
@@ -278,11 +279,22 @@ section('页面内容正确性抽查')
     (diet.match(/.{0,30}(undefined|NaN).{0,30}/) || [''])[0])
   ok(/g\/kg/.test(diet), '饮食页显示了 g/kg 口径')
   ok(/活动系数/.test(diet), '饮食页显示了活动系数')
-  // 每餐合计不能是 0（simple 模式的字段是 m.kcal，recipe 模式是 m.got —— 曾接错显示全 0）
-  const mealKcals = (diet.match(/(\d+) kcal · 蛋白/g) || []).map(s => Number(s.match(/(\d+)/)[1]))
-  ok(mealKcals.length >= 3, '饮食页列出了 ≥3 餐', '实际 ' + mealKcals.length)
-  ok(mealKcals.every(k => k > 0), '每餐热量都不为 0（字段名接对）', JSON.stringify(mealKcals))
-  ok(/全天合计/.test(diet) && !/全天合计 0 /.test(diet), '全天合计不为 0')
+  // 2026-10-19 改版：三餐参考独立页（mealref），主页只留入口 + 四餐记录 + 添加按钮
+  ok(/三餐参考/.test(diet) && /mealref/.test(diet), '饮食页有三餐参考入口')
+  ok(/添加食物/.test(diet), '有「添加食物」入口（面板收进弹层）')
+  ok(/早餐/.test(diet) && /加餐/.test(diet), '主页有四餐记录区')
+  // 三餐参考页：≥3 餐且每餐热量不为 0（原「每餐合计」断言挪到这里）
+  const ref = res.pages.mealref ? res.pages.mealref.html : ''
+  ok(!!ref, '三餐参考页可渲染')
+  if (ref) {
+    const mealKcals = (ref.match(/(\d+) kcal · 蛋白/g) || []).map(x => Number(x.match(/(\d+)/)[1]))
+    ok(mealKcals.length >= 3, '三餐参考列出了 ≥3 餐', '实际 ' + mealKcals.length)
+    ok(mealKcals.every(k => k > 0), '每餐热量都不为 0（字段名接对）', JSON.stringify(mealKcals))
+    ok(/记入/.test(ref), '每餐可一键记入')
+    // 科学性抽查：主食克数别再出现「早餐 185g 燕麦」级别的离谱值（单食物 ≤500g）
+    const grams = (ref.match(/(\d+)g/g) || []).map(x => Number(x.match(/(\d+)/)[1]))
+    ok(grams.every(g => g <= 500), '克数无离谱值（≤500g，复合营养折算生效）', JSON.stringify(grams.slice(0, 8)))
+  }
   ok(/BMI 27\.8/.test(diet), 'BMI 数值+分类都渲染（27.8 超重）')
 
   // 宏观调控卡：演示数据刻意造成"掉得偏快"，必须给出真实结论而不是空卡
@@ -666,13 +678,17 @@ section('调整顾问：反馈 → 调整 → 应用 的闭环')
 section('食物库：只列常见 + 实时联想搜索')
 {
   const diet = res.pages.diet.html || ''
-  ok(/id="foodQ"/.test(diet), '有搜索框')
-  ok(/id="foodCommon"/.test(diet), '有「常见食材」区')
+  // 2026-10-19：食物库/搜索/常用收进「添加食物」弹层 —— 源码级验证（弹层按需渲染，主页 html 不含）
+  const dietSrc = fs.readFileSync(ROOT + '/src/pages/diet.js', 'utf8')
+  ok(dietSrc.includes('id="foodQ"'), '有搜索框（弹层内，按需渲染）')
+  ok(dietSrc.includes('id="foodCommon"'), '有「常见食材」区（弹层内）')
   const chips = (diet.match(/data-food="/g) || []).length
-  ok(chips >= 40, '常见食材 ≥40 个，且每个都可点', String(chips))
+  const cm = dietSrc.match(/COMMON:\s*\{[\s\S]*?\n  \}/)
+  const commonNames = cm ? (cm[0].match(/'[^']+'/g) || []).length : 0
+  ok(commonNames >= 40, '常见食材 ≥40 个（源码级名单）', String(commonNames))
   // 旧版把 1246 条全 join 出来 —— 现在必须不这么干（用户原话：看着占位置、点了没反应）
   ok(!/鸡枞|鸡肫|马铃薯|籼米|粳米/.test(diet), '没有把整库平铺出来（只留常见项）')
-  ok(/输入一个字就出结果/.test(diet), '文案写清了打一个字就出结果')
+  ok(dietSrc.includes('输入一个字就出结果'), '文案写清了打一个字就出结果')
 
   // 名单里每个名字都必须真能在库里查到，否则点开是空的
   const badNames = vm.runInContext(

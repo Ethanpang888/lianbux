@@ -22,6 +22,7 @@
       .reg('home', () => PageHome.render(), { tab: true })
       .reg('today', a => PageToday.render(a), { tab: true })
       .reg('diet', () => PageDiet.render(), { tab: true })
+      .reg('mealref', () => PageDiet.refPage(), { noTab: true })
       .reg('records', () => PageRecords.render(), { tab: true })
       .reg('me', () => PageMe.render(), { tab: true })
       .reg('login', () => PageLogin.render(), { noTab: true })

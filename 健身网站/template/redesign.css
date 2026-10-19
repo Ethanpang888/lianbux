@@ -158,3 +158,18 @@ body.has-workout-timer #app{padding-bottom:260px}
 .gc-bar i{display:block;height:100%;background:var(--green,#22a06b);border-radius:999px}
 .goal-cell.is-over .gc-bar i{background:var(--red,#e5484d)}
 .gc-ing{font-size:11px;color:var(--sub);margin-top:4px}
+
+/* 每日目标行式（2026-10-19 二次压缩：参考赛博教练，一行一营养素） */
+.grow{padding:7px 0;border-top:1px solid var(--line)}
+.grow:first-of-type{border-top:none}
+.grow-h{display:flex;align-items:baseline;gap:8px}
+.grow-l{font-size:13px;font-weight:600;flex:1}
+.grow-v{font-size:13px;color:var(--sub)}
+.grow-v b{font-size:15px;color:var(--tx)}
+.grow-p{font-size:13px;font-weight:800;color:var(--green,#22a06b)}
+.grow.is-over .grow-p{color:var(--red,#e5484d)}
+.grow .gc-bar{margin-top:5px;height:6px}
+.kcal-big{display:flex;align-items:baseline;justify-content:space-between;padding:4px 0 10px}
+.kcal-big b{font-size:34px;font-weight:800}
+.kcal-big span{font-size:12px;color:var(--sub);margin-left:4px}
+.kcal-left{font-size:12px;color:var(--sub)}

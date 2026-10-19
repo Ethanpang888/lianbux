@@ -601,6 +601,12 @@ Page({
     this.setData({ curMeal: e.currentTarget.dataset.k })
     this.paintMealPanel()
   },
+  openFoodPanel() {
+    this.setData({ showFoodPanel: true, mealPanel: this.data.mealPanel || 'lib' })
+    if (this.data.mealPanel === 'freq' || this.data.mealPanel === 'recent') this.loadFreqFoods()
+    if (this.data.mealPanel === 'tpl') this.loadMealTpls()
+  },
+  closeFoodPanel() { this.setData({ showFoodPanel: false }) },
   setMealPanel(e) {
     this.setData({ mealPanel: e.currentTarget.dataset.p })
     if (e.currentTarget.dataset.p === 'freq' || e.currentTarget.dataset.p === 'recent') this.loadFreqFoods()

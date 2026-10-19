@@ -159,56 +159,9 @@
       </view>
     </view>
 
-    <!-- 加吃了什么：先选餐次（早/午/晚/加餐）→ 面板页签（常用/食物库/最近/套餐）+ 搜索 -->
-    <view class="foodbox-h">＋ 加吃了什么
-      <text class="muted" style="font-size:22rpx;margin-left:8rpx">记入「{{curMeal==='b'?'早餐':curMeal==='l'?'午餐':curMeal==='d'?'晚餐':'加餐'}}」</text>
-    </view>
-    <view class="fcat">
-      <view wx:for="{{mealTabs}}" wx:key="k" class="fcat-i {{curMeal===item.k?'on':''}}" data-k="{{item.k}}" bindtap="setMeal">{{item.name}}</view>
-    </view>
-    <view class="fcat" style="margin-top:8rpx">
-      <view wx:for="{{[{p:'lib',n:'食物库'},{p:'freq',n:'常用'},{p:'recent',n:'最近'},{p:'tpl',n:'套餐'}]}}" wx:key="p" class="fcat-i {{mealPanel===item.p?'on':''}}" data-p="{{item.p}}" bindtap="setMealPanel">{{item.n}}</view>
-    </view>
-
-    <!-- 食物库页签（原有：分类点选 + 搜索联想） -->
-    <block wx:if="{{mealPanel==='lib'}}">
-      <view class="fcat" style="margin-top:8rpx">
-        <view wx:for="{{foodCats}}" wx:key="*this" class="fcat-i {{foodCat===item?'on':''}}" data-c="{{item}}" bindtap="onFoodCat">{{item}}</view>
-      </view>
-      <view class="fgrid" wx:if="{{!foodInput}}">
-        <view wx:for="{{foodGrid}}" wx:key="name" class="fgrid-i" data-i="{{index}}" bindtap="pickFoodGrid">
-          <text class="fgrid-n">{{item.name}}</text>
-          <text class="fgrid-m">{{item.kcal}}kcal · 蛋白{{item.protein}}g</text>
-        </view>
-      </view>
-      <input class="search search-lg foodsearch" placeholder="或直接打字搜，如：牛肉" value="{{foodInput}}" bindinput="foodSearchInput" confirm-type="search"/>
-      <scroll-view wx:if="{{foodResults.length || foodInput}}" scroll-y class="sug">
-        <view wx:for="{{foodResults}}" wx:key="name" class="sug-i" data-i="{{index}}" bindtap="pickFoodResult">
-          <text>{{item.name}}</text><text class="eq">{{item.kcal}}kcal/100g · 蛋白{{item.protein}}g</text>
-        </view>
-        <view wx:if="{{foodInput}}" class="sug-add" bindtap="openCustomFoodFromInput">+ 没找到？直接添加「{{foodInput}}」（自填营养，填一次就记住）</view>
-      </scroll-view>
-    </block>
-
-    <!-- 常用/最近/套餐 页签 -->
-    <block wx:if="{{mealPanel==='freq' || mealPanel==='recent'}}">
-      <view class="muted" style="margin:10rpx 0;font-size:22rpx">点一下记入当前餐次；没有数据时先记几天就有了。</view>
-      <view wx:for="{{panelList}}" wx:key="name" class="dlog-i" data-n="{{item.name}}" bindtap="pickPanelFood">
-        <text class="dlog-n">{{item.name}}</text>
-        <text class="dlog-g">{{item.meta}}</text>
-        <text class="dlog-k">＋ 记</text>
-      </view>
-      <view wx:if="{{!panelList.length}}" class="dlog-empty">{{mealPanel==='freq'?'还没有常用食物——记过几次之后这里就是你最常吃的。':'还没有记录。'}}</view>
-    </block>
-    <block wx:if="{{mealPanel==='tpl'}}">
-      <view class="btn ghost block" style="margin:10rpx 0" bindtap="tplSaveCurrent">💾 把当前餐次已记的存成套餐</view>
-      <view wx:for="{{mealTpls}}" wx:key="name" class="dlog-i">
-        <text class="dlog-n" data-n="{{item.name}}" bindtap="tplUse">{{item.name}}</text>
-        <text class="dlog-g">{{item.meta}}</text>
-        <text class="dlog-x" data-n="{{item.name}}" catchtap="tplDel">✕</text>
-      </view>
-      <view wx:if="{{!mealTpls.length}}" class="dlog-empty">还没有套餐——记完一餐点上面按钮存起来，下次吃一样的直接套用。</view>
-    </block>
+    <!-- 加吃了什么：主页只留按钮（添加面板收进弹层，2026-10-19 用户反馈：主页越拉越长） -->
+    <view class="foodbox-h">＋ 加吃了什么</view>
+    <view class="btn" style="margin-top:10rpx" bindtap="openFoodPanel">＋ 添加食物（选餐次 · 搜索 · 常用 · 套餐）</view>
 
     <!-- 已吃清单：按四餐分组（每餐小计） -->
     <view class="dlog-h">已吃记录（{{dietLog.length}} 项）</view>
@@ -392,5 +345,53 @@
     </view>
     <view class="btn block" bindtap="preSubmit">就绪，开始练</view>
     <view class="pre-foot">每天只问一次 · 不会自动改你的重量和组数</view>
+  </view>
+</view>
+
+<!-- 添加食物弹层（2026-10-19：收进弹层，主页不再拉长；先选餐次 → 页签：常用/食物库/最近/套餐） -->
+<view wx:if="{{showFoodPanel}}" class="mask" bindtap="closeFoodPanel">
+  <view class="sheet" catchtap="noop" style="max-height:80vh;overflow-y:auto">
+    <view class="title" style="margin-bottom:10rpx">添加食物 → 记入「{{curMeal==='b'?'早餐':curMeal==='l'?'午餐':curMeal==='d'?'晚餐':'加餐'}}」</view>
+    <view class="fcat">
+      <view wx:for="{{mealTabs}}" wx:key="k" class="fcat-i {{curMeal===item.k?'on':''}}" data-k="{{item.k}}" catchtap="setMeal">{{item.name}}</view>
+    </view>
+    <view class="fcat" style="margin-top:10rpx">
+      <view wx:for="{{[{p:'lib',n:'食物库'},{p:'freq',n:'常用'},{p:'recent',n:'最近'},{p:'tpl',n:'套餐'}]}}" wx:key="p" class="fcat-i {{mealPanel===item.p?'on':''}}" data-p="{{item.p}}" catchtap="setMealPanel">{{item.n}}</view>
+    </view>
+    <block wx:if="{{mealPanel==='lib'}}">
+      <view class="fcat" style="margin-top:10rpx">
+        <view wx:for="{{foodCats}}" wx:key="*this" class="fcat-i {{foodCat===item?'on':''}}" data-c="{{item}}" catchtap="onFoodCat">{{item}}</view>
+      </view>
+      <view class="fgrid" wx:if="{{!foodInput}}">
+        <view wx:for="{{foodGrid}}" wx:key="name" class="fgrid-i" data-i="{{index}}" catchtap="pickFoodGrid">
+          <text class="fgrid-n">{{item.name}}</text>
+          <text class="fgrid-m">{{item.kcal}}kcal · 蛋白{{item.protein}}g</text>
+        </view>
+      </view>
+      <input class="search search-lg foodsearch" placeholder="或直接打字搜，如：牛肉" value="{{foodInput}}" bindinput="foodSearchInput" confirm-type="search"/>
+      <scroll-view wx:if="{{foodResults.length || foodInput}}" scroll-y class="sug">
+        <view wx:for="{{foodResults}}" wx:key="name" class="sug-i" data-i="{{index}}" catchtap="pickFoodResult">
+          <text>{{item.name}}</text><text class="eq">{{item.kcal}}kcal/100g · 蛋白{{item.protein}}g</text>
+        </view>
+        <view wx:if="{{foodInput}}" class="sug-add" catchtap="openCustomFoodFromInput">+ 没找到？直接添加「{{foodInput}}」（自填营养，填一次就记住）</view>
+      </scroll-view>
+    </block>
+    <block wx:if="{{mealPanel==='freq' || mealPanel==='recent'}}">
+      <view wx:for="{{panelList}}" wx:key="name" class="dlog-i" data-n="{{item.name}}" catchtap="pickPanelFood">
+        <text class="dlog-n">{{item.name}}</text>
+        <text class="dlog-g">{{item.meta}}</text>
+        <text class="dlog-k">＋ 记</text>
+      </view>
+      <view wx:if="{{!panelList.length}}" class="dlog-empty">{{mealPanel==='freq'?'还没有常用食物——记过几次就有了。':'还没有记录。'}}</view>
+    </block>
+    <block wx:if="{{mealPanel==='tpl'}}">
+      <view class="btn ghost block" style="margin:10rpx 0" catchtap="tplSaveCurrent">💾 把当前餐次已记的存成套餐</view>
+      <view wx:for="{{mealTpls}}" wx:key="name" class="dlog-i">
+        <text class="dlog-n" data-n="{{item.name}}" catchtap="tplUse">{{item.name}}</text>
+        <text class="dlog-g">{{item.meta}}</text>
+        <text class="dlog-x" data-n="{{item.name}}" catchtap="tplDel">✕</text>
+      </view>
+      <view wx:if="{{!mealTpls.length}}" class="dlog-empty">还没有套餐——记完一餐存起来，下次直接套用。</view>
+    </block>
   </view>
 </view>
