@@ -1,108 +1,13 @@
 <page-meta page-style="{{themeStyle}}"/>
-<view wx:if="{{!profile}}" class="card center-empty">
-  <view class="title">还没有资料</view>
-  <view class="btn block" bindtap="edit">去测评</view>
-</view>
-
+<view class="page-heading"><view class="page-title">我的</view><view class="muted">档案与修炼工具</view></view>
+<view wx:if="{{!profile}}" class="card center-empty"><view class="title">还没有资料</view><button class="btn" bindtap="edit">去建档</button></view>
 <block wx:else>
-  <view class="card">
-    <view class="title">我的资料</view>
-    <view class="muted" style="margin:10rpx 0 4rpx">{{profile.gender}} · {{profile.age}}岁 · {{profile.height}}cm · {{profile.weight}}kg</view>
-    <view class="muted">目标 {{profile.goal}} · 经验 {{profile.exp}} · {{profile.days}}天/周</view>
-    <view class="row" style="margin-top:16rpx">
-      <view class="pill">第{{dayIndex+1}}天{{inProgram?' · 精选课表':''}}</view>
-      <view class="pill">连续{{streak}}天</view>
-    </view>
-    <view class="btn ghost block" style="margin-top:20rpx" bindtap="edit">修改资料 / 重新测评</view>
-  </view>
-
-  <view class="card"><view class="title">修炼工具</view><view wx:for="{{tools}}" wx:key="url" class="tool-link" data-url="{{item.url}}" bindtap="goTool"><view><view>{{item.name}}</view><view class="muted">{{item.note}}</view></view><text>›</text></view></view>
-  <view class="card"><view class="title">外观</view><view class="row" style="gap:16rpx;margin-top:20rpx"><view class="btn ghost" data-theme="light" bindtap="setTheme">明亮 {{theme==='light'?'✓':''}}</view><view class="btn ghost" data-theme="dark" bindtap="setTheme">深空 {{theme==='dark'?'✓':''}}</view></view></view>
-  <!-- 修炼（与网站同一条 EXP 曲线：只读重放打卡，服务端数据为准） -->
-  <view wx:if="{{cul}}" class="card" style="border-left:8rpx solid var(--warn)">
-    <view class="row between">
-      <view class="title" style="font-size:28rpx">修炼 · Lv{{cul.level}} {{cul.title}}</view>
-      <view class="pill">EXP {{cul.exp}}</view>
-    </view>
-    <view class="bar" style="margin-top:12rpx"><view class="bar-in" style="width:{{cul.pct}}%"></view></view>
-    <view class="muted" style="margin-top:8rpx">
-      境界「{{cul.realm}}」· {{cul.realmNote}} · 距下一级还差 {{cul.toNext}} EXP
-    </view>
-    <view class="row" style="margin-top:14rpx">
-      <view class="pill">连续 {{cul.streak.cur}} 天</view>
-      <view class="pill">最长 {{cul.streak.best}} 天</view>
-      <view class="pill">累计 {{cul.trainedTotal}} 练</view>
-    </view>
-  </view>
-
-  <!-- 徽章墙（与网站 badges 页同口径：重放打卡现算；条件+进度） -->
-  <view wx:if="{{badges}}" class="card">
-    <view class="row between">
-      <view class="title" style="font-size:28rpx">徽章墙</view>
-      <view class="pill">已解锁 {{badgeGot}} / {{badges.length}}</view>
-    </view>
-    <view class="badge-grid">
-      <view wx:for="{{badges}}" wx:key="k" class="badge-tile {{item.got ? '' : 'locked'}}">
-        <view class="badge-ic">{{item.got ? '🏅' : '🔒'}}</view>
-        <text>{{item.displayName}}</text>
-      </view>
-    </view>
-    <view class="muted" style="margin-top:14rpx;line-height:1.9">
-      <view class="title" style="font-size:24rpx;margin-bottom:6rpx">未解锁 · 条件与进度</view>
-      <block wx:for="{{badgeOpen}}" wx:key="k">
-        <view style="margin-top:10rpx">
-          <text class="strong">· {{item.displayCond}}</text>
-          <text style="font-size:22rpx;color:var(--sub)">（{{item.tier}} · +{{item.exp}} EXP）</text>
-          <view wx:if="{{item.prog && item.prog.target > 1}}" style="margin-top:6rpx">
-            <view class="wk-bar"><view class="wk-bar-fill" style="width:{{item.prog.cur >= item.prog.target ? 100 : (item.prog.cur / item.prog.target * 100)}}%"></view></view>
-            <text style="font-size:22rpx;color:var(--sub)">{{item.prog.cur}} / {{item.prog.target}}</text>
-          </view>
-        </view>
-      </block>
-    </view>
-  </view>
-
-  <!-- 本周任务（2026-10-18 与网站 growth 页同口径） -->
-  <view wx:if="{{weekTasks.length}}" class="card">
-    <view class="row between">
-      <view class="title" style="font-size:28rpx">本周任务</view>
-      <view class="pill">每项 +{{weekTasks[0].exp}} EXP</view>
-    </view>
-    <view wx:for="{{weekTasks}}" wx:key="name" style="margin-top:16rpx">
-      <view class="row between" style="font-size:26rpx">
-        <text>{{item.name}}</text>
-        <text style="font-size:22rpx;color:var(--sub)">{{item.paid ? '已入账 ✓' : item.cur + ' / ' + item.target}}</text>
-      </view>
-      <view class="wk-bar" style="margin-top:6rpx">
-        <view class="wk-bar-fill" style="width:{{item.cur / item.target * 100}}%"></view>
-      </view>
-    </view>
-    <view class="muted" style="margin-top:12rpx;font-size:22rpx">{{weekNote}}</view>
-  </view>
-
-  <!-- 每日消耗与热量目标 -->
-  <view wx:if="{{energy}}" class="card" style="background:var(--green-soft);border-left:8rpx solid var(--green)">
-    <view class="title" style="font-size:28rpx">每日消耗与目标</view>
-    <view class="muted" style="margin:8rpx 0;line-height:1.8">
-      基础代谢 <text class="strong">{{energy.bmr}}</text> × 活动系数 <text class="strong">{{energy.factor}}</text>（{{energy.actName}}）= 每日总消耗 <text class="strong">{{energy.tdee}}</text> kcal
-    </view>
-    <view class="muted" style="line-height:1.8">
-      热量目标 <text class="strong">{{energy.kcal}}</text> kcal（缺口 {{energy.deficit}}）· 蛋白 <text class="strong">{{energy.protein}}g</text> · 碳水 <text class="strong">{{energy.carb}}g</text> · 脂肪 <text class="strong">{{energy.fat}}g</text>
-    </view>
-    <view wx:if="{{energy.warn}}" class="muted" style="margin-top:8rpx;color:var(--warn);line-height:1.6">
-      实际缺口与目标偏离较大，建议到「修改资料 → 日常活动量」复核档位。
-    </view>
-  </view>
-
-  <view wx:if="{{tcm}}" class="card tcm-recap" bindtap="goTcm">
-    <view class="title">我的体质倾向</view>
-    <view class="tcm-main">{{tcm.mainName}}<text wx:if="{{tcm.mainConv != null}}" class="tcm-conv"> · 倾向{{tcm.mainConv}}</text></view>
-    <view wx:if="{{tcm.sec}}" class="tcm-sec">兼夹倾向：{{tcm.secName}}</view>
-    <view class="muted" style="margin-top:8rpx">点此查看训练宜忌 · 食养建议 · 重新自测</view>
-  </view>
-
+<view class="card" data-section="profile"><view class="title">档案 <text class="mini">{{profile.exp}}</text></view><view class="kv4"><view><text class="muted">体重 kg</text><view>{{profile.weight}}</view></view><view><text class="muted">身高 cm</text><view>{{profile.height}}</view></view><view><text class="muted">目标</text><view>{{profile.goal}}</view></view><view><text class="muted">活动</text><view>{{activity}}</view></view></view><button class="btn ghost" bindtap="edit">修改档案（体重变了记得改）</button><view class="muted">BMI {{bmi}} · 每周 {{profile.days}} 练 · {{profile.home?'居家':'健身房'}}</view></view>
+<view class="card" data-section="tools"><view class="title">修炼工具</view><view wx:for="{{tools}}" wx:key="key" class="tool-link" data-url="{{item.url}}" bindtap="goTool"><view><view>{{item.name}}</view><view class="muted">{{item.note}}</view></view><text>›</text></view><view class="tool-link" data-mode="today" bindtap="poster"><view>今日战报<view class="muted">本次举铁多少吨 · 昭告天下</view></view><text>›</text></view><view class="tool-link" data-mode="life" bindtap="poster"><view>修行生涯卡<view class="muted">累计举起 · 连续修炼 · 入坑天数</view></view><text>›</text></view><button class="btn ghost" loading="{{exporting}}" bindtap="exportData">导出我的数据（JSON）</button><view class="muted">档案 + 计划 + 全部打卡；照片文件仅存本机，导出文件包含本机照片路径。</view></view>
+<view class="card" data-section="rank"><view class="title">排行榜 <text class="mini">同城 / 全国</text></view><view class="tool-link"><text class="muted">我的城市</text><text>{{profile.city||'未设置'}}</text></view><view class="chips"><text wx:for="{{cities}}" wx:key="*this" class="chip {{profile.city===item?'on':''}}" data-city="{{item}}" bindtap="setCity">{{item}}</text></view><button class="btn ghost" bindtap="goRank">看排行榜</button></view>
+<view class="card" data-section="member"><view class="title">完整版 <text class="mini">{{member.valid?member.name:'未开通'}}</text></view><view class="muted" style="margin-top:16rpx">{{member.valid?'每个动作的具体重量、周期表、状态微调和完整饮食。':'免费版给动作、组次与打卡；完整版增加具体重量、周期表、完整饮食与目标秘籍。'}}</view><view wx:if="{{member.valid}}" class="muted">到期 {{member.expiresAt}} · 还剩 {{member.days}} 天</view><button class="btn ghost" bindtap="goPro">{{member.valid?'打开完整版计划':'看看里面有什么'}}</button><button class="btn ghost" bindtap="goSecret">看秘籍</button></view>
   <!-- 收徒（裂变，2026-10-17）：邀请码 + 弟子 + 绑定师傅 -->
-  <view class="card">
+  <view class="card" data-section="invite">
     <view class="title">广收门徒 <text class="mini">同门师兄弟 · 一起炼</text></view>
     <view class="muted" style="margin:6rpx 0;line-height:1.6">把邀请码发给想练的人——他注册时填码，<text class="strong">你和他各得 3 天完整版</text>。谁先玩谁就是师傅。</view>
     <view class="row between" style="margin-top:10rpx">
@@ -115,17 +20,10 @@
     </view>
   </view>
 
-  <view class="card menu">
-    <view class="mi" bindtap="goTcm"><text>🧬 中医调理</text><text class="arr">›</text></view>
-    <view class="mi" bindtap="goDiet"><text>🥗 饮食方案</text><text class="arr">›</text></view>
-    <view class="mi" bindtap="goHistory"><text>📊 历史打卡</text><text class="arr">›</text></view>
-    <view class="mi" bindtap="goRank"><text>🏆 排行榜（与网站同榜）</text><text class="arr">›</text></view>
-    <view class="mi" bindtap="goBind"><text>🔗 绑定网站账号 · 数据互通</text><text class="arr">›</text></view>
-    <view class="mi" bindtap="goSubscribe"><text>📧 每日邮件订阅</text><text class="arr">›</text></view>
-    <view class="mi" bindtap="regen"><text>🔁 重新生成计划</text><text class="arr">›</text></view>
-    <view class="mi" bindtap="about"><text>⚠️ 免责声明</text><text class="arr">›</text></view>
-    <view class="mi danger" bindtap="clear"><text>🗑 清空我的数据</text><text class="arr">›</text></view>
-  </view>
 
-  <view class="muted center-empty">啊清练不虚 · 用中医让健身更安全</view>
+<view class="card" data-section="characters"><view class="title">我的形象 <text class="mini">当前『{{stageName}}』</text></view><view class="stage-row"><view wx:for="{{stages}}" wx:key="at" class="stage-tile {{item.unlocked?'':'locked'}} {{item.current?'cur':''}}"><image src="/assets/characters/{{item.file}}" mode="aspectFit"/><view>Lv{{item.at}}</view><text>{{item.name}}</text></view></view><view class="muted">形象随等级变化，持续训练解锁下一阶段。</view></view>
+<view class="card" data-section="level"><view class="title">等级与经验</view><view class="tool-link"><text class="muted">境界</text><text>{{cul.realm}}</text></view><view class="tool-link"><text class="muted">等级</text><text>Lv {{cul.level}} · {{cul.title}}</text></view><view class="tool-link"><text class="muted">总经验</text><text>{{cul.exp}} EXP</text></view><view class="tool-link"><text class="muted">距离下一级</text><text>{{cul.toNext}} EXP</text></view><view class="tool-link"><text class="muted">徽章</text><text>{{badgeGot||0}} / {{badges.length||0}}</text></view><button class="btn ghost" bindtap="goGrowth">查看徽章墙与成长记录</button></view>
+<view class="card" data-section="theme"><view class="title">外观</view><view class="chips"><text class="chip {{theme==='light'?'on':''}}" data-theme="light" bindtap="setTheme">明亮</text><text class="chip {{theme==='dark'?'on':''}}" data-theme="dark" bindtap="setTheme">深空（深色）</text></view><view class="muted">选择你看着舒服的颜色。</view></view>
+<view class="card" data-section="account"><view class="title">账号 <text class="mini">微信已登录</text></view><view class="tool-link"><text class="muted">玩家编号</text><text>{{playerNo||'绑定网站后同步'}}</text></view><view wx:if="{{email}}" class="tool-link"><text class="muted">邮箱</text><text>{{email}}</text></view><view class="tool-link"><text class="muted">云端状态</text><text>{{syncing?'同步中…':syncError?'同步失败，请重试':'已连接'}}</text></view><button class="btn ghost" bindtap="refreshAccount" loading="{{syncing}}">立即同步</button><button class="btn ghost" bindtap="goBind">绑定 / 解绑网站账号</button><view class="muted">绑定后两端打卡互通，排行榜共用同一个榜。</view><button class="btn ghost" bindtap="goSubscribe">每日邮件订阅</button><button class="btn ghost" style="color:var(--danger)" bindtap="clear">清空本账号数据（永久删除）</button></view>
+<view class="card" data-section="technical"><view class="tool-link" bindtap="toggleTech"><view class="title">技术信息与引擎状态</view><text>{{techOpen?'−':'＋'}}</text></view><block wx:if="{{techOpen}}"><view class="muted">计算、计划、饮食、游戏化：已加载 · 双端共用规则</view><button class="btn ghost" bindtap="about">使用说明与免责声明</button></block></view>
 </block>

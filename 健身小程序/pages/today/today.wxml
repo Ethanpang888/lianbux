@@ -7,26 +7,8 @@
 </view>
 
 <block wx:else>
-  <!-- 计划头（含减载周提示） -->
-  <view class="card head">
-    <view class="row between">
-      <view class="title">第 {{dayIndex+1}} 天 · {{isRest?'休息日':focus}}</view>
-      <view class="muted">{{relLabel}} · {{viewDate}}</view>
-    </view>
-    <view class="bar"><view class="bar-in" style="width:{{(isRest?0:(dayIndex%microLen+1)/microLen*100)}}%"></view></view>
-    <view class="nav">
-      <view class="navbtn" bindtap="prevDay">‹ 前一天</view>
-      <view class="navmid">{{cycleLabel}}<text wx:if="{{!isToday}}" class="backtoday" bindtap="backToToday"> · 回到今天</text></view>
-      <view class="navbtn" bindtap="nextDay">后一天 ›</view>
-    </view>
-    <view wx:if="{{!isRest}}" class="headtags">
-      <text class="htag we{{week}}">第{{week}}周</text>
-      <text wx:if="{{srcTag==='推演'}}" class="htag tui">推演编排</text>
-      <text wx:if="{{deload}}" class="htag deload">减载周 · 正式组 ×0.6</text>
-    </view>
-    <view class="row between"><text class="coach-link" bindtap="postponeTraining">今天没空？顺延训练</text><text class="coach-link" bindtap="goCoach">状态不好？调整训练 ›</text></view>
-  </view>
-
+  <view class="page-heading"><view class="page-title">训练</view><view class="muted">热身 → 力量 → 按需有氧</view></view>
+  <view class="card datebar" data-section="date"><view class="row between"><text bindtap="prevDay">‹ 前一天</text><view class="strong">{{relLabel}} · {{viewDate}}</view><text bindtap="nextDay">后一天 ›</text></view><view class="muted" style="margin-top:16rpx">{{cycleLabel}}</view><view wx:if="{{!isToday}}" class="coach-link" bindtap="backToToday">回到今天</view><view class="row between" style="margin-top:18rpx"><text class="coach-link" bindtap="postponeTraining">今天没空？顺延训练</text><text class="coach-link" bindtap="goCoach">状态不好？调整训练 ›</text></view></view>
   <!-- 休息日 -->
   <view wx:if="{{isRest}}" class="card rest">
     <view style="font-size:60rpx;text-align:center;margin-bottom:10rpx">🌿</view>
@@ -37,14 +19,15 @@
   <!-- 训练日 -->
   <block wx:else>
     <!-- 热身 -->
-    <view wx:if="{{warmup}}" class="card warm">
-      <view class="warm-h" bindtap="toggleWarmup">热身准备 · {{warmup.minutes}} 分钟 <text>{{warmupOpen?"−":"＋"}}</text></view><block wx:if="{{warmupOpen}}">
+    <view wx:if="{{warmup}}" class="card warm" data-section="warmup">
+      <view class="warm-h" bindtap="toggleWarmup">01 · 热身准备 · {{warmup.minutes}} 分钟 <text>{{warmupOpen?"−":"＋"}}</text></view><block wx:if="{{warmupOpen}}">
       <view wx:for="{{warmupRows}}" wx:key="*this" class="warm-check" data-i="{{index}}" bindtap="checkWarmup"><text class="done {{warmChecks[index]?'on':''}}">{{warmChecks[index]?"✓":""}}</text><view><view>{{item[0]}}</view><view class="muted">{{item[1]}}</view></view></view>
-      <view wx:if="{{mainNote}}" class="warm-note">{{mainNote}}</view><button class="btn ghost" bindtap="startWarmup">开始 {{warmup.minutes}} 分钟热身计时</button></block>
+      <view wx:if="{{mainNote}}" class="warm-note">{{mainNote}}</view><button class="btn ghost" bindtap="startWarmup">开始 {{warmup.minutes}} 分钟热身计时</button><button class="btn ghost" bindtap="enterStrength">热身完成，进入力量训练</button><text class="coach-link" data-id="warmup" bindtap="goSecret">热身方法与出处 ›</text></block>
     </view>
 
+    <view class="card" id="strength" data-section="strength"><view class="row between"><view class="title">02 · 力量训练</view><text class="tag">{{srcTag||'推演'}}</text></view><view class="strong" style="margin-top:16rpx">{{focus}}</view><view class="muted">已完成 {{progressDone}} / {{progressTotal}} 组 {{deload?'· 减载周':''}}</view><view class="bar"><view class="bar-in" style="width:{{progressPct}}%"></view></view></view>
     <!-- 正式动作 -->
-    <view class="card">
+    <view class="card" data-section="exercises">
       <view class="row between" style="margin-bottom:6rpx">
         <view class="title">今日训练</view>
         <view style="display:flex;gap:12rpx">
@@ -52,7 +35,8 @@
           <view class="pk-addbtn" bindtap="goPoster">📸 昭告天下</view>
         </view>
       </view>
-      <view class="muted" style="margin-bottom:10rpx">点重量/次数可滚轮选择，自动填满剩余组；也可手动输入</view>
+      <view class="muted" style="margin-bottom:10rpx">训练草稿自动保存到本机 · 完成后保存云端打卡</view>
+      <view class="tool-link" data-k="settingsOpen" bindtap="toggleFold">重量口径与计时设置 <text>{{settingsOpen?'−':'＋'}}</text></view><view wx:if="{{settingsOpen}}"><view class="muted">杠铃含杆、哑铃单只、自重填 0；按实际能力调整。</view><view class="row between"><text>完成一组后自动休息计时</text><switch checked="{{autoRest}}" bindchange="toggleAutoRest"/></view></view>
       <view wx:for="{{exercises}}" wx:key="name" class="ex">
         <view class="ex-h" bindtap="toggleExpand" data-i="{{index}}">
           <view class="ex-h-l">
@@ -68,7 +52,7 @@
           </view>
         </view>
         <view wx:if="{{item.expanded}}" class="ex-b">
-          <view class="equiptag {{item.equipment==='无器械'?'home':'gym'}}">{{item.equipment==='无器械'?'🏠 居家 · 无器械':'🏋 ' + item.equipment}}</view>
+          <view wx:if="{{item.prescription}}" class="prescription"><view class="strong">完整版 · 今日重量 {{item.prescription.weight}} kg{{item.prescription.perSide?' / 每只':''}}</view><view class="muted">{{item.prescription.src}} · {{item.prescription.note}}</view><view wx:if="{{item.prescription.altNote}}" class="muted">{{item.prescription.altNote}}</view></view><view class="equiptag {{item.equipment==='无器械'?'home':'gym'}}">{{item.equipment==='无器械'?'🏠 居家 · 无器械':'🏋 ' + item.equipment}}</view>
           <view class="pg-box">
             <view class="pg-title" data-i="{{index}}" bindtap="toggleProgression">训练递进 · {{item.pgOn?'已启用':'可选'}} <text>{{item.pgExpanded?"−":"＋"}}</text></view><block wx:if="{{item.pgExpanded}}">
             <view wx:if="{{item.pgOn}}">
@@ -116,6 +100,7 @@
         </view>
       </view>
 
+      <button class="btn block" bindtap="save">保存训练打卡</button><view wx:if="{{savedTip}}" class="muted" style="color:var(--green)">✓ 已保存云端</view>
       <view wx:if="{{swapMode}}" class="swapbar">
         <text class="swapbar-t">🔁 换动作模式：在下方弹层里选一个动作替换选中的动作</text>
         <view class="swapbar-cancel" bindtap="closePk">取消</view>
@@ -123,42 +108,18 @@
     </view>
 
     <!-- 有氧 -->
-    <view wx:if="{{cardio}}" class="card cardio">
-      <view class="cd-h">🏃 有氧（选做）· {{cardio.type}}</view>
+    <view wx:if="{{cardio}}" class="card cardio" data-section="cardio">
+      <view class="cd-h">03 · 有氧（选做）· {{cardio.type}}</view>
       <view class="muted" style="line-height:1.6">{{cardio.detail}}{{cardio.alt ? ' / ' + cardio.alt : ''}} · 每周 {{cardio.perWeek}}</view>
-      <view class="muted" style="margin-top:6rpx;line-height:1.6">{{cardio.note}}</view><view class="row cardio-actions"><button class="btn ghost" data-seconds="900" bindtap="startCardio">轻松活动 · 15 分钟</button><button class="btn ghost" data-seconds="1200" bindtap="startCardio">走跑间歇 · 20 分钟</button></view><button bindtap="completeCardio">{{cardioCompleted?"已记录有氧 ✓":"记录本次有氧完成"}}</button>
+      <view class="muted" style="margin-top:6rpx;line-height:1.6">{{cardio.note}}</view><view class="row cardio-actions"><button class="btn ghost" data-seconds="900" bindtap="startCardio">轻松活动 · 15 分钟</button><button class="btn ghost" data-seconds="1200" bindtap="startCardio">走跑间歇 · 20 分钟</button></view><button bindtap="completeCardio">{{cardioCompleted?"已记录有氧 ✓":"记录本次有氧完成"}}</button><text class="coach-link" data-id="cardio" bindtap="goSecret">有氧方法与出处 ›</text>
     </view>
   </block>
 
-  <!-- 学习卡 -->
-  <view class="card" bindtap="toggleLearn">
-    <view class="row between">
-      <view class="title" style="font-size:28rpx">📚 每天学一点 · {{learn.title}}</view>
-      <text class="muted">{{learnOpen?'收起':'展开'}}</text>
-    </view>
-    <view wx:if="{{learnOpen}}" class="learnfull">
-      <view class="tag">{{learn.tag}}</view>
-      <view style="margin-top:10rpx;line-height:1.6">{{learn.full}}</view>
-      <view class="btn ghost block" style="margin-top:14rpx" bindtap="goLearnAll">查看全部 28 天</view>
-    </view>
-  </view>
-
-  <!-- 完成打卡 -->
-  <view class="card">
-    <view class="title" style="margin-bottom:10rpx">完成打卡</view>
-    <view class="chk">
-      <view class="chk-i {{trained?'on':''}}" bindtap="markTrained">训练完成</view>
-    </view>
-    <view class="field"><text>喝水(ml) 目标{{waterTarget}}</text><input type="digit" placeholder="今天喝了多少ml" value="{{waterMl}}" bindinput="onWater"/></view>
-    <view class="muted" style="margin:-4rpx 0 8rpx">{{waterMl}}/{{waterTarget}}ml {{waterMl>=waterTarget?'🟢 达标':''}}</view>
-    <view class="field"><text>睡眠(小时) 建议7-9h</text><input type="digit" placeholder="昨晚睡了几小时" value="{{sleepHours}}" bindinput="onSleep"/></view>
-    <view class="muted" style="margin:-4rpx 0 8rpx">{{sleepHours}}h {{sleepHours>=7?'🟢 达标':''}}</view>
-    <view class="field"><text>今日体重(kg)</text><input type="digit" placeholder="选填" value="{{weight}}" bindinput="onWeight"/></view>
-    <view class="field"><text>备注</text><input placeholder="选填" value="{{note}}" bindinput="onNote"/></view>
-    <view class="btn block" style="margin-top:20rpx" bindtap="save">保存今日打卡</view>
-    <view wx:if="{{savedTip}}" class="muted center-empty" style="padding:10rpx;color:var(--green)">✓ 已保存</view>
-  </view>
-
+  <view class="card" data-section="method"><view class="tool-link" data-k="methodOpen" bindtap="toggleFold"><view class="title">训练安排的依据</view><text>{{methodOpen?'−':'＋'}}</text></view><block wx:if="{{methodOpen}}"><view wx:for="{{methodRows}}" wx:key="name" style="margin-top:16rpx"><view class="strong">{{item.name}}</view><view class="muted">{{item.text}}</view></view></block></view>
+  <view class="card" data-section="pro"><view class="tool-link" data-k="proOpen" bindtap="toggleFold"><view class="title">完整版 · 具体重量与周期</view><text>{{proOpen?'−':'＋'}}</text></view><view wx:if="{{proOpen}}"><view class="muted">{{member.valid?'已开通 · 还剩 '+member.days+' 天':'免费版保留动作、组次和打卡。完整版增加具体重量、周期表与完整饮食。'}}</view><button class="btn ghost" bindtap="goPro">查看完整版计划</button></view></view>
+  <view class="card" data-section="coach" bindtap="goCoach"><view class="title">训练调整顾问</view><view class="muted">状态不好、错过训练、动作不合适？免费调整建议 ›</view></view>
+  <view data-section="journal"><training-journal date="{{viewDate}}" history="{{journalHistory}}"/></view>
+  <view class="card"><view class="tool-link" data-k="recoveryOpen" bindtap="toggleFold">补记饮水、睡眠与体重 <text>{{recoveryOpen?'−':'＋'}}</text></view><block wx:if="{{recoveryOpen}}"><view class="field"><text>饮水 ml</text><input type="digit" value="{{waterMl}}" bindinput="onWater"/></view><view class="field"><text>睡眠 小时</text><input type="digit" value="{{sleepHours}}" bindinput="onSleep"/></view><view class="field"><text>体重 kg</text><input type="digit" value="{{weight}}" bindinput="onWeight"/></view><button class="btn ghost" bindtap="save">保存补记</button></block></view>
   <!-- 重量/次数 滚轮 -->
   <view wx:if="{{showWheel}}" class="mask" bindtap="closeWheel">
     <view class="sheet" catchtap="noop">

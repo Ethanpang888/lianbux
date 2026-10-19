@@ -74,6 +74,7 @@ App({
         this.globalData.openid = res.result.openid
         return this.loadUser()
       })
+      .then(() => this.loadEntitlements().catch(()=>{}))
       .then(() => { this.globalData.ready = true })
       .catch(err => console.error('初始化失败', err))
   },
@@ -92,6 +93,7 @@ App({
         const profile = d.profile || {}
         this.globalData.constitution = Object.prototype.hasOwnProperty.call(profile, 'constitution') ? profile.constitution : (d.constitution || null)
         this.globalData.tcmResult = Object.prototype.hasOwnProperty.call(profile, 'tcmResult') ? profile.tcmResult : (d.tcmResult || null)
+        this.globalData.member=d.member||null;this.globalData.plus=d.plus||null;this.globalData.plan12=d.plan12||null;this.globalData.playerNo=d.playerNo||0
         this.globalData.email = d.email || ''
         this.globalData.subscribed = !!d.subscribed
         this.globalData.dietState = d.dietState || { carbAdj: 0, proteinAdj: 0, history: [] }
@@ -130,6 +132,8 @@ App({
         return db.collection('users').doc(openid).set({ data: clean })
       })
   },
+
+  loadEntitlements(){return require('./utils/entitlements.js').load()},
 
   // 今日日期 YYYY-MM-DD
   todayStr() {

@@ -95,7 +95,7 @@ const PagePro = {
       '<div class="muted txs" style="margin-top:8px">会员挂在<b>账号</b>上，不是这台设备 —— 换手机登录也还在。' +
         (m.level === 'coach' ? '' : '想要 AI 顾问，需要「完整版 + AI 顾问」那一档。') + '</div>' +
       '<div style="margin-top:10px;text-align:right"><span class="muted txs" style="cursor:pointer;text-decoration:underline" ' +
-        'onclick="if(confirm(\'确定取消订阅？取消后到期不再续，到期前权益仍在。\')){document.getElementById(\'proOff\').click()}">取消订阅</span>' +
+        'onclick="if(confirm(\'确定取消会员权益？取消后立即失效，训练记录保留。\')){document.getElementById(\'proOff\').click()}">取消订阅</span>' +
         '<button class="btn ghost" id="proOff" style="display:none"></button></div>' +
     '</div>'
   },

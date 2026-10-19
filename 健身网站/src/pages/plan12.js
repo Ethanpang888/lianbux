@@ -58,7 +58,7 @@ const PagePlan12 = {
   weekPreview() {
     const u = Store.state.user || {}
     const p = u.profile || {}
-    const plan = u.plan || ENGINE.kb.generatePlan(p, { split: 'ppl' })
+    const plan = u.plan || ENGINE.kb.generatePlan(p)
     const splitName = (ENGINE.kb.SPLITS[plan.split] || {}).name || plan.split
     const rows = [
       { w: '第 1-3 周', ph: '积累期', reps: '主项 4×8 → 4×10 → 4×12', kg: '同一重量，次数往上走', note: '建立基线：记下每个动作的重量与次数' },
@@ -119,8 +119,8 @@ const PagePlan12 = {
     const u = Store.state.user
     const p = u.profile || {}
     const goal = this.goal
-    const macros = ENGINE.calc.energyPlan(p, {})
-    const plan = u.plan || ENGINE.kb.generatePlan(p, { split: 'ppl' })
+    const macros = ENGINE.calc.energyPlan(Object.assign({},p,{goal}), {})
+    const plan = u.plan || ENGINE.kb.generatePlan(p)
     const splitName = (ENGINE.kb.SPLITS[plan.split] || {}).name || plan.split
 
     const info = '<div class="card"><h2>一、你的基本情况</h2><table><tbody>' +
@@ -161,7 +161,7 @@ const PagePlan12 = {
       let daysHtml = ''
       for (let d = 0; d < 7; d++) {
         const dayIdx = (w - 1) * 7 + d
-        const day = ENGINE.kb.dayContent(plan, dayIdx, p, !!plan.home)
+        const day = ENGINE.kb.dayContent(Object.assign({},plan,{schedulePauses:[]}), dayIdx, Object.assign({},p,{goal}), !!plan.home)
         if (day.type === 'rest') {
           daysHtml += '<div class="muted txs" style="padding:4px 0">Day ' + (d + 1) + ' · 休息（散步 20 分钟）</div>'
           continue
@@ -178,7 +178,7 @@ const PagePlan12 = {
           // 重量只对真正负重的器械显示（杠铃/哑铃/绳索/器械/壶铃/EZ）——
           // 自重/弹力带动作被推演出「575.5kg」这类荒谬数（用户 2026-10-16 反馈），这里守卫
           const loaded = base > 0 && /杠铃|哑铃|绳索|器械|壶铃|EZ/i.test(String(e.equipment || ''))
-          const kg = loaded ? (deload ? Fmt.round(base * 0.8, 1) : Fmt.round(base + (i === 0 ? bump : 0), 1)) + 'kg' : '自重'
+          const kg = loaded ? (deload ? base : Fmt.round(base + (i === 0 ? bump : 0), 1)) + 'kg' : '自重'
           return '<tr><td>' + Fmt.esc(e.name) + '</td><td>' + sets + '×' + Fmt.esc(r) + '</td><td>' + kg + '</td></tr>'
         }).join('')
         daysHtml += '<div style="padding:6px 0;border-top:1px dashed var(--line)"><b class="txs">Day ' + (d + 1) +
@@ -186,7 +186,7 @@ const PagePlan12 = {
           '<table style="margin-top:4px"><thead><tr><th>动作</th><th>组×次</th><th>重量</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
       }
       weeksHtml.push('<div class="card"><h2>第 ' + w + ' 周 · ' + Fmt.esc(phase) +
-        (deload ? ' <span class="tag warn">组数 ×0.6 · 重量 ×0.8</span>' : '') + '</h2>' + daysHtml +
+        (deload ? ' <span class="tag warn">组数 ×0.6 · 重量维持</span>' : '') + '</h2>' + daysHtml +
         (deload ? '<div class="muted txs">减载是「练得少」，不是「随便练」—— 重量维持、动作照常，神经恢复后下一轮继续加重。</div>' : '') +
       '</div>')
     }

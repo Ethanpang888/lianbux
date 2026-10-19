@@ -1,131 +1,15 @@
 <page-meta page-style="{{themeStyle}}"/>
-  <view wx:if="{{!hasPlan}}" class="card center-empty">
-    <view class="title">还没有计划</view>
-    <view class="btn block" bindtap="goAssess">去测评</view>
-  </view>
-
+<view class="page-heading">修炼记录<view class="page-sub">打卡 {{total}} 天 · 本月 {{month}}</view></view>
+<view wx:if="{{loading}}" class="card muted">正在读取记录…</view><view wx:elif="{{error}}" class="card"><view>{{error}}</view><button bindtap="load">重新读取</button></view>
 <block wx:else>
-  <view class="card export-bar">
-    <view class="row between">
-      <view class="title" style="font-size:28rpx">我的记录 · {{planName}}</view>
-      <view class="exp-btns">
-        <view class="btn ghost sm" bindtap="copyAll">📋 复制</view>
-        <view class="btn ghost sm" bindtap="exportFile">📤 导出</view>
-      </view>
-    </view>
-    <view class="muted" style="margin-top:8rpx">可复制/导出全年训练：日期、体重、动作与每组重量次数、饮食（共 {{total}} 次打卡）。</view>
-  </view>
-
-  <view class="card">
-    <view class="row between">
-      <view><view style="font-size:40rpx;font-weight:800;color:var(--green)">第{{dayIndex}}天</view><view class="muted">连续打卡 {{streak}} 天</view></view>
-      <view style="text-align:right"><view style="font-size:40rpx;font-weight:800">{{completion}}%</view><view class="muted">训练完成率</view></view>
-    </view>
-    <view class="bar"><view class="bar-in" style="width:{{completion}}%"></view></view>
-  </view>
-
-  <!-- 力量估算（网站同款：近90天最佳估算 1RM + 停滞提示） -->
-  <view class="card">
-    <view class="title" style="font-size:26rpx">力量估算 <text class="muted">近 90 天 · 最佳估算 1RM</text></view>
-    <view wx:if="{{strength.length===0}}" class="muted" style="margin-top:8rpx;line-height:1.7">练满几次带重量的打卡后，这里会估算你的主项极限重量（1RM），并自动发现「连续做不满目标次数」的停滞动作。</view>
-    <view wx:for="{{strength}}" wx:key="name" class="st-row">
-      <text class="st-name">{{item.name}}</text>
-      <view class="st-right">
-        <text class="st-val">{{item.best}} kg</text>
-        <text class="muted" style="font-size:20rpx">{{item.bestAt}} · {{item.bestRep}} 次推出</text>
-        <text wx:if="{{item.stall}}" class="tag warn">连续 {{item.stall}} 次没做满 {{item.target}} 次</text>
-      </view>
-    </view>
-    <view wx:if="{{strength.length}}" class="muted" style="margin-top:10rpx;line-height:1.6">估算口径：Epley 公式（重量 ×（1+次数/30）），由你打卡的实测推出，供参考——排计划仍以实际完成的组次为准。连续 2 次没做满目标次数 = 停滞信号，该减载或换动作了。</view>
-  </view>
-
-  <view class="card">
-    <view class="title" style="font-size:26rpx">历史打卡明细</view>
-    <view wx:if="{{history.length===0}}" class="muted">还没有历史打卡，去「今日」完成一次吧</view>
-    <view wx:for="{{history}}" wx:key="date" class="hist">
-      <view class="hist-h" bindtap="tapHistory" data-i="{{index}}">
-        <text>{{item.date}} · 第{{item.dayIndex}}天</text>
-        <text class="muted">{{item.trained?'训练':'休息'}} · 量{{item.volume}}kg · 食{{item.dietKcal}}kcal ›</text>
-      </view>
-      <view wx:if="{{expandedIdx===index}}" class="hist-b">
-        <block wx:if="{{item.exercises.length}}">
-          <view class="muted" style="margin-bottom:6rpx">动作记录：</view>
-          <view wx:for="{{item.exercises}}" wx:for-item="ex" wx:key="name" class="hist-ex">
-            <text>{{ex.name}}（{{ex.sets}}）</text>
-            <text class="muted">{{ex.logStr}}</text>
-          </view>
-        </block>
-        <view wx:if="{{item.dietStr}}" class="muted" style="margin-top:6rpx">饮食：{{item.dietStr}}</view>
-        <view class="muted">喝水 {{item.waterMl}}ml · 睡眠 {{item.sleepHours}}h</view>
-        <view wx:if="{{item.noteStr}}" class="muted" style="margin-top:6rpx">备注：{{item.noteStr}}</view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 记今天体重（网站同款：整套宏观调控的「传感器」，一步可达） -->
-  <view class="card">
-    <view class="title" style="font-size:26rpx">今天体重 <text class="muted">早起空腹 · 同上秤</text></view>
-    <view class="row" style="gap:16rpx;margin-top:16rpx">
-      <input class="w-in" type="digit" placeholder="如 93.2" value="{{weightInput}}" bindinput="onWeightInput"/>
-      <text class="muted">kg</text>
-      <view class="btn" style="width:180rpx;padding:20rpx 0" bindtap="saveWeight">保存</view>
-    </view>
-    <view class="muted" style="margin-top:8rpx">每天记一次，攒够 7 天就能自动评估饮食该不该调。</view>
-  </view>
-
-  <!-- 本月打卡热力（网站同款月历） -->
-  <view class="card">
-    <view class="title" style="font-size:26rpx">本月打卡</view>
-    <view class="heat">
-      <text class="h-hdr" wx:for="{{['一','二','三','四','五','六','日']}}" wx:key="*this">{{item}}</text>
-      <text wx:for="{{heatCells}}" wx:key="k" class="h-cell {{item.cls}}">{{item.label}}</text>
-    </view>
-    <view class="muted" style="margin-top:10rpx">深色 = 完成训练打卡；浅色 = 有记录未训练</view>
-  </view>
-
-  <view class="card">
-    <view class="title" style="font-size:26rpx">体重趋势</view>
-    <canvas type="2d" id="wc" class="wc"></canvas>
-    <view wx:if="{{weights.length===0}}" class="muted">在「今日」记录体重后这里出曲线</view>
-  </view>
-
-  <!-- 本周复盘（网站同款文案口径） -->
-  <view class="card">
-    <view class="title" style="font-size:26rpx">本周复盘 <text class="muted">{{weekRep.label}}</text></view>
-    <view class="wk-row"><text>训练</text><text class="wk-v">{{weekRep.trained}} 天</text></view>
-    <view class="wk-row"><text>体重变化</text><text class="wk-v">{{weekRep.dwStr}}</text></view>
-    <view class="muted" style="margin-top:8rpx;line-height:1.6">💡 {{weekRep.trend}}</view>
-  </view>
-
-  <view class="card">
-    <view class="title" style="font-size:26rpx">风险提示</view>
-    <view wx:for="{{risks}}" wx:key="t" class="risk">
-      <text class="rt">⚠ {{item.t}}</text>
-      <text class="rd">{{item.d}}</text>
-    </view>
-  </view>
-
-  <view class="card" wx:if="{{aiEnabled}}">
-    <view class="title" style="font-size:26rpx">AI 进度总结</view>
-    <view wx:if="{{summary}}" class="muted" style="margin-top:10rpx;line-height:1.7">{{summary}}</view>
-    <view wx:else class="muted">点下方按钮，让 AI 基于你的打卡生成一段总结与下一步建议。</view>
-    <view class="btn ghost block" style="margin-top:14rpx" bindtap="aiSummary">{{aiBusy?'生成中…':'生成 AI 总结'}}</view>
-  </view>
-
-  <view class="card" wx:if="{{aiEnabled}}">
-    <view class="title" style="font-size:26rpx">AI 教练对话</view>
-    <view class="chat">
-      <view wx:for="{{chat}}" wx:key="index" class="bubble {{item.role}}">{{item.content}}</view>
-    </view>
-    <view class="chat-in">
-      <input value="{{input}}" bindinput="onInput" placeholder="问点什么，如：平台期怎么办？" />
-      <view class="send" bindtap="sendChat">{{aiBusy?'…':'发送'}}</view>
-    </view>
-    <view class="muted" style="margin-top:8rpx">训练与饮食建议仅作参考，按实际状态调整。</view>
-  </view>
-
-  <view class="card" wx:else bindtap="goCoach">
-    <view class="title">随身导师</view>
-    <view class="muted" style="margin-top:8rpx">对训练记录有疑问？找导师聊聊 ›</view>
-  </view>
+ <view class="card" data-section="strength"><view class="title">力量估算 <text class="mini">近 90 天 · 最佳估算 1RM</text></view><view wx:if="{{!strength.length}}" class="muted paragraph">练满几次带重量的打卡后，这里会估算你的主项极限重量（1RM），并自动发现「连续做不满目标次数」的停滞动作。</view><view wx:for="{{strength}}" wx:key="name" class="history-ex"><view class="row between"><text class="strong">{{item.name}}</text><text>{{item.best}} kg</text></view><view class="muted">{{item.bestAt}} · {{item.bestRep}} 次推出</view><view wx:if="{{item.stall}}" class="tag warn">连续 {{item.stall}} 次没做满 {{item.target}} 次</view></view><button wx:if="{{hasStall}}" class="btn ghost" bindtap="goCoach">有停滞动作 → 去调一下</button><view wx:if="{{strength.length}}" class="muted paragraph">估算口径：Epley 公式（重量 ×（1+次数/30）），只计完成的工作组，供参考；排计划仍以实际完成为准。</view></view>
+ <view class="card" data-section="compare"><view class="title">体型对比 <text class="mini">照片仅存本机</text></view><view wx:if="{{photos.length<2}}" class="muted paragraph">拍满两张体型照后，这里能拖动滑块前后对比。拍照在训练页练完后的「训练日志」里，照片只存在你手机本机。</view><block wx:else><view class="compare-select"><picker range="{{photoLabels}}" value="{{compareA}}" data-side="A" bindchange="compareSelect">{{photoLabels[compareA]}} ▾</picker><text class="muted">vs</text><picker range="{{photoLabels}}" value="{{compareB}}" data-side="B" bindchange="compareSelect">{{photoLabels[compareB]}} ▾</picker></view><view class="compare"><image src="{{photos[compareB].src}}" mode="aspectFit"/><image class="compare-front" style="clip-path:inset(0 {{100-comparePct}}% 0 0)" src="{{photos[compareA].src}}" mode="aspectFit"/><view class="compare-line" style="left:{{comparePct}}%"></view><text class="compare-label">{{photos[compareA].date}}</text><text class="compare-label right">{{photos[compareB].date}}</text></view><slider min="0" max="100" value="{{comparePct}}" bindchanging="compareSlide" bindchange="compareSlide" activeColor="#287b59"/><view class="muted">拖动查看前后变化；同光线、同角度拍，对比才有意义。</view></block></view>
+ <view class="card" data-section="details"><view class="title">训练明细</view><view wx:if="{{!history.length}}" class="muted paragraph">训练后保存打卡，就能在这里回看重量和次数。</view><view wx:for="{{history}}" wx:key="date" class="training-history"><view class="row between" data-date="{{item.date}}" bindtap="tapHistory"><text>{{item.date}} · 已完成 {{item.done}} 组</text><text class="muted">{{expandedDate===item.date?'−':'＋'}}</text></view><block wx:if="{{expandedDate===item.date}}"><view wx:for="{{item.exercises}}" wx:for-item="ex" wx:key="name" class="history-ex"><view class="strong">{{ex.name}}</view><view class="muted">{{ex.logStr}}</view></view><button class="btn ghost" data-date="{{item.date}}" bindtap="goTraining">查看当天训练</button></block></view></view>
+ <view class="card" data-section="journal"><view class="title">训练日志</view><view class="muted paragraph">{{latest?latest.text:'还没写过记录。练完在「训练」页底部写一句，或者现在就补一条今天。'}}</view><button class="btn ghost" bindtap="writeToday">写 / 改今天的记录</button></view>
+ <view id="note-editor"><training-journal wx:if="{{editorDate}}" date="{{editorDate}}" history="{{timeline}}" bindsaved="noteSaved"/><button wx:if="{{editorDate}}" class="text-link" bindtap="closeEditor">收起编辑器</button></view>
+ <view class="card" data-section="timeline"><view class="title">过往记录</view><view wx:if="{{!timeline.length}}" class="muted paragraph">还没有值得回顾的训练，完成训练或写一句话后就会出现在这里。</view><view wx:for="{{timeline}}" wx:key="date" class="timeline-row"><view class="row between"><text class="strong">{{item.date}}</text><text class="tag" wx:if="{{item.note.tag}}">{{item.note.tag}}</text></view><view class="muted">{{item.stats.exercises}} 个动作 · {{item.stats.sets}} 组 · {{item.stats.volume}} kg</view><view wx:if="{{item.note.subject}}" class="strong">{{item.note.subject}}</view><view class="paragraph">{{item.note.text}}</view><view wx:for="{{item.prs}}" wx:key="*this" class="muted">突破 · {{item}}</view><view class="timeline-photos"><image wx:for="{{item.note.photos}}" wx:key="*this" src="{{item}}" mode="aspectFill" data-src="{{item}}" bindtap="preview"/></view><button class="chip" data-date="{{item.date}}" bindtap="editNote">编辑这天的记录</button></view></view>
+ <view class="card" data-section="weight"><view class="title">今天体重 <text class="mini">早起空腹 · 同上秤</text></view><view class="weight-row"><input type="digit" placeholder="如 93.2" value="{{weightInput}}" bindinput="weightInput"/><text class="muted">kg</text><button class="btn" bindtap="saveWeight" disabled="{{savingWeight}}">{{savingWeight?'保存中':'保存'}}</button></view><view class="muted">{{review.ready?'已够数据评估 → 去饮食页看宏观调控建议':'每天记一次，攒够数据就能自动评估饮食该不该调。'}}</view></view>
+ <view class="card" data-section="heat"><view class="title">本月打卡</view><view class="heat"><text wx:for="{{['一','二','三','四','五','六','日']}}" wx:key="*this" class="hdr">{{item}}</text><text wx:for="{{heatCells}}" wx:key="key" class="cell {{item.cls}}">{{item.label}}</text></view><view class="muted paragraph">深色 = 完成训练打卡；浅色 = 有记录未训练</view></view>
+ <view class="card" data-section="trend"><view class="title">体重趋势 <text class="mini">{{weights.length}} 条记录</text></view><canvas wx:if="{{weights.length>=2}}" type="2d" id="weight-chart" class="weight-chart"/><view wx:if="{{!weights.length}}" class="muted paragraph">还没有体重记录</view><view wx:elif="{{weights.length===1}}" class="muted paragraph">{{weights[0].weight}} kg · 再记一次就能看到曲线</view><view wx:else class="muted">{{weights[0].weight}}kg → {{weights[weights.length-1].weight}}kg</view></view>
+ <view class="card" data-section="week"><view class="title">本周复盘 <text class="mini">{{weekRep.label}}</text></view><view class="kv-line"><text class="muted">训练</text><text>{{weekRep.trained}} 天</text></view><view class="kv-line"><text class="muted">体重变化</text><text>{{weekRep.dwStr}}</text></view><view class="muted paragraph">{{weekRep.trend}}</view><view class="muted">{{weekRep.note}}</view><view wx:if="{{review.ready}}" class="muted paragraph">宏观调控：{{review.headline}}</view><button wx:if="{{review.ready}}" class="btn ghost" bindtap="goDiet">查看饮食调整</button></view>
 </block>

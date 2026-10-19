@@ -46,7 +46,7 @@ require('../../utils/page.js')({
     lessonDone: [], lessonProgress: ''
   },
 
-  onLoad() { this.prepare() },
+  onLoad(options) { this.prepare();if(options&&options.id){if(FND.some(x=>x.key===options.id))this.openFnd({currentTarget:{dataset:{key:options.id}}});else this.openSec({currentTarget:{dataset:{key:options.id}}})} },
   onShow() { this.prepare() },
 
   // ───────────── 列表 ─────────────
@@ -85,6 +85,7 @@ require('../../utils/page.js')({
     const s = SECRET.get(key)
     if (!s) return
     const profile = app.globalData.profile || {}
+    const locked=s.cat!=='female'&&!require('../../utils/pro.js').isPro(app.globalData)
     const using = (profile.secret || {}).key === key
     const preset = s.preset || {}
     const withIdx = rows => (rows || []).map((x, i) => Object.assign({ idx: i }, x))
@@ -95,12 +96,12 @@ require('../../utils/page.js')({
     this.setData({
       view: 'sec',
       cur: {
-        key: s.key, name: s.name, weeks: s.weeks, tagline: s.tagline,
+        locked, key: s.key, name: s.name, weeks: s.weeks, tagline: s.tagline,
         forWho: s.forWho || '', using, append: s.kind === 'append',
         grade: (s.cat || 'advanced') === 'advanced' ? '地阶' : '玄阶',
         solves: s.solves || [],
-        theory: fixRows(s.theory), eat: fixRows(s.eat), train: fixRows(s.train),
-        outline: s.outline || [], sources: s.sources || [],
+        theory: fixRows(locked?(s.theory||[]).slice(0,1):s.theory), eat: locked?[]:fixRows(s.eat), train: locked?[]:fixRows(s.train),
+        outline: locked?[]:(s.outline || []), sources: s.sources || [],
         appendNames: (preset.append || []).map(a => a.name).join('、'),
         presetGoal: preset.goal || '', presetSplit: preset.split || '', presetFreq: preset.freq || '',
         hasBackup: !!(app.globalData.lastPlanBackup && app.globalData.lastPlanBackup.plan)
@@ -109,6 +110,7 @@ require('../../utils/page.js')({
     wx.pageScrollTo({ scrollTop: 0, duration: 0 })
   },
 
+  goPro(){wx.navigateTo({url:'/subpkgs/tools/pages/pro/pro'})},
   backList() { this.setData({ view: 'list', cur: null }) },
 
   // ───────────── 用这本（换档案 + 换计划 / 挂动作）─────────────
@@ -116,6 +118,7 @@ require('../../utils/page.js')({
     const key = e.currentTarget.dataset.key
     const s = SECRET.get(key)
     if (!s) return
+    if(s.cat!=='female'&&!require('../../utils/pro.js').isPro(app.globalData)){this.goPro();return}
     const profile = app.globalData.profile
     if (!profile) { wx.showToast({ title: '先在首页完善资料', icon: 'none' }); return }
     // 挂载前快照（只在空的时候建；换回 = 回到挂秘籍之前的最初状态。免费可用，防流失兜底）

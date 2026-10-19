@@ -2,6 +2,7 @@ const app = getApp()
 const calc = require('../../utils/calc.js')
 const cultivation = require('../../utils/cultivation.js')
 const gamify = require('../../utils/gamify.js')
+const contract=require('../../utils/page-contract.js'),pro=require('../../utils/pro.js'),checks=require('../../utils/checkins-store.js')
 
 function todayStr() {
   const d = new Date()
@@ -10,14 +11,14 @@ function todayStr() {
 
 require('../../utils/page.js')({
   data: {
-    tools:[{name:'我的完整计划',note:'查看周期与调整安排',url:'/pages/plan/plan'},{name:'动作图鉴',note:'查动作与训练要领',url:'/subpkgs/exlib/pages/exlib/exlib'},{name:'随身导师',note:'训练与饮食答疑',url:'/pages/ai/ai'},{name:'藏经阁',note:'目标秘籍与训练方法',url:'/pages/secret/secret'}], profile: null, plan: null, dayIndex: 0, streak: 0, tcm: null, cul: null,
+    tools:contract.TOOLS, cities:gamify.CITIES, profile: null, plan: null, dayIndex: 0, streak: 0, tcm: null, cul: null,
     inviteCode: '', inviteCount: -1, inviterCode: '',
     weekTasks: [], weekNote: '',
     badgeOpen: [] },
 
   onShow() {
     if (this.getTabBar) this.getTabBar().setData({ selected: 4 })
-    this.load()
+    if(app.globalData.ready&&app.loadEntitlements)app.loadEntitlements().then(()=>this.load()).catch(()=>this.load());else this.load()
   },
 
   load() {
@@ -35,8 +36,9 @@ require('../../utils/page.js')({
       const idx = calc.dayIndexFromStart(g.plan.cycleStart, todayStr())
       dayIndex = idx < 0 ? 0 : idx
     }
-    const energy = calc.energyPlan(g.profile, g.dietState || {})
+    const energy = calc.energyPlan(g.profile, require('../../utils/macro.js').combinedAdj(g.dietState || {}))
     this.setData({
+      member:pro.memberOf(g), playerNo:gamify.playerNoStr(g.playerNo||0), activity:require('../../utils/method.js').activityOf(g.profile.activity).name,bmi:calc.bmi(g.profile.weight,g.profile.height),email:g.email||'',
       profile: g.profile, plan: g.plan, dayIndex, tcm: g.tcmResult || null,
       inProgram: !!(g.plan && g.plan.program),
       energy: {
@@ -55,7 +57,7 @@ require('../../utils/page.js')({
     // 修炼摘要（EXP/等级/境界/连续/累计）—— 与网站 gamify 同口径，当日缓存
     app.loadCultivation(true).then(cul => {
       if (!cul) return
-      this.setData({ streak: cul.streak.cur, cul })
+      const level=cul.level,current=contract.CHAR_STAGES.filter(s=>level>=s.at).slice(-1)[0];this.setData({ streak: cul.streak.cur, cul, stageName:current.name,stages:contract.CHAR_STAGES.map(s=>Object.assign({},s,{unlocked:level>=s.at,current:current.at===s.at})) })
       this.loadBadges(cul)
     }).catch(() => {})
   },
@@ -102,6 +104,14 @@ require('../../utils/page.js')({
     })
   },
 
+  async refreshAccount(){if(this.data.syncing)return;this.setData({syncing:true,syncError:false});try{await app.loadUser();if(app.loadEntitlements)await app.loadEntitlements();this.render();wx.showToast({title:'同步完成'})}catch(e){this.setData({syncError:true});wx.showToast({title:'同步失败，请重试',icon:'none'})}finally{this.setData({syncing:false})}},
+  async setCity(e){const profile=Object.assign({},app.globalData.profile,{city:e.currentTarget.dataset.city});try{await app.saveUser({profile});app.globalData.profile=profile;this.setData({profile})}catch(e){wx.showToast({title:'城市保存失败',icon:'none'})}},
+  toggleTech(){this.setData({techOpen:!this.data.techOpen})},
+  goPro(){wx.navigateTo({url:'/subpkgs/tools/pages/pro/pro'})},
+  goSecret(){wx.navigateTo({url:'/pages/secret/secret'})},
+  goGrowth(){wx.navigateTo({url:'/pages/growth/growth'})},
+  poster(e){wx.navigateTo({url:'/pages/poster/poster?mode='+e.currentTarget.dataset.mode})},
+  async exportData(){if(this.data.exporting)return;this.setData({exporting:true});try{const g=app.globalData,rows=await checks.all(g.openid),data={version:1,exportedAt:new Date().toISOString(),user:{profile:g.profile,plan:g.plan,dietState:g.dietState,gamify:g.gamify},checkins:rows.map(c=>{const x=Object.assign({},c);delete x._id;delete x._openid;return x}),localJournal:require('../../utils/journal-local.js').all(g.openid)},path=wx.env.USER_DATA_PATH+'/lianbux-'+todayStr()+'.json';await new Promise((resolve,reject)=>wx.getFileSystemManager().writeFile({filePath:path,data:JSON.stringify(data,null,2),encoding:'utf8',success:resolve,fail:reject}));if(wx.shareFileMessage)wx.shareFileMessage({filePath:path,fileName:'练不虚数据-'+todayStr()+'.json'});else wx.setClipboardData({data:JSON.stringify(data)}); }catch(e){wx.showToast({title:'导出失败，请重试',icon:'none'})}finally{this.setData({exporting:false})}},
   goTool(e){require('../../utils/navigation.js').go(e.currentTarget.dataset.url)},
   setTheme(e){const theme=e.currentTarget.dataset.theme;wx.setStorageSync('lbgym_theme',theme);this.setData({theme,themeStyle:require('../../utils/presentation.js').themeStyle(theme)});wx.setNavigationBarColor({frontColor:theme==='dark'?'#ffffff':'#000000',backgroundColor:theme==='dark'?'#101713':'#f4f6f2'});if(this.getTabBar&&this.getTabBar())this.getTabBar().connect()},
   edit() { wx.navigateTo({ url: '/pages/assess/assess' }) },

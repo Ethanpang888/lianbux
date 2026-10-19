@@ -31,26 +31,8 @@ const PageRecords = {
       } catch (e) { return null }
     })()
 
-    // 周报
-    const week = Fmt.weekKey(today)
-    const thisWeek = cks.filter(c => Fmt.weekKey(c.date) === week)
-    const trainedN = thisWeek.filter(c => c.trained).length
-    const weights = thisWeek.filter(c => Number(c.weight) > 0)
-    const dw = weights.length >= 2 ? Fmt.round(weights[weights.length - 1].weight - weights[0].weight, 1) : null
-    // 2026-10-18 线上复查：周报原来用绝对 kg 阈值，和宏观调控（每周 % 目标区间）不是一把尺，
-    // 同一份数据能得出相反结论。现在统一成「折算每周 %」对 GOAL_TARGET 区间，并标明窗口与以谁为准。
-    const curW = Number((u.profile || {}).weight) || 0
-    const goal0 = (u.profile || {}).goal || '塑形'
-    const tgt = (ENGINE.macro.GOAL_TARGET || {})[goal0] || (ENGINE.macro.GOAL_TARGET || {})['塑形']
-    const spanDays = weights.length >= 2
-      ? Math.max(1, Math.round((new Date(weights[weights.length - 1].date + 'T00:00:00') - new Date(weights[0].date + 'T00:00:00')) / 86400000))
-      : 1
-    const dwPct = dw !== null && curW > 0 ? Fmt.round((dw / curW) * (7 / spanDays) * 100, 2) : 0
-    const trend = dw === null ? '本周体重记录不足 2 次（每天早起空腹称一次，这是系统唯一的传感器）' :
-      (dwPct < tgt.min ? '本周折算每周 ' + dwPct + '% —— 掉得比目标快（' + tgt.tip + '），碳水每天 +0.25 g/kg 保住肌肉' :
-       dwPct > tgt.max ? '本周折算每周 +' + dwPct + '% —— 涨得比目标快（' + tgt.tip + '），检查油与零食，碳水每天 −0.25 g/kg' :
-       '体重基本持平（本周 ' + (dw > 0 ? '+' : '') + dw + ' kg · 每周 ' + (dwPct > 0 ? '+' : '') + dwPct + '%），' + tgt.tip) +
-      '<div class="muted txs" style="margin-top:4px">周报只看本周 ' + spanDays + ' 天；<b>宏观调控看近 10 天趋势，以它的结论为准</b>。</div>'
+    const week = Fmt.weekKey(today),report=ENGINE.recordsView.week(cks,u.profile||{},today)
+    const trainedN=report.trained,dw=report.dwStr==='—'?null:Number(report.dwStr.replace(' kg','')),trend=report.trend+'。'+report.note
 
     // 训练日志（一句话 + 照片 + 突破）
     const words = Store.latestWords()
@@ -135,36 +117,7 @@ const PageRecords = {
    * 停滞 = 同一动作**连续 2 次训练**所有完成组都没做满目标次数 → 提示去调整顾问（不自动改计划）。
    */
   strengthCard(cks) {
-    const cutoff = Fmt.shiftDate(Fmt.todayStr(), -90)
-    const per = {}
-    cks.filter(c => c.date >= cutoff).forEach(c => {
-      ;(c.exercises || []).forEach(e => {
-        if (!e || !e.name) return
-        const target = parseInt(String(e.sets || '').split(/[×x]/i)[1], 10) || 10
-        const p = per[e.name] || (per[e.name] = { name: e.name, sets: e.sets || '', best: 0, bestAt: '', bestRep: 0, sessions: [] })
-        const day = { date: c.date, hit: false, logged: false }
-        ;(e.log || []).forEach(s => {
-          const w = Number(s.weight) || 0, r = Number(s.reps) || 0
-          if (w > 0 && r > 0 && s.done) {
-            day.logged = true
-            if (r >= target) day.hit = true
-            const e1rm = w * (1 + r / 30)
-            if (e1rm > p.best) { p.best = e1rm; p.bestAt = c.date; p.bestRep = r }
-          }
-        })
-        if (day.logged) p.sessions.push(day)
-      })
-    })
-    const rows = Object.keys(per).map(k => per[k])
-      .filter(p => p.best > 0)
-      .sort((a, b) => b.best - a.best)
-      .slice(0, 8)
-    rows.forEach(p => {   // 从最近往前数连续未达标（最多看 6 次）
-      let miss = 0
-      const ss = p.sessions.slice(-6).reverse()
-      for (let i = 0; i < ss.length; i++) { if (ss[i].hit) break; miss++ }
-      p.stall = miss >= 2 ? miss : 0
-    })
+    const rows = ENGINE.recordsView.strength(cks,Fmt.todayStr())
     if (!rows.length) {
       return '<div class="card"><h2>力量估算</h2>' +
         '<p class="muted txs">练满几次带重量的打卡后，这里会估算你的主项极限重量（1RM），' +

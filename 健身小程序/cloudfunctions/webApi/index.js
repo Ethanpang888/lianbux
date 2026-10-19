@@ -438,7 +438,7 @@ function codeHash(plain) {
  * 续期：在现有到期时间上往后加，不覆盖不重算；
  * 等级不降级：coach 还没过期时兑 pro 码，不会把自己降下来。
  */
-async function grantMember(uid, user, opt, col) {
+async function grantMember(uid, user, opt, col, writer) {
   const cur = (user && user.member) || {}
   const from = Math.max(Date.now(), Date.parse(cur.expiresAt || '') || 0)
   const days = Math.max(1, Number(opt.days) || 30)
@@ -451,12 +451,12 @@ async function grantMember(uid, user, opt, col) {
     since: cur.since || new Date().toISOString().slice(0, 10)
   }
   user.lastSeenAt = Date.now()
-  await setDoc(col || COL.users, uid, user)
+  if(writer)await writer(user);else await setDoc(col || COL.users, uid, user)
   return user.member
 }
 
 /** 兑换激活码。码有两个来源：① 云函数内置码表 ② webcodes 里的零售码（发码接口生成，一次一用） */
-async function redeem(event, uid, user) {
+async function redeem(event, uid, user, col) {
   const code = String((event && event.code) || '').trim()
   if (!code) return fail('CODE_EMPTY')
   if (code.length > 64) return fail('CODE_INVALID')
@@ -492,44 +492,25 @@ async function redeem(event, uid, user) {
     if ((all.total || 0) >= hit.maxUses) return fail('CODE_EXHAUSTED')
   }
 
-  used[h] = Date.now()
-  user.redeemed = used
-
-  // 进阶包（买断）：独立工具层，写 user.plus（永久），不动订阅 member
-  if (grant.level === 'plus') {
-    user.plus = { since: new Date().toISOString().slice(0, 10) }
-    await setDoc(COL.users, uid, user)
-    const res = { member: user.member || { level: '', expiresAt: '' }, plus: user.plus }
-    await db.collection(COL_ORDERS).add({
-      data: { uid: uid, codeHash: h, level: 'plus', days: 0, kind: 'redeem', at: Date.now() }
-    }).catch(e => console.error('order write failed（weborders 未建？审计记录跳过）', e))
-    return ok(res)
-  }
-
-  // 十二周计划（¥39.9/份）：一次性交付物，写 user.plan12（含生成时目标）—— 按周期单独卖
-  if (grant.level === 'p12') {
-    user.plan12 = { since: new Date().toISOString().slice(0, 10), goal: event.goal || '' }
-    await setDoc(COL.users, uid, user)
-    const res = { member: user.member || { level: '', expiresAt: '' }, plan12: user.plan12 }
-    await db.collection(COL_ORDERS).add({
-      data: { uid: uid, codeHash: h, level: 'p12', days: 0, kind: 'redeem', at: Date.now() }
-    }).catch(e => console.error('order write failed（weborders 未建？审计记录跳过）', e))
-    return ok(res)
-  }
-
-  const member = await grantMember(uid, user, { level: grant.level, days: grant.days })
-
-  // 零售码立即作废（一次一用）。这条即使失败，上面的 redeemed 去重也会挡住重复兑
-  if (retail) {
-    await db.collection(COL_CODES).doc(retail._id).update({
-      data: { used: true, usedBy: uid, usedAt: Date.now() }
-    }).catch(e => console.error('retail code mark failed', e))
-  }
-
-  await db.collection(COL_ORDERS).add({
-    data: { uid: uid, codeHash: h, level: grant.level, days: grant.days, kind: 'redeem', at: Date.now() }
-  }).catch(e => console.error('order write failed（weborders 未建？审计记录跳过）', e))
-  return ok({ member: member })
+  // Claim a retail code and grant its entitlement in the same transaction.
+  // Re-read the user in the transaction: concurrent redemptions cannot erase another grant.
+  let result
+  try {
+    result=await db.runTransaction(async tx=>{
+      const ref=tx.collection(col||COL.users).doc(uid),snap=await ref.get(),fresh=snap.data||{}
+      const redeemed=Object.assign({},fresh.redeemed||{})
+      if(redeemed[h])throw new Error('CODE_REDEEMED')
+      if(retail){const codeRef=tx.collection(COL_CODES).doc(retail._id),c=await codeRef.get();if(!c.data||c.data.used)throw new Error('CODE_REDEEMED');await codeRef.update({data:{used:true,usedBy:uid,usedAt:Date.now()}})}
+      redeemed[h]=Date.now();fresh.redeemed=redeemed
+      const save=async value=>{const clean=Object.assign({},value);delete clean._id;delete clean._openid;await ref.update({data:clean})}
+      if(grant.level==='plus'){fresh.plus={since:new Date().toISOString().slice(0,10)};await save(fresh)}
+      else if(grant.level==='p12'){fresh.plan12={since:new Date().toISOString().slice(0,10),goal:['增肌','减脂','增肌减脂','塑形'].includes(event.goal)?event.goal:''};await save(fresh)}
+      else await grantMember(uid,fresh,{level:grant.level,days:grant.days},col,save)
+      return {member:fresh.member||{level:'',expiresAt:''},plus:fresh.plus||null,plan12:fresh.plan12||null}
+    })
+  }catch(e){if(e.message==='CODE_REDEEMED')return fail('CODE_REDEEMED');throw e}
+  await db.collection(COL_ORDERS).add({data:{uid,codeHash:h,level:grant.level,days:grant.days,kind:'redeem',at:Date.now()}}).catch(e=>console.error('order write failed',e))
+  return ok(result)
 }
 
 // ── 发码（管理员接口）：本地 CLI 一条命令出码，不用重新部署 ──
@@ -790,10 +771,10 @@ async function aiChat(event, uid, user, checkinsIn, usersCol) {
  * 自助退订。合规上必须有这条路 —— 只能开通不能取消，本身就是问题。
  * 立即失效（不搞"到期不续"那套含糊语义，用户点了就该马上生效）。
  */
-async function cancelMember(event, uid, user) {
+async function cancelMember(event, uid, user, col) {
   user.member = { level: '', expiresAt: '' }
   user.lastSeenAt = Date.now()
-  await setDoc(COL.users, uid, user)
+  await setDoc(col||COL.users, uid, user)
   await db.collection(COL_ORDERS).add({
     data: { uid: uid, kind: 'cancel', at: Date.now() }
   }).catch(e => console.error('order write failed', e))
@@ -1025,6 +1006,16 @@ async function handle(event) {
       checkins = ((snap && snap.data) || []).reverse()
     } catch (e) { /* 打卡读不了就空着 */ }
     return aiChat(event, uid, user, checkins, 'users')
+  }
+  // Mini-program entitlement requests trust only the OPENID injected by CloudBase.
+  if(['mpEntitlements','mpRedeem','mpCancelMember'].includes(action)){
+    const openid=(cloud.getWXContext()||{}).OPENID
+    if(!openid)return fail('NO_USER')
+    const link=await getLinkByMp(openid),col=link?COL.users:'users',uid=link?link.webUid:openid,user=await getOne(col,uid)
+    if(!user)return fail('NO_USER')
+    if(action==='mpRedeem')return redeem(event,uid,user,col)
+    if(action==='mpCancelMember')return cancelMember(event,uid,user,col)
+    return ok({member:user.member||null,plus:user.plus||null,plan12:user.plan12||null,playerNo:user.playerNo||0,bound:!!link})
   }
   // 小程序排行榜通道：与网站同榜（rankrows 共享池）。callFunction 自带 openid，无法伪造。
   if (action === 'mpBoard') {

@@ -1,0 +1,8 @@
+<view class="card note-card" wx:if="{{loaded}}">
+ <view class="title">训练日志</view><view class="muted">{{date}} · 一句话、一个主题，留住这次进步</view>
+ <input class="journal-input" value="{{note.subject}}" maxlength="24" placeholder="给今天一个标题（选填）" data-k="subject" bindinput="input"/>
+ <view class="journal-tags"><text wx:for="{{tags}}" wx:key="*this" class="chip {{note.tag===item?'on':''}}" data-tag="{{item}}" bindtap="tag">{{item}}</text></view>
+ <textarea class="journal-text" value="{{note.text}}" maxlength="200" placeholder="今天想说什么？练得怎么样，有什么收获？" data-k="text" bindinput="input"/><view class="muted count">{{note.text.length}} / 200</view>
+ <view class="journal-photos"><view wx:for="{{note.photos}}" wx:key="*this" class="photo"><image class="journal-photo" src="{{item}}" mode="aspectFill" data-src="{{item}}" bindtap="preview"/><text data-i="{{index}}" bindtap="removePhoto">移除</text></view></view>
+ <view class="journal-actions"><button class="btn ghost journal-action" bindtap="addPhoto">＋ 体型照</button><button class="btn journal-action" bindtap="save">保存记录</button></view><view class="muted">日志与照片只存本机，换设备不会同步；清理小程序数据前先导出。</view>
+</view>

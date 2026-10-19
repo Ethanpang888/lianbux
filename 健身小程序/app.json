@@ -17,7 +17,8 @@
     "pages/ai/ai",
     "pages/poster/poster",
     "pages/food/food",
-    "pages/growth/growth"
+    "pages/growth/growth",
+    "pages/mealref/mealref"
   ],
   "subPackages": [
     {
@@ -25,6 +26,14 @@
       "pages": [
         "pages/exlib/exlib",
         "pages/exdetail/exdetail"
+      ]
+    },
+    {
+      "root": "subpkgs/tools",
+      "pages": [
+        "pages/pro/pro",
+        "pages/plus/plus",
+        "pages/plan12/plan12"
       ]
     }
   ],

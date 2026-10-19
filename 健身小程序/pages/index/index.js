@@ -10,13 +10,7 @@ function todayStr() {
 }
 
 /* 角色形象阶段（与网站洞府一致）：按**累计完成打卡次数**取阶段。 */
-const STAGES = [
-  { at: 1, file: 'stage1.png', name: '新手' },
-  { at: 20, file: 'stage2.png', name: '入门' },
-  { at: 45, file: 'stage3.png', name: '规律' },
-  { at: 70, file: 'stage4.png', name: '硬核' },
-  { at: 95, file: 'stage5.png', name: '练不虚' }
-]
+const STAGES= require('../../utils/page-contract.js').CHAR_STAGES
 function stageOf(n) {
   let pick = STAGES[0]
   for (const s of STAGES) if (n >= s.at) pick = s
@@ -92,7 +86,7 @@ require('../../utils/page.js')({
     // 饮食目标（引擎算，与饮食页同口径）
     let targetKcal = 0, targetProtein = 0
     try {
-      const diet = calc.energyPlan(profile, g.dietState || {})
+      const diet = calc.energyPlan(profile, require('../../utils/macro.js').combinedAdj(g.dietState || {}))
       if (diet) { targetKcal = Math.round(diet.targetKcal || diet.kcal || 0); targetProtein = Math.round(diet.protein || 0) }
     } catch (e) { /* 算不出就显示 0，不挡页面 */ }
 
@@ -114,7 +108,7 @@ require('../../utils/page.js')({
   goDiet(){require('../../utils/navigation.js').go('/pages/diet/diet')},
   openFoodPanel(e){wx.navigateTo({url:'/pages/food/food?meal='+e.currentTarget.dataset.k+'&date='+todayStr()})},
   loadDietSummary(){
-    const e=calc.energyPlan(app.globalData.profile,app.globalData.dietState||{})
+    const e=calc.energyPlan(app.globalData.profile,require('../../utils/macro.js').combinedAdj(app.globalData.dietState||{}))
     const paint=log=>this.setData(Object.assign({goalName:(app.globalData.profile||{}).goal,energy:{tdee:e.tdee,deficit:e.deficit}},require('../../utils/presentation.js').dietSummary(log,e)))
     paint([])
     dietRecords.load(app.globalData.openid,todayStr()).then(rows=>paint((rows[0]||{}).dietLog||[])).catch(()=>wx.showToast({title:'饮食记录读取失败',icon:'none'}))

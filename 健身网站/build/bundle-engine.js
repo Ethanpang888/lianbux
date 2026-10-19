@@ -19,6 +19,7 @@ const DIST = path.join(ROOT, 'dist')
 
 // 依赖顺序只为可读，loader 是惰性 + 缓存，不依赖顺序
 const MODULES = [
+  ...['page-contract','records-view','diet-feedback'].map(n=>({id:n+'.js',file:path.join(UTILS,n+'.js')})),
   { id: 'training-flow-data.js', file: path.join(UTILS,'training-flow-data.js') },
   { id: 'presentation.js', file: path.join(UTILS,'presentation.js') },
   { id: 'tcm-content.js', file: path.join(UTILS,'tcm-content.js') },
@@ -72,7 +73,7 @@ function main() {
 
   parts.push('')
   parts.push('  root.ENGINE = {')
-  parts.push("    trainingFlow: req('training-flow-data.js'), presentation: req('presentation.js'), tcm: req('tcm-content.js'), kb: req('kb.js'), calc: req('calc.js'), method: req('method.js'),")
+  parts.push("    pageContract:req('page-contract.js'),recordsView:req('records-view.js'),dietFeedback:req('diet-feedback.js'),trainingFlow: req('training-flow-data.js'), presentation: req('presentation.js'), tcm: req('tcm-content.js'), kb: req('kb.js'), calc: req('calc.js'), method: req('method.js'),")
   parts.push("    diet: req('diet.js'), recipes: req('recipes-data.js'), gamify: req('gamify.js'),")
   parts.push("    progression: req('progression.js'), macro: req('macro.js'), journal: req('journal.js'), pro: req('pro.js'), coach: req('coach.js'), secret: req('secret.js'), planBackup: req('plan-backup.js'), plus: req('plus.js'),")
   parts.push('    __md5: ' + JSON.stringify(fingerprints) + ',')

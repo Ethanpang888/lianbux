@@ -12,13 +12,7 @@
  */
 const PageHome = {
   /* 角色形象按境界段取图：stage1..stage5，缺图自动回退 */
-  CHAR_STAGES: [
-    { at: 1, file: 'stage1.png', name: '新手' },
-    { at: 20, file: 'stage2.png', name: '入门' },
-    { at: 45, file: 'stage3.png', name: '规律' },
-    { at: 70, file: 'stage4.png', name: '硬核' },
-    { at: 95, file: 'stage5.png', name: '练不虚' }
-  ],
+  get CHAR_STAGES(){return ENGINE.pageContract.CHAR_STAGES},
 
   charStageOf(level) {
     let pick = this.CHAR_STAGES[0]

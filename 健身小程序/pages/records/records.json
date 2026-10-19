@@ -1,4 +1,6 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "training-journal": "/components/training-journal/index"
+  },
   "navigationBarTitleText": "修炼记录"
 }

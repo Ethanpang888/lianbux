@@ -588,20 +588,10 @@ const PageDiet = {
     const u = Store.state.user
     const ds = u.dietState || {}
     const today = Fmt.todayStr()
-    const steps = this.HUNGER_STEPS
-    // 修小程序老 bug（同一天连点会叠加）：今天已经反馈过 → 先回退旧反馈，再按新反馈计
-    // （同 key 重按 = 幂等，偏移不变）
-    const last = (ds.hungerToday || {}).date === today ? ds.hungerToday : null
-    let adj = { carbAdj: ds.carbAdj || 0, proteinAdj: ds.proteinAdj || 0 }
-    if (last && steps[last.key]) {
-      adj = { carbAdj: adj.carbAdj - steps[last.key].carb, proteinAdj: adj.proteinAdj - steps[last.key].protein }
-    }
-    const next = ENGINE.calc.applyHunger(type, adj)
-    const rolled = last && last.key !== type
-    u.dietState = Object.assign({}, ds, next, { hungerToday: { date: today, key: type } })
-    const hist = (ds.history || []).filter(x => x.date !== today)
-    hist.push({ date: today, type })
-    u.dietState.history = hist
+    const last=(ds.hungerToday||{}).date===today?ds.hungerToday:null
+    const rolled=last&&last.key!==type
+    u.dietState=ENGINE.dietFeedback.hunger(ds,type,today)
+    const next=u.dietState
     Store.saveCloud({ dietState: u.dietState })
     UI.toast('今天已反馈：' + type + '（碳水 ' + next.carbAdj + ' / 蛋白 ' + next.proteinAdj + '）' +
       (rolled ? '—— 已替换你刚才的选择' : ''))

@@ -10,7 +10,7 @@
     "es6": true,
     "enhance": true,
     "postcss": true,
-    "minified": false,
+    "minified": true,
     "newFeature": true,
     "nodeModules": false,
     "compileWorklet": false,

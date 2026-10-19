@@ -3,6 +3,7 @@ const calc = require('../../utils/calc.js')
 const dietLib = require('../../utils/diet.js')
 const kb = require('../../utils/kb.js')
 const records = require('../../utils/diet-records.js')
+const macro=require('../../utils/macro.js'),checks=require('../../utils/checkins-store.js'),feedback=require('../../utils/diet-feedback.js'),pro=require('../../utils/pro.js')
 
 function todayStr() {
   const d = new Date()
@@ -15,7 +16,7 @@ function daySeed() {
   return Math.floor((d - start) / 86400000)
 }
 
-require('../../utils/page.js')({
+require('../../utils/page.js')(Object.assign({},require('../../utils/diet-reference-controller.js'),{
   data: {
     hasProfile: false,
     diet: null,
@@ -49,7 +50,7 @@ require('../../utils/page.js')({
     const g = app.globalData
     const ds = g.dietState || { carbAdj: 0, proteinAdj: 0, history: [] }
     // 锚定 TDEE：BMR × 活动系数 → ± 目标缺口 → 热量目标
-    const diet = calc.energyPlan(g.profile, ds)
+    const diet = calc.energyPlan(g.profile, macro.combinedAdj(ds))
     const history7 = (ds.history || []).slice(-7).map(h => h.type)
     const mode = (g.profile && g.profile.dietMode) || (g.plan && g.plan.dietMode) || 'simple'
     // 「今天吃什么」：菜谱模式给具体菜品+用量；简化模式给每餐克数+食材换算
@@ -58,55 +59,23 @@ require('../../utils/page.js')({
     // 三餐参考（2026-10-19 与网站 refMeals 同逻辑：主食+蛋白+蔬菜+油脂组合，复合营养折算）
     const refMeals = this.buildRefMeals(diet)
     this.setData({
-      refMeals, refTotal:dietLib.referenceSum(refMeals.reduce((a,m)=>a.concat(m.items),[])), diet, dietMode: mode, dayPlan,
+      profile:g.profile, refMeals, refTotal:dietLib.referenceSum(refMeals.reduce((a,m)=>a.concat(m.items),[])), diet, dietMode: mode, dayPlan,
       energy: {
         bmr: diet.bmr, factor: diet.activity.factor, actName: diet.activity.name,
         tdee: diet.tdee, targetKcal: diet.targetKcal, deficit: diet.deficit, warn: diet.warn
       },
       dietState: { carbAdj: ds.carbAdj || 0, proteinAdj: ds.proteinAdj || 0, lastType: ds.lastType || '' },
-      history7
+      history7, breakdown:macro.breakdown(ds), member:pro.memberOf(g), proDiet:pro.isPro(g)?pro.dietPlan(g.profile,diet,{method:require('../../utils/method.js')}):null
     })
     this.loadActual()
     this.loadTrend()
   },
 
   // ───── 三餐参考（与网站 diet.js refMeals 同步；改一边必须改另一边）─────
-  saveReferenceProfile(p){return wx.cloud.database().collection('users').doc(app.globalData.openid).update({data:{profile:p}})},
-  refKey(){return 'lbgym_reference_mp_'+app.globalData.openid+'_'+dietLib.referenceBasis(app.globalData.profile)},
-  buildRefMeals(e){try{const saved=wx.getStorageSync(this.refKey());if(saved&&saved.length===4)return saved.map(m=>Object.assign({},m,{sum:dietLib.referenceSum(m.items)}))}catch(err){};return dietLib.buildReference(e)},
-  refEdit(e){const mi=e.currentTarget.dataset.mi,i=e.currentTarget.dataset.i;this._edits=this._edits||{};this._edits[mi+':'+i]=e.detail.value},
-  readEdits(){const meals=JSON.parse(JSON.stringify(this.data.refMeals));Object.keys(this._edits||{}).forEach(k=>{const [mi,i]=k.split(':').map(Number),v=this._edits[k],g=Number(v);if(v===''||!Number.isFinite(g)||g<0||g>5000)throw new Error('请填写0–5000克');meals[mi].items[i].g=g});meals.forEach(m=>m.sum=dietLib.referenceSum(m.items));this._edits={};this.setData({refMeals:meals,refTotal:dietLib.referenceSum(meals.reduce((a,m)=>a.concat(m.items),[]))});return meals},
-  refSave(){try{const meals=this.readEdits();wx.setStorageSync(this.refKey(),meals);wx.showToast({title:'已保存参考，未计入摄入',icon:'none'})}catch(e){wx.showToast({title:e.message||'保存失败',icon:'none'})}},
-  refAsTarget(){let meals;try{meals=this.readEdits()}catch(e){wx.showToast({title:e.message,icon:'none'});return}const t=dietLib.referenceSum(meals.reduce((a,m)=>a.concat(m.items),[]));if(t.k<=0){wx.showToast({title:'全天参考不能为零',icon:'none'});return}wx.showModal({title:'设为每日目标？',content:'替换档案估算目标，不计入实际摄入，可随时恢复。',success:r=>{if(!r.confirm)return;const p=Object.assign({},app.globalData.profile,{dietReferenceTarget:{basis:dietLib.referenceBasis(app.globalData.profile),kcal:t.k,protein:t.p,carb:t.c,fat:t.f}});this.saveReferenceProfile(p).then(()=>{app.globalData.profile=p;wx.setStorageSync(this.refKey(),meals);this.refresh();wx.showToast({title:'每日目标已更新'})}).catch(()=>wx.showToast({title:'目标保存失败，请重试',icon:'none'}))}})},
-  refReset(){const p=Object.assign({},app.globalData.profile);delete p.dietReferenceTarget;this.saveReferenceProfile(p).then(()=>{app.globalData.profile=p;this.refresh();wx.showToast({title:'已恢复档案目标'})}).catch(()=>wx.showToast({title:'恢复失败，请重试',icon:'none'}))},
-  refLog(e){let meals;try{meals=this.readEdits()}catch(err){wx.showToast({title:err.message,icon:'none'});return}const m=meals.find(x=>x.meal===e.currentTarget.dataset.k);if(!m||this._recording)return;wx.showModal({title:'确认实际吃的 · '+m.name,content:'按编辑份量追加 '+Math.round(m.sum.k)+' kcal。已有记录保留，请避免重复记入。',success:r=>{if(!r.confirm||this._recording)return;this._recording=true;const add=m.items.filter(x=>x.g>0).map(x=>{const f={name:x.name,grams:x.g,meal:m.meal};['kcal','protein','carbs','fat','fiber'].forEach(k=>f[k]=Math.round((x[k]||0)*x.g/100*10)/10);return f});records.mutate(app.globalData.openid,this.data.viewDate||records.dateStr(),log=>log.concat(add)).then(()=>{this.loadActual();wx.showToast({title:'已记入实际摄入'})}).catch(err=>wx.showToast({title:err.message||'保存失败，请重试',icon:'none'})).then(()=>{this._recording=false})}})},
-
-  // 近 3 周体重 → 趋势与调控建议（谭成义：固定吃 7-10 天再看；降太快加碳水、不动减碳水）
-  loadTrend() {
-    const db = wx.cloud.database()
-    const _ = db.command
-    const now = new Date()
-    const past = new Date(now.getTime() - 21 * 86400000)
-    const since = `${past.getFullYear()}-${String(past.getMonth() + 1).padStart(2, '0')}-${String(past.getDate()).padStart(2, '0')}`
-    db.collection('checkins').where({ _openid: app.globalData.openid, date: _.gte(since) })
-      .orderBy('date', 'asc').limit(40).get()
-      .then(res => this.setData({ trend: calc.weightTrend(res.data, app.globalData.profile, 14) }))
-      .catch(() => {})
-  },
-
-  // 一键采纳趋势建议：碳水偏移 ±0.25g/kg
-  applyTrend() {
-    const t = this.data.trend
-    if (!t || !t.enough || !t.step) return
-    const cur = app.globalData.dietState || { carbAdj: 0, proteinAdj: 0, history: [] }
-    const carbAdj = Math.max(-1.5, Math.min(1.5, Math.round(((cur.carbAdj || 0) + t.step) * 100) / 100))
-    app.globalData.dietState = Object.assign({}, cur, { carbAdj })
-    this.refresh()
-    app.saveUser({ dietState: app.globalData.dietState }).then(() => {
-      wx.showToast({ title: '已按体重趋势调整碳水', icon: 'none' })
-    }).catch(() => {})
-  },
-
+  loadTrend(){const owner=app.globalData.openid;this.setData({trendLoading:true,trendError:false});return checks.all(owner).then(rows=>{this._history=rows;this.paintReview();this.setData({trendLoading:false})}).catch(()=>this.setData({trendLoading:false,trendError:true}))},
+  paintReview(){const g=app.globalData,r=macro.review({checkins:this._history||[],profile:g.profile,dietState:g.dietState,today:todayStr()});let after=null;if(r.ready&&r.action){const ds=macro.apply(r,g.dietState);after=calc.energyPlan(g.profile,macro.combinedAdj(ds))}this.setData({pointPct:Math.min(100,Math.max(0,((r.progress||{}).havePoints||0)/((r.progress||{}).needPoints||4)*100)),dayPct:Math.min(100,Math.max(0,((r.progress||{}).haveDays||0)/((r.progress||{}).needDays||7)*100)),review:r,trendPct:r.trend?macro.round(r.trend.perWeekPct*100,2):0,after,breakdown:macro.breakdown(g.dietState),hungerToday:(g.dietState||{}).hungerToday||null})},
+  applyTrend(){this.applyMacro()},
+  async applyMacro(){if(this.data.adjustBusy)return;const g=app.globalData,r=macro.review({checkins:this._history||[],profile:g.profile,dietState:g.dietState,today:todayStr()});if(!r.ready||!r.action){wx.showToast({title:'当前没有可应用的调整',icon:'none'});return}const next=macro.apply(r,g.dietState);this.setData({adjustBusy:true});try{await app.saveUser({dietState:next});g.dietState=next;this.refresh();wx.showToast({title:'已应用本次饮食调整',icon:'none'})}catch(e){wx.showToast({title:'保存失败，请重试',icon:'none'})}finally{this.setData({adjustBusy:false})}},
   // 切换饮食模式（配好菜 / 只给克数）
   setDietMode(e) {
     const mode = e.currentTarget.dataset.m
@@ -119,28 +88,16 @@ require('../../utils/page.js')({
     app.saveUser({ profile: g.profile, plan: g.plan }).catch(() => {})
   },
 
-  setHunger(e) {
-    const type = e.currentTarget.dataset.v
-    const cur = app.globalData.dietState || { carbAdj: 0, proteinAdj: 0, history: [] }
-    const adj = calc.applyHunger(type, cur)
-    const today = todayStr()
-    const history = (cur.history || []).filter(h => h.date !== today).concat([{ date: today, type }])
-    app.globalData.dietState = { carbAdj: adj.carbAdj, proteinAdj: adj.proteinAdj, history, lastType: type }
-    wx.showLoading({ title: '记录中', mask: true })
-    app.saveUser({ dietState: app.globalData.dietState }).then(() => {
-      wx.hideLoading()
-      this.refresh()
-      wx.showToast({ title: '已记录·目标已微调', icon: 'none' })
-    }).catch(() => { wx.hideLoading(); this.refresh() })
-  },
-
+  async setHunger(e){if(this.data.adjustBusy)return;const g=app.globalData,next=feedback.hunger(g.dietState,e.currentTarget.dataset.v,todayStr());this.setData({adjustBusy:true});try{await app.saveUser({dietState:next});g.dietState=next;this.refresh();wx.showToast({title:'今天的反馈已更新',icon:'none'})}catch(err){wx.showToast({title:'保存失败，请重试',icon:'none'})}finally{this.setData({adjustBusy:false})}},
   loadActual(){const date=this.data.viewDate||records.dateStr();this.setData({actualLoading:true,actualError:false});return records.load(app.globalData.openid,date).then(rows=>{if(this.data.viewDate!==date)return;const log=(rows[0]||{}).dietLog||[];this.setData(Object.assign({actualLoading:false},require('../../utils/presentation.js').dietSummary(log,this.data.diet)))}).catch(()=>{if(this.data.viewDate===date)this.setData({actualLoading:false,actualError:true})})},
   openFoodPanel(e){wx.navigateTo({url:'/pages/food/food?meal='+e.currentTarget.dataset.k+'&date='+this.data.viewDate})},
   dateChange(e){this.setData({viewDate:e.detail.value});this.loadActual()},
   shiftDate(e){const d=new Date(this.data.viewDate+'T12:00:00');d.setDate(d.getDate()+Number(e.currentTarget.dataset.d));const date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');this.setData({viewDate:date});this.loadActual()},
-  toggleReference(){this.setData({referenceOpen:!this.data.referenceOpen})},
+  toggleReference(){wx.navigateTo({url:'/pages/mealref/mealref'})},
   recalcReference(){try{this.readEdits()}catch(e){wx.showToast({title:e.message,icon:'none'})}},
   toggleBasis(){this.setData({basisOpen:!this.data.basisOpen})},
   toggleAdjust(){this.setData({adjustOpen:!this.data.adjustOpen})},
+  toggleAdvanced(){this.setData({advancedOpen:!this.data.advancedOpen})},
+  goPro(){wx.navigateTo({url:'/subpkgs/tools/pages/pro/pro'})},
   goAssess() { wx.navigateTo({ url: '/pages/assess/assess' }) }
-})
+}))

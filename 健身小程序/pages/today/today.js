@@ -3,6 +3,7 @@ const kb = require('../../utils/kb.js')
 const calc = require('../../utils/calc.js')
 const progression=require('../../utils/progression.js')
 const restTimer = require('../../utils/rest-timer.js')
+const macro=require('../../utils/macro.js'),pro=require('../../utils/pro.js'),method=require('../../utils/method.js')
 
 // 体质 → 今日宜忌（取自概念库，合规措辞：宜忌/建议/信号，无诊断/处方）
 const TIP_MAP = {
@@ -119,6 +120,7 @@ function mapExercise(e, exdb, profile) {
 
 require('../../utils/page.js')({
   data: {
+    autoRest:true, settingsOpen:false, methodOpen:false, proOpen:false, progressDone:0, progressTotal:0, journalHistory:[],
     loaded: false, hasPlan: false, dayIndex: 0, dayOffset: 0, viewDate: '', isToday: true,
     relLabel: '今天', cycleLabel: '', microLen: 1,
     tcmTip: null, isRest: false, restNote: '', focus: '',
@@ -151,7 +153,23 @@ require('../../utils/page.js')({
     preOn: false, preDims: [], preTotal: 12
   },
 
+  onLoad(){
+    const original=this.setData.bind(this)
+    this.setData=(data,cb)=>{original(data,cb);if(Object.keys(data).some(k=>/^exercises|^waterMl$|^sleepHours$|^weight$|^trained$/.test(k))){this.updateProgress(original);if(this._checkinReadyDate===this.data.viewDate)this.persistDraft()}}
+    this.setData({autoRest:wx.getStorageSync('lbgym_autoRest')!==false,methodRows:[
+      ['目标与组次','按目标、经验和动作角色安排，具体组次以今日动作卡为准。'],['主项阶梯',method.MAIN_LADDER.join(' → ')],['组间休息',Object.keys(method.REST).map(k=>k+' '+method.REST[k]+'秒').join(' · ')],['休息原则',method.REST_NOTE],['核心收尾',method.CORE.note||'核心动作按计划收尾，不额外堆量。'],['减载规则','每 '+method.DELOAD.everyWeeks+' 轮减载，工作组数 ×'+method.DELOAD.setsFactor+'；重量维持。']].map(x=>({name:x[0],text:x[1]}))})
+  },
+  updateProgress(set){const rows=(this.data.exercises||[]).flatMap(e=>e.log||[]).filter(s=>s.type!=='warmup'),done=rows.filter(s=>s.done).length;(set||this.setData.bind(this))({progressTotal:rows.length,progressDone:done,progressPct:rows.length?Math.round(done/rows.length*100):0})},
+  draftKey(){const g=app.globalData;return 'lbgym_training_draft_'+g.openid+'_'+progression.scope(g.plan||{})+'_'+this.data.viewDate},
+  persistDraft(){if(this._checkinReadyDate!==this.data.viewDate)return;try{wx.setStorageSync(this.draftKey(),{at:Date.now(),exercises:this.data.exercises,waterMl:this.data.waterMl,sleepHours:this.data.sleepHours,weight:this.data.weight,trained:this.data.trained})}catch(e){if(!this._draftWarn){this._draftWarn=true;wx.showToast({title:'本机草稿未保存，请保存云端打卡',icon:'none'})}}},
+  restoreDraft(saved){const d=saved;if(!d||!Array.isArray(d.exercises))return;this.setData({exercises:this.decorateProgression(d.exercises,this._progressHistory),waterMl:d.waterMl||0,sleepHours:d.sleepHours||0,weight:d.weight||'',trained:!!d.trained,draftSaved:true})},
+  toggleAutoRest(e){const autoRest=!!e.detail.value;wx.setStorageSync('lbgym_autoRest',autoRest);this.setData({autoRest})},
+  toggleFold(e){const k=e.currentTarget.dataset.k;this.setData({[k]:!this.data[k]})},
+  goPro(){wx.navigateTo({url:'/subpkgs/tools/pages/pro/pro'})},
+  goSecret(e){wx.navigateTo({url:'/pages/secret/secret?id='+(e.currentTarget.dataset.id||'')})},
+  enterStrength(){this.setData({warmupOpen:false});wx.pageScrollTo({selector:'#strength',duration:200})},
   onShow() {
+    const date=app.globalData.trainingDate;if(date){delete app.globalData.trainingDate;this.setData({dayOffset:Math.round((new Date(date+'T00:00:00')-new Date(todayStr()+'T00:00:00'))/86400000)})}
     this.restoreRest()
     if (this.getTabBar) this.getTabBar().setData({ selected: 1 })
     this.load()
@@ -165,6 +183,7 @@ require('../../utils/page.js')({
   },
 
   render() {
+    this.persistDraft(); this._checkinReadyDate=null
     const g = app.globalData
     this.syncCustomFoods()
     this.applyTcmTip()
@@ -175,7 +194,7 @@ require('../../utils/page.js')({
     let baseIdx = calc.dayIndexFromStart(plan.cycleStart, today)
     if (baseIdx < 0) baseIdx = 0
     let idx = baseIdx + this.data.dayOffset
-    if (idx < 0) { idx = 0; this.setData({ dayOffset: -baseIdx }) }
+    if (idx < 0) idx = 0
     const viewDate = shiftDate(today, this.data.dayOffset)
     const microLen = (plan.micro && plan.micro.length) || 1
     const off = this.data.dayOffset
@@ -195,10 +214,10 @@ require('../../utils/page.js')({
       })
     const dietState = app.globalData.dietState || { carbAdj: 0, proteinAdj: 0 }
     // 锚定 TDEE 的每日方案：BMR × 活动系数 = 每日消耗 → ± 目标缺口 = 热量目标 → 碳水补齐差额
-    const m = calc.energyPlan(profile, dietState)
+    const m = calc.energyPlan(profile, macro.combinedAdj(dietState))
     const cal = m.kcal
     const common = {
-      loaded: true, hasPlan: true, dayIndex: idx, dayOffset: off, viewDate,
+      member:pro.memberOf(g), loaded: true, hasPlan: true, dayIndex: idx, dayOffset: off, viewDate,
       isToday: off === 0, relLabel, microLen,
       energy: {
         bmr: m.bmr, factor: m.activity.factor, actName: m.activity.name,
@@ -226,7 +245,7 @@ require('../../utils/page.js')({
       isRest: false, focus: day.focus, exercises:this.decorateProgression(exercises,this._progressHistory||[],viewDate),
       week: day.week || 1, deload: !!day.deload, srcTag: day.src || '',
       warmup: day.warmup || {minutes:8},warmupRows:require('../../utils/training-flow-data.js').warmup(day), mainNote: (kb.METHOD && kb.METHOD.MAIN_NOTE) || '',
-      cardio: day.cardio || null,
+      cardio: day.cardio || {type:'轻松活动',detail:'力量后按恢复情况选做，能正常说话的强度',note:'疲劳或不适时跳过有氧。'},
       cycleLabel: plan.micro ? `第 ${idx + 1} 天 · 循环第${Math.floor(logical / microLen) + 1}周 · 第${(logical % microLen) + 1}/${microLen}单元 · ${day.focus}` : `第 ${idx + 1} 天`
     }))
     this.loadFlow(); this.recalcDiet(); this.loadCheckin(viewDate, idx)
@@ -312,13 +331,16 @@ require('../../utils/page.js')({
   loadCheckin(viewDate, idx) {
     this._checkinReadyDate = null
     const db = wx.cloud.database()
-    const plan=app.globalData.plan,before=JSON.stringify(this.data.exercises.map(e=>e.log))
+    const plan=app.globalData.plan,before=JSON.stringify(this.data.exercises.map(e=>e.log)),draftBefore=wx.getStorageSync(this.draftKey())
     db.collection('checkins').where({_openid:app.globalData.openid,date:db.command.lte(viewDate)}).orderBy('date','desc').limit(100).get()
       .then(res => {
         if(this.data.viewDate!==viewDate||app.globalData.plan!==plan)return
         this._progressHistory=res.data||[]
         const c=(res.data||[]).find(x=>x.date===viewDate)||{exercises:[]}
-        const ex = this.data.exercises.map(e => {
+        const historical=viewDate<todayStr()&&(c.exercises||[]).length?c.exercises.map(e=>Object.assign(mapExercise(e,kb.EX,app.globalData.profile),{target:progression.cleanTarget(e.target)})):this.data.exercises
+        const prescriptions=pro.isPro(app.globalData)?pro.applyState({exercises:historical},app.globalData.profile,this._progressHistory,((app.globalData.profile.todayState||{}).date===viewDate?(app.globalData.profile.todayState||{}).key:'ok')||'ok').list:[]
+        const ex = historical.map((e,i) => {
+          if(prescriptions[i]){const p=prescriptions[i];e.prescription=p;e.suggest=p.weight}
           if(JSON.stringify(this.data.exercises.map(x=>x.log))!==before)return e
           // 优先按 oid 匹配（改动作库/改名字也不会丢历史），名字兜底
           let rec = e.oid ? (c.exercises || []).find(x => x.oid && x.oid === e.oid) : null
@@ -326,17 +348,18 @@ require('../../utils/page.js')({
           if (rec && rec.log && rec.log.length) {
             e.log=rec.log.map(s=>({weight:s.weight===0?0:(s.weight||''),reps:s.reps||'',done:!!s.done,type:s.type==='warmup'?'warmup':'work'}))
             e.target=progression.cleanTarget(rec.target);e.progressReady=!!rec.progressReady;e.sets=rec.sets||e.sets
-          }else{const ts=(app.globalData.profile||{}).todayState||{},t=progression.targetFor(e,plan,this._progressHistory,viewDate,!!this.data.deload||(ts.date===viewDate&&!['ok','good'].includes(ts.key)));if(t){e.target=t;e.sets=t.sets+'×'+t.reps+(t.kind==='time'?'秒':'');e.log=Array.from({length:t.sets},()=>({weight:t.weight,reps:t.reps,done:false,type:'work'}));e.suggest=t.weight}}
+          }else{const ts=(app.globalData.profile||{}).todayState||{},t=progression.targetFor(e,plan,this._progressHistory,viewDate,!!this.data.deload||(ts.date===viewDate&&!['ok','good'].includes(ts.key)));if(t){e.target=t;e.sets=t.sets+'×'+t.reps+(t.kind==='time'?'秒':'');e.log=Array.from({length:t.sets},()=>({weight:t.weight,reps:t.reps,done:false,type:'work'}));e.suggest=t.weight}else if(e.prescription){const p=e.prescription;e.log=Array.from({length:p.setsN},()=>({weight:p.weight,reps:p.reps,done:false,type:'work'}))}}
           return e
         })
         this.setData({
-          exercises:this.decorateProgression(ex,this._progressHistory), dietLog: c.dietLog || [],
+          journalHistory:res.data||[], exercises:this.decorateProgression(ex,this._progressHistory), dietLog: c.dietLog || [],
           trained: !!c.trained, waterMl: c.waterMl || 0, sleepHours: c.sleepHours || 0,
           weight: c.weight ? String(c.weight) : '', note: c.note || ''
         })
         this.recalcDiet()
         this._checkinReadyDate = viewDate
         this._checkinBaseline = JSON.parse(JSON.stringify({date:viewDate,dietLog:this.data.dietLog,dietOk:this.data.dietOk,waterMl:this.data.waterMl,sleepHours:this.data.sleepHours,weight:this.data.weight,note:this.data.note}))
+        this.restoreDraft(draftBefore);const first=this.data.exercises.findIndex(e=>(e.log||[]).some(s=>!s.done));if(first>=0)this.setData({['exercises['+first+'].expanded']:true});this.updateProgress()
       }).catch(() => { if(this.data.viewDate===viewDate)wx.showToast({title:'记录加载失败，请重新进入后保存',icon:'none'}) })
   },
 
@@ -360,7 +383,7 @@ require('../../utils/page.js')({
       const ex = this.data.exercises[i]
       const isLastSet = j >= ex.log.length - 1
       const isLastEx = i >= this.data.exercises.length - 1
-      if (!(isLastSet && isLastEx)) {
+      if (this.data.autoRest && !(isLastSet && isLastEx)) {
         this.startRest(ex.rest || 120, `${ex.name} · 第 ${Number(j) + 1} 组完成`)
       }
     }
@@ -376,8 +399,8 @@ require('../../utils/page.js')({
   pauseRest(){restTimer.toggle()},
   skipRest(){restTimer.end()},
   clearRestTimer(){if(this._restUnsub){this._restUnsub();this._restUnsub=null}},
-  onUnload(){this.clearRestTimer();this.fmStop()},
-  onHide(){this.clearRestTimer();this.fmStop()},
+  onUnload(){this.persistDraft();this.clearRestTimer();this.fmStop()},
+  onHide(){this.persistDraft();this.clearRestTimer();this.fmStop()},
 
   // ───── 专注训练全屏（2026-10-16 用户需求：带着用户一起练）─────
   // 大倒计时 + 动作大图 + 当前组重量/次数步进 + 「完成这一组」= 打勾并进入休息倒计时
@@ -459,6 +482,7 @@ require('../../utils/page.js')({
     const ex = this.data.exercises[cur.ei]
     const isLastSet = cur.si >= ex.log.length - 1
     const isLastEx = cur.ei >= this.data.exercises.length - 1
+    this.setData({['exercises['+cur.ei+'].log['+cur.si+'].weight']:this.data.fm.weight===''?0:this.data.fm.weight,['exercises['+cur.ei+'].log['+cur.si+'].reps']:this.data.fm.reps})
     // 打勾（重量/次数已在 fmAdj 里写进 log）
     this.setData({ ['exercises[' + cur.ei + '].log[' + cur.si + '].done']: true })
     if (isLastSet && isLastEx) {
@@ -467,7 +491,7 @@ require('../../utils/page.js')({
       return
     }
     // 进入休息倒计时（全屏里继续显示大倒计时）
-    this.startRest(ex.rest || 120, `${ex.name} · 第 ${cur.si + 1} 组完成`)
+    if(this.data.autoRest)this.startRest(ex.rest || 120, `${ex.name} · 第 ${cur.si + 1} 组完成`)
     // 前进到下一个未完成组
     const nxt = this.nextSet(isLastSet ? cur.ei + 1 : cur.ei, true)
     if (nxt) {
@@ -1157,7 +1181,7 @@ require('../../utils/page.js')({
     const db = wx.cloud.database()
     const doc = {
       date: this.data.viewDate, dayIndex: this.data.dayIndex,
-      trained: this.data.trained, dietOk: this.data.dietOk,
+      trained: this.data.isRest?false:(require('../../utils/gamify.js').doneRatio(this.data.exercises)>=0.8), dietOk: this.data.dietOk,
       waterMl: this.data.waterMl || 0, sleepHours: this.data.sleepHours || 0,
       weight: this.data.weight ? Number(this.data.weight) : '',
       note: this.data.note,
@@ -1180,6 +1204,7 @@ require('../../utils/page.js')({
       })
       .then(() => {
         if(this.data.viewDate!==savedDate)return
+        try{wx.removeStorageSync(this.draftKey())}catch(e){}
         this._checkinBaseline=JSON.parse(JSON.stringify(doc))
         this._progressHistory=[doc].concat((this._progressHistory||[]).filter(x=>x.date!==doc.date));this.setData({exercises:this.decorateProgression(this.data.exercises,this._progressHistory)});
         this.setData({ savedTip: true }); setTimeout(() => this.setData({ savedTip: false }), 1500)

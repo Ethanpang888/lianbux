@@ -100,3 +100,6 @@ input::-webkit-input-placeholder, textarea::-webkit-input-placeholder { color: #
 
 /* Same mobile surface and type scale as website redesign.css. */
 page{padding-top:32rpx;line-height:1.65}.card{margin:0 40rpx 28rpx;padding:40rpx;border-radius:40rpx}.title{font-size:32rpx;font-weight:600}.btn{font-size:28rpx;font-weight:550;min-height:92rpx;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:20rpx 24rpx;color:var(--button-text)}button{font:inherit;color:var(--text);background:var(--green-soft);border-radius:24rpx;border:0;font-size:26rpx;margin-top:16rpx}button::after{border:0}.btn.ghost{color:var(--green-dark)}.page-heading{margin:8rpx 40rpx 40rpx;font-size:44rpx;font-weight:650}.page-sub{font-size:24rpx;color:var(--sub);font-weight:400;margin-top:8rpx}.fold-head{display:flex;justify-content:space-between;align-items:center;color:var(--sub);font-size:26rpx;min-height:52rpx}.fold-body{margin-top:24rpx}.over{color:var(--danger)!important}b{font-weight:600}
+
+/* Native button defaults must not narrow long website action labels. */
+button.btn{width:100%;line-height:1.5;margin-left:0;margin-right:0}.row>button.btn{flex:1;min-width:0}.chips>button.btn,.chip-row>button.btn{width:auto}

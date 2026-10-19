@@ -1,6 +1,7 @@
 {
   "usingComponents": {
-    "frame-gif": "/components/frame-gif/index"
+    "frame-gif": "/components/frame-gif/index",
+    "training-journal": "/components/training-journal/index"
   },
   "navigationBarTitleText": "训练"
 }

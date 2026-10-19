@@ -31,9 +31,7 @@ const PageMe = {
       '</div>' +
 
       '<div class="card"><h2>修炼工具</h2><div class="tool-links">' +
-        [['plan', '我的完整计划', '查看周期与调整安排'], ['exlib', '动作图鉴', '查动作与训练要领'],
-         ['ai', '随身导师', '训练与饮食答疑'], ['secret', '藏经阁', '目标秘籍与训练方法'],
-         ['plus', '进阶工具包', '查看已有工具与权益'], ['plan12', '12 周定制方案', '查看方案与交付说明']].map(x =>
+        ENGINE.pageContract.TOOLS.map(t=>[t.key,t.name,t.note]).map(x =>
            '<button class="tool-link" onclick="Router.go(\'' + x[0] + '\')"><span><b>' + x[1] + '</b><small>' + x[2] + '</small></span><span>›</span></button>').join('') +
         '<button class="tool-link" onclick="PagePoster.showToday()"><span><b>📸 今日战报</b><small>本次举铁多少吨 · 昭告天下</small></span><span>›</span></button>' +
         '<button class="tool-link" onclick="PagePoster.showLife()"><span><b>🏆 修行生涯卡</b><small>累计举起 · 连续修炼 · 入坑天数</small></span><span>›</span></button>' +
