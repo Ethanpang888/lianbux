@@ -11,11 +11,13 @@ const CAT_META = {
   home: { glyph: '居', label: '居家计划' },
   focus: { glyph: '专', label: '部位专项' },
   posture: { glyph: '衡', label: '体态矫正' },
+  female: { glyph: '她', label: '女性训练' },
   advanced: { glyph: '进', label: '进阶周期' }
 }
 const TABS = [
   { key: 'all', name: '全部' },
   { key: 'free', name: '免费入门' },
+  { key: 'female', name: '女性' },
   { key: 'home', name: '居家' },
   { key: 'focus', name: '部位专项' },
   { key: 'posture', name: '体态矫正' },
@@ -55,13 +57,14 @@ Page({
     const secrets = SECRET.list().map(s => {
       const meta = CAT_META[s.cat || 'advanced'] || CAT_META.advanced
       const append = s.kind === 'append'
-      const grade = s.cat === 'advanced' ? '地阶' : '玄阶' // 品阶（2026-10-17 斗破式包装，与网站一致）
+      const free = s.cat === 'female' // 女性周期训练免费开放（2026-10-18）
+      const grade = s.cat === 'female' ? '黄阶' : (s.cat === 'advanced' ? '地阶' : '玄阶') // 品阶（与网站一致）
       return {
         key: s.key, name: s.name, tagline: s.tagline, weeks: s.weeks,
         cat: s.cat || 'advanced', append,
         catLabel: meta.label + ' · ' + grade, grade,
         glyph: append ? '衡' : meta.glyph,
-        using: s.key === using
+        using: s.key === using, free
       }
     })
     const road = (SECRET.ROADMAP || []).map(x => ({ name: x.name, why: x.why }))

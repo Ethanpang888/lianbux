@@ -6,7 +6,7 @@ const METHOD = require('./method.js')
 // 计划结构版本号：改动「编排/动作选取/组次」逻辑时必须 +1，
 // 否则老用户云端已存的 plan.micro 会被 migratePlan 直接放行、永远停留在旧算法。
 // 4（2026-10-14）：大重量复合动作（深蹲/卧推/硬拉/腿举/推举）组间休息 180→240 秒
-const PLAN_SCHEMA = 4
+const PLAN_SCHEMA = 5
 
 // 部位 / 器械 / 难度 选项（动作库筛选）
 const PARTS = [
@@ -116,6 +116,15 @@ function rankExercises(part, profile, home, allow) {
     } else { // 熟练
       if (e.equipment === '杠铃') score += 3
       if (e.level === '熟练') score += 2
+    }
+    // 女性默认路径（2026-10-18 用户拍板）：不做杠铃卧推/深蹲那套男性主项 —— 固定器械/哑铃优先，
+    // 臀腿肩背小幅加权（女性主要诉求），胸保持原有配额但选器械版本。仅影响新排计划（PLAN_SCHEMA 5 起重排）。
+    if ((profile || {}).gender === '女') {
+      if (e.equipment === '杠铃' || e.equipment === '壶铃') score -= 35
+      if (['器械','哑铃','绳索'].indexOf(e.equipment) >= 0) score += 6
+      const pn = e.partName || ''
+      if (/臀|腿|下肢/.test(pn)) score += 4
+      if (/肩|背/.test(pn)) score += 3
     }
     return { e, score, pattern }
   }).sort((a, b) => b.score - a.score)

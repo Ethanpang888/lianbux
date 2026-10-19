@@ -27,8 +27,8 @@ const PageSecret = {
       ENGINE.secret.SECRETS.map(s => this.card(s, cur, on)).join('') + '</div>' +
       '<div class="library-note">基础内容可以直接使用；进阶周期保留原会员权益，应用计划前会说明将改动什么。</div>' +
       // 「还在补的」诚实卡必须保留：不拿半成品凑数（项目规矩，test-pages 有断言）
-      '<h2 style="margin:18px 0 4px;font-size:15px">全部秘籍一览 <span class="mini">' +
-        Foundations.books.length + ' 本基础功法 + ' + ENGINE.secret.SECRETS.length + ' 本进阶周期</span></h2>' +
+'<h2 style="margin:18px 0 4px;font-size:15px">全部秘籍一览 <span class="mini">' +
+      Foundations.books.length + ' 本基础功法 + 女性周期训练（免费）+ ' + (ENGINE.secret.SECRETS.length - 1) + ' 本会员内容</span></h2>' +
       this.roadmapCard()
     this.bindList()
     const rb = document.getElementById('restorePlanBtn')
@@ -42,9 +42,10 @@ const PageSecret = {
   /** 分类 → 卡片角标字 / 分类名 */
   catMeta(cat) {
     return cat === 'home' ? { glyph: '居', label: '居家计划' }
-      : cat === 'focus' ? { glyph: '专', label: '部位专项' }
-      : cat === 'posture' ? { glyph: '衡', label: '体态矫正' }
-      : { glyph: '进', label: '进阶周期' }
+    : cat === 'focus' ? { glyph: '专', label: '部位专项' }
+    : cat === 'posture' ? { glyph: '衡', label: '体态矫正' }
+    : cat === 'female' ? { glyph: '她', label: '女性训练' }
+    : { glyph: '进', label: '进阶周期' }
   },
 
   statusCard(cur, on) {
@@ -92,17 +93,23 @@ const PageSecret = {
     })
   },
 
-  /** 品阶（2026-10-17 斗破式包装）：基础功法=黄阶（免费）；部位专项/体态/居家=玄阶；进阶周期=地阶 */
+  /** 品阶（2026-10-17 斗破式包装）：基础功法=黄阶（免费）；女性周期训练=黄阶（2026-10-18 免费开放）；部位专项/体态/居家=玄阶；进阶周期=地阶 */
   gradeOf(s) {
     if (!s) return ''
+    if (s.cat === 'female') return '黄阶'
     return s.cat === 'advanced' ? '地阶' : '玄阶'
+  },
+
+  isFree(s) {
+    return !!s && s.cat === 'female'
   },
 
   card(s, cur, on) {
     const using = cur && cur.key === s.key
     const meta = this.catMeta(s.cat)
-    return '<button class="manual-card manual-ink" data-access="advanced" data-cat="' + Fmt.esc(s.cat || 'advanced') + '" data-secret="' + Fmt.esc(s.key) + '">' +
-      '<div class="manual-top"><span>' + meta.label + ' · ' + this.gradeOf(s) + '</span><span class="access-paid">' + (using ? '使用中' : on ? '已解锁' : '会员') + '</span></div>' +
+    const free = this.isFree(s)
+    return '<button class="manual-card manual-ink" data-access="' + (free ? 'free' : 'advanced') + '" data-cat="' + Fmt.esc(s.cat || 'advanced') + '" data-secret="' + Fmt.esc(s.key) + '">' +
+      '<div class="manual-top"><span>' + meta.label + ' · ' + this.gradeOf(s) + '</span><span class="access-paid">' + (using ? '使用中' : free ? '免费' : on ? '已解锁' : '会员') + '</span></div>' +
       '<div class="manual-glyph">' + (s.kind === 'append' ? '衡' : meta.glyph) + '</div><h2>' + Fmt.esc(s.name) + '</h2>' +
       '<p>' + Fmt.esc(s.tagline) + '</p><div class="manual-bottom"><span>' + s.weeks + ' 周</span><b>查看详情 ↗</b></div></button>'
 
@@ -135,7 +142,8 @@ const PageSecret = {
       return
     }
     const u = Store.state.user || {}
-    const on = ENGINE.pro.isPro(u)
+    // 2026-10-18 女性线：女性周期训练（cat 'female'）免费开放
+    const on = ENGINE.pro.isPro(u) || s.cat === 'female'
     const cur = ENGINE.secret.currentOf(u.profile)
     const using = cur && cur.key === s.key
 

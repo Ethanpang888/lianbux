@@ -842,9 +842,9 @@ function currentOf(profile) {
 // ───────── 女性周期训练（2026-10-18 女性线：凯圣王×张丹玥《女性训练与健康系列》①②③④）─────────
 const femaleCycle = {
   key: 'female_cycle',
-  name: '女性周期训练 · 凯圣王',
+  name: '女性周期训练 · 凯圣王×张丹玥',
   weeks: 4,
-  cat: 'advanced',
+  cat: 'female',
   tagline: '按激素周期练：卵泡期冲、黄体期稳 —— 力量是女性抗衰的核心',
   forWho: '想开始力量训练、怕练壮、经期不知道能不能练的女生（健身房 / 居家都适用）',
   preset: { goal: '塑形', dietSchool: 'balanced', split: 'full', freq: 'w3' },
