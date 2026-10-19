@@ -22,29 +22,11 @@ const PageDiet = {
     document.getElementById('app').innerHTML =
       Router.bar('饮食方案', Fmt.esc(prof.goal) + ' · ' + (mode === 'recipe' ? '配好菜' : '只给克数')) +
 
-      // ───── 每日目标置顶 + 四色区分（用户 2026-10-17 指定排版）─────
-      '<div class="card">' +
-        '<h2>每日目标 <span class="mini">' + Fmt.esc(e.tdee + ' kcal 消耗') + '</span></h2>' +
-        '<div class="goal-grid">' +
-          '<div class="goal-cell gc-kcal"><span>热量 kcal</span><b>' + Fmt.num(e.kcal) + '</b></div>' +
-          '<div class="goal-cell gc-pro"><span>蛋白 g</span><b>' + Fmt.num(e.protein) + '</b></div>' +
-          '<div class="goal-cell gc-carb"><span>碳水 g</span><b>' + Fmt.num(e.carb) + '</b></div>' +
-          '<div class="goal-cell gc-fat"><span>脂肪 g</span><b>' + Fmt.num(e.fat) + '</b></div>' +
-        '</div>' +
-        '<details class="diet-basis"><summary>营养目标说明</summary><div class="muted txs" style="margin-top:8px">基础代谢 ' + e.bmr + ' × 活动系数 ' +
-        (e.activity ? e.activity.factor : '—') + (e.activity ? '（' + Fmt.esc(e.activity.name) + '）' : '') +
-        ' = ' + e.tdee + ' kcal；缺口 ' + Math.abs(e.tdee - e.kcal) + ' kcal' +
-        '（谭成义口径：蛋白 ' + (hasBody ? Fmt.round(e.protein / prof.weight, 2) : '—') + ' g/kg、脂肪 ' +
-        (hasBody ? Fmt.round(e.fat / prof.weight, 2) : '—') + ' g/kg）' +
-        (bd ? ' · BMI ' + bmiV + '（' + Fmt.esc(bd.txt) + '）' : '') + '</div>' +
-        this.adjustLine(u, adj) + '</details>' +
-      '</div>' +
+      // ───── 每日目标 + 今日补给 合并卡（2026-10-19 用户指定：目标+进度一体，四色保留，超100%柱变红）─────
+      this.goalCard(e, prof, u) +
 
-      // ───── 今天吃了什么 + 添加食材 ─────
+      // ───── 今天吃了什么：四餐 + 添加面板（常用/食物库/最近/套餐）─────
       this.foodLogCard(e, prof) +
-
-      // ───── 今日补给（已吃进度条）—— 与「吃了什么」同组 ─────
-      '<div class="card nutrition-card" id="nutritionBars">' + this.nutritionBars(e) + '</div>' +
 
       // ───── 消耗与缺口总账（用户 2026-10-15：总消耗/缺口埋在小字里看不见）─────
       '<details class="fold"><summary>热量目标怎么算的？查看消耗与缺口</summary>' + this.energyCard(e, prof, u) + '</details>' +
@@ -427,6 +409,136 @@ const PageDiet = {
     '</div>'
   },
 
+  // ───── 四餐模型（2026-10-19 用户指定：早餐/午餐/晚餐/加餐，加餐=练后餐/宵夜/随手记）─────
+  MEALS: [
+    { k: 'b', name: '早餐' },
+    { k: 'l', name: '午餐' },
+    { k: 'd', name: '晚餐' },
+    { k: 's', name: '加餐' }
+  ],
+  mealName(k) { const m = this.MEALS.find(x => x.k === k); return m ? m.name : '加餐' },
+  curMeal: 'b',     // 当前添加目标餐次
+  flTab: 'lib',     // 添加面板页签：freq 常用 / lib 食物库（默认，搜索是主路径）/ recent 最近 / tpl 套餐
+
+  /** 全部历史记录（跨日期，倒序）—— 常用/最近/套餐的数据源 */
+  logAll() {
+    let all = []
+    try { all = JSON.parse(localStorage.getItem(this.LOG_KEY) || '{}') } catch (e) { return [] }
+    return Object.keys(all).sort().reverse().reduce((out, d) => out.concat((all[d] || []).map(f => Object.assign({ _date: d }, f))), [])
+  },
+
+  /** 常用食物：按名字聚合出现次数，取前 12 */
+  freqFoods() {
+    const cnt = {}
+    this.logAll().forEach(f => { cnt[f.name] = (cnt[f.name] || 0) + 1 })
+    return Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).slice(0, 12).map(n => ({ name: n, count: cnt[n] }))
+  },
+
+  /** 最近记录：去重后取前 12 */
+  recentFoods() {
+    const seen = new Set(), out = []
+    for (const f of this.logAll()) {
+      if (seen.has(f.name)) continue
+      seen.add(f.name); out.push(f)
+      if (out.length >= 12) break
+    }
+    return out
+  },
+
+  // ───── 套餐（餐次模板）：保存过的一餐，下次一键套用 ─────
+  TPL_KEY: 'lbgym_mealTpl',
+  tplAll() {
+    try { return JSON.parse(localStorage.getItem(this.TPL_KEY) || '[]') } catch (e) { return [] }
+  },
+  tplSave(name, items, meal) {
+    const list = this.tplAll().filter(t => t.name !== name)
+    list.unshift({ name, meal, items, at: Fmt.todayStr() })
+    try { localStorage.setItem(this.TPL_KEY, JSON.stringify(list.slice(0, 30))) } catch (e) { UI.toast('本机空间不足，套餐没存上') }
+  },
+  tplDel(name) {
+    const list = this.tplAll().filter(t => t.name !== name)
+    try { localStorage.setItem(this.TPL_KEY, JSON.stringify(list)) } catch (e) {}
+    this.flRefresh(); this.paintPanel()
+  },
+  /** 套餐详情（弹窗查看：条目+营养，可删可套用） */
+  tplView(name) {
+    const t = this.tplAll().find(x => x.name === name)
+    if (!t) return
+    const sum = t.items.reduce((a, f) => ({ k: a.k + (f.kcal || 0) * (f.g || 100) / 100, p: a.p + (f.protein || 0) * (f.g || 100) / 100 }), { k: 0, p: 0 })
+    UI.modal({
+      title: '套餐 · ' + name,
+      body: '<div class="muted txs">保存于 ' + Fmt.esc(t.at || '') + ' · 共 ' + t.items.length + ' 种食物（按 100g 记录）</div>' +
+        '<div style="margin-top:8px">' + t.items.map(f =>
+          '<div class="li"><span class="nm">' + Fmt.esc(f.name) + '</span><span class="mc">' + Math.round(f.kcal || 0) + ' kcal/100g</span></div>').join('') + '</div>' +
+        '<div class="muted txs" style="margin-top:8px">合计约 ' + Math.round(sum.k) + ' kcal · 蛋白 ' + Math.round(sum.p) + 'g（按 100g/种估算，套用后可逐条删改）</div>' +
+        '<button class="btn ghost" style="margin-top:10px" onclick="PageDiet.tplDel(\'' + Fmt.esc(name) + '\');UI.toast(\'套餐已删除\')">删除这个套餐</button>',
+      okText: '套用到「' + this.mealName(this.curMeal) + '」',
+      onOk: () => {
+        t.items.forEach(f => this.flAddByName(f.name, f.g || 100))
+        UI.toast('已套用 ' + t.items.length + ' 项到' + this.mealName(this.curMeal))
+      }
+    })
+  },
+  tplSaveCurrent() {
+    const list = this.logOf(Fmt.todayStr()).filter(f => (f.meal || 's') === this.curMeal)
+    if (!list.length) { UI.toast('这一餐还没有记录'); return }
+    const def = this.mealName(this.curMeal) + ' ' + Fmt.todayStr().slice(5).replace('-', '/')
+    UI.modal({
+      title: '把这餐存成套餐',
+      body: '<div class="muted txs">' + list.length + ' 项 · 合计 ' + Math.round(list.reduce((a, f) => a + (f.kcal || 0), 0)) + ' kcal</div>' +
+        '<input id="tplName" class="pro-input" placeholder="套餐名，如：我的早餐" value="' + Fmt.esc(def) + '" style="margin-top:8px">',
+      okText: '保存套餐',
+      onOk: () => {
+        const name = String((document.getElementById('tplName') || {}).value || '').trim() || def
+        this.tplSave(name, list.map(f => ({ name: f.name, g: f.g, kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat })), this.curMeal)
+        this.flTab = 'tpl'; this.paintPanel()
+        UI.toast('已存套餐「' + name + '」')
+      }
+    })
+  },
+
+  /** 每日目标 + 今日补给 合并卡（2026-10-19：四色保留、进度%内嵌、超100%柱变红、缺口/消耗一句话说清） */
+  goalCard(e, prof, u) {
+    const hasBody = Number(prof.weight) > 0 && Number(prof.height) > 0
+    const list = this.logOf(Fmt.todayStr())
+    const tot = list.reduce((a, f) => ({ k: a.k + (Number(f.kcal) || 0), p: a.p + (Number(f.protein) || 0), c: a.c + (Number(f.carbs) || 0), f: a.f + (Number(f.fat) || 0) }), { k: 0, p: 0, c: 0, f: 0 })
+    const goal = prof.goal || '塑形'
+    const deficit = Math.round((e.tdee || 0) - (e.kcal || 0))
+    const dir = deficit > 0 ? '缺口 −' + deficit : deficit < 0 ? '盈余 +' + (-deficit) : '维持'
+    // 说明一句：目标 + 每日消耗 + 摄入要求 + 缺口（用户第 2 点：增肌/减脂/同步都说清楚开了多少缺口）
+    const line = goal === '减脂'
+      ? '减脂：每日消耗 <b>' + Fmt.num(e.tdee) + '</b> kcal，摄入目标 <b>' + Fmt.num(e.kcal) + '</b> kcal（开了 <b>' + deficit + '</b> 缺口，谭成义口径小热量差优先）'
+      : goal === '增肌'
+        ? '增肌：每日消耗 <b>' + Fmt.num(e.tdee) + '</b> kcal，摄入目标 <b>' + Fmt.num(e.kcal) + '</b> kcal（盈余 <b>+' + (-deficit) + '</b>，够练后修复就好，不用猛吃）'
+        : goal === '增肌减脂同步'
+          ? '增肌减脂同步：每日消耗 <b>' + Fmt.num(e.tdee) + '</b> kcal，摄入目标 <b>' + Fmt.num(e.kcal) + '</b> kcal（基本走平' + (deficit > 0 ? '，微缺口 ' + deficit : '') + '——围度和力量在涨就对了）'
+          : '塑形维持：每日消耗 <b>' + Fmt.num(e.tdee) + '</b> kcal，摄入目标 <b>' + Fmt.num(e.kcal) + '</b> kcal'
+    const cell = (label, got, target, unit, cls) => {
+      const pctv = target > 0 ? Math.round(got / target * 100) : 0
+      const over = target > 0 && got > target
+      const red = over ? ' is-over' : ''
+      return '<div class="goal-cell ' + cls + red + '"><span>' + label + '</span><b>' + Fmt.num(target) + '</b>' +
+        '<div class="gc-bar"><i style="width:' + Math.min(100, pctv) + '%"></i></div>' +
+        '<div class="gc-ing">已吃 ' + Fmt.num(got, 0) + ' · <b' + (over ? ' style="color:var(--red,#e5484d)"' : '') + '>' + pctv + '%</b></div></div>'
+    }
+    return '<div class="card" id="goalCardBox">' +
+      '<div class="row between" style="align-items:baseline"><h2>每日目标</h2>' +
+        '<span class="muted txs">' + line + '</span></div>' +
+      '<div class="goal-grid">' +
+        cell('热量 kcal', tot.k, e.kcal, 'kcal', 'gc-kcal') +
+        cell('蛋白 g', tot.p, e.protein, 'g', 'gc-pro') +
+        cell('碳水 g', tot.c, e.carb, 'g', 'gc-carb') +
+        cell('脂肪 g', tot.f, e.fat, 'g', 'gc-fat') +
+      '</div>' +
+      '<details class="diet-basis"><summary>营养目标说明</summary><div class="muted txs" style="margin-top:8px">基础代谢 ' + e.bmr + ' × 活动系数 ' +
+        (e.activity ? e.activity.factor : '—') + (e.activity ? '（' + Fmt.esc(e.activity.name) + '）' : '') +
+        ' = ' + e.tdee + ' kcal；' + dir + ' kcal（谭成义口径：蛋白 ' + (hasBody ? Fmt.round(e.protein / prof.weight, 2) : '—') + ' g/kg、脂肪 ' + (hasBody ? Fmt.round(e.fat / prof.weight, 2) : '—') + ' g/kg）' +
+        (hasBody ? ' · BMI ' + ENGINE.calc.bmi(prof.weight, prof.height) + '（' + Fmt.esc(ENGINE.calc.bmiCat(ENGINE.calc.bmi(prof.weight, prof.height)).txt) + '）' : '') + '</div>' +
+        this.adjustLine(u, Store.adj()) + '</details>' +
+      '<div class="muted txs" style="margin-top:6px">超过 100% = 今天吃超了（柱子变红）—— 不是这一餐不健康，正常安排下一餐，看长期趋势。</div>' +
+    '</div>'
+  },
+
   nutritionBars(e) {
     const list=this.logOf(Fmt.todayStr())
     const total=list.reduce((a,f)=>({k:a.k+(Number(f.kcal)||0),p:a.p+(Number(f.protein)||0),c:a.c+(Number(f.carbs)||0),f:a.f+(Number(f.fat)||0)}),{k:0,p:0,c:0,f:0})
@@ -438,50 +550,117 @@ const PageDiet = {
   },
 
   foodLogCard(e, prof) {
-    const today = Fmt.todayStr()
-    const list = this.logOf(today)
-    const tot = list.reduce((a, f) => ({ k: a.k + (f.kcal || 0), p: a.p + (f.protein || 0), c: a.c + (f.carbs || 0), f: a.f + (f.fat || 0) }), { k: 0, p: 0, c: 0, f: 0 })
-    const rows = list.map((f, i) => '<div class="li"><span class="nm">' + Fmt.esc(f.name) + ' ' + f.g + 'g</span>' +
-      '<span class="mc">' + Math.round(f.kcal) + 'kcal · 蛋白' + Math.round(f.protein) + ' · 碳水' + Math.round(f.carbs) +
-      ' · 脂肪' + Math.round(f.fat) + (f.fiber ? ' · 纤维' + Math.round(f.fiber) : '') + 'g</span>' +
-      '<span class="del" onclick="PageDiet.flDel(' + i + ')">✕</span></div>').join('')
-    const pct = v => Math.min(100, Math.round(v / (e.kcal || 1) * 100))
-    return '<div class="card" id="flCard"><h2>今天吃了什么 <span class="mini">点食物 → 选克重 → 记入</span></h2>' +
-
-      // ── 食物库直接嵌在记录卡里（用户实测反馈 2026-10-13：分两处反人类）——点名字弹克重选择 ──
-      this.foodLibInner() +
-      '<div id="flPick" class="muted txs" style="margin-top:6px">点上面的食物名 → 选克重；或搜别的</div>' +
-      '<div id="flList" style="margin-top:8px">' + rows + '</div>' +
-      (list.length
-        ? '<div id="flTot" class="muted txs" style="margin-top:8px">今日合计：' + Math.round(tot.k) + ' / ' + e.kcal + ' kcal（' + pct(tot.k) + '%）· 蛋白 ' +
-            Math.round(tot.p) + '/' + e.protein + 'g · 碳水 ' + Math.round(tot.c) + '/' + e.carb + 'g · 脂肪 ' + Math.round(tot.f) + '/' + e.fat + 'g' +
-            ' —— ' + (tot.k > e.kcal ? '已超过参考目标，正常安排下一餐' : pct(tot.k) > 85 ? '快到线了，很稳' : '还差得远，别饿着自己') + '</div>'
-        : '<div id="flTot" class="muted txs">吃了就记一笔，晚上对着目标看差多少 —— 这比任何计划都管用。</div>') +
+    const list = this.logOf(Fmt.todayStr())
+    return '<div class="card" id="flCard">' +
+      '<div class="row between" style="align-items:baseline"><h2 style="margin:0">今天吃了什么</h2>' +
+        '<span class="muted txs">记在哪一餐，先在下面选</span></div>' +
+      // ── 四餐页签（早餐/午餐/晚餐/加餐）──
+      '<div class="wrap-row" style="margin-top:10px" id="mealTabs">' +
+        this.MEALS.map(m => '<button class="chip' + (this.curMeal === m.k ? ' on' : '') + '" onclick="PageDiet.setMeal(\'' + m.k + '\')">' + m.name +
+          ' <span class="muted txs">' + list.filter(f => (f.meal || 's') === m.k).length + '</span></button>').join('') +
+      '</div>' +
+      // ── 各餐记录 ──
+      '<div id="mealLists" style="margin-top:10px">' + this.mealListsHTML(list) + '</div>' +
+      // ── 添加面板（页签：常用/食物库/最近/套餐）──
+      '<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px">' +
+        '<div class="wrap-row" id="flTabs">' +
+          [['freq', '常用'], ['lib', '食物库'], ['recent', '最近'], ['tpl', '套餐']].map(x =>
+            '<button class="chip' + (this.flTab === x[0] ? ' on' : '') + '" onclick="PageDiet.setFlTab(\'' + x[0] + '\')">' + x[1] + '</button>').join('') +
+          '<button class="chip" style="margin-left:auto" onclick="PageDiet.tplSaveCurrent()">💾 存这餐为套餐</button>' +
+        '</div>' +
+        '<div id="flPanel" style="margin-top:10px">' + this.flPanel() + '</div>' +
+      '</div>' +
     '</div>'
   },
+
+  setMeal(k) { this.curMeal = k; Router.rerender ? Router.rerender() : PageDiet.render() },
+  setFlTab(tab) { this.flTab = tab; this.paintPanel() },
+
+  /** 添加面板（按页签局部重绘） */
+  flPanel() {
+    if (this.flTab === 'freq') {
+      const list = this.freqFoods()
+      return list.length
+        ? '<div class="muted txs" style="margin-bottom:6px">你记过的食物，按次数排 —— 点名字选克重记入「' + this.mealName(this.curMeal) + '」</div>' +
+          '<div class="fc-chips">' + list.map(x =>
+            '<button class="chip sm" data-food="' + Fmt.esc(x.name) + '">' + Fmt.esc(x.name) + ' <span class="muted">×' + x.count + '</span></button>').join('') + '</div>'
+        : '<div class="muted txs">还没有常用食物 —— 记过几次之后，这里就是你最常吃的。</div>'
+    }
+    if (this.flTab === 'recent') {
+      const list = this.recentFoods()
+      return list.length
+        ? '<div class="muted txs" style="margin-bottom:6px">最近记过的（含今天）</div>' +
+          '<div class="fc-chips">' + list.map(f =>
+            '<button class="chip sm" data-food="' + Fmt.esc(f.name) + '">' + Fmt.esc(f.name) + ' <span class="muted">' + Fmt.esc((f._date || '').slice(5)) + '</span></button>').join('') + '</div>'
+        : '<div class="muted txs">还没有记录。</div>'
+    }
+    if (this.flTab === 'tpl') {
+      const list = this.tplAll()
+      return list.length
+        ? '<div class="muted txs" style="margin-bottom:6px">存过的套餐 —— 点开查看/套用到「' + this.mealName(this.curMeal) + '」。吃一样的时候就不用一项项记了。</div>' +
+          list.map(t => '<div class="li" style="cursor:pointer" onclick="PageDiet.tplView(\'' + Fmt.esc(t.name) + '\')">' +
+            '<span class="nm">' + Fmt.esc(t.name) + '</span>' +
+            '<span class="mc">' + t.items.length + ' 项 · ' + this.mealName(t.meal) + '</span>' +
+            '<span class="del" onclick="event.stopPropagation();PageDiet.tplDel(\'' + Fmt.esc(t.name) + '\')">✕</span></div>').join('')
+        : '<div class="muted txs">还没有套餐 —— 记完一餐点「💾 存这餐为套餐」，下次吃一样的直接套用。</div>'
+    }
+    // lib：食物库（搜索 + 分类）
+    return this.foodLibInner()
+  },
+
+  paintPanel() {
+    const el = document.getElementById('flPanel')
+    if (el) el.innerHTML = this.flPanel()
+    this.bindFood()
+    this.bindMealCard()
+  },
+
+  /** 四餐记录列表（每餐小计 + 条目，onclick 传原始 index） */
+  mealListsHTML(list) {
+    const e = ENGINE.calc.energyPlan(Store.state.user.profile, Store.adj())
+    return this.MEALS.map(m => {
+      const items = list.map((f, i) => ({ f, i })).filter(x => (x.f.meal || 's') === m.k)
+      const sum = items.reduce((a, x) => ({ k: a.k + (x.f.kcal || 0), p: a.p + (x.f.protein || 0) }), { k: 0, p: 0 })
+      return '<div style="padding:8px 0;border-top:1px solid var(--line)">' +
+        '<div class="row between"><b style="font-size:13px">' + m.name + '</b>' +
+        '<span class="muted txs">' + (items.length ? items.length + ' 项 · ' + Math.round(sum.k) + ' kcal · 蛋白 ' + Math.round(sum.p) + 'g' : '还没记') + '</span></div>' +
+        (items.length
+          ? items.map(x => '<div class="li"><span class="nm">' + Fmt.esc(x.f.name) + ' ' + x.f.g + 'g</span>' +
+              '<span class="mc">' + Math.round(x.f.kcal) + 'kcal · 蛋白' + Math.round(x.f.protein) + ' · 碳水' + Math.round(x.f.carbs) +
+              ' · 脂肪' + Math.round(x.f.fat) + 'g</span>' +
+              '<span class="del" onclick="PageDiet.flDel(' + x.i + ')">✕</span></div>').join('')
+          : '') +
+      '</div>'
+    }).join('')
+  },
+
+  bindMealCard() {
+    const card = document.getElementById('flCard')
+    if (!card) return
+    card.onclick = e => {
+      let el = e.target
+      while (el && el !== card) {
+        if (el.dataset && el.dataset.food) { this.showFood(el.dataset.food); return }
+        el = el.parentNode
+      }
+    }
+  },
+
   /** 局部刷新记录列表与合计（不整页重绘 —— 加食物时不丢搜索状态和滚动位置） */
   flRefresh() {
     const e = ENGINE.calc.energyPlan(Store.state.user.profile, Store.adj())
-    const bars = document.getElementById('nutritionBars'); if (bars) bars.innerHTML = this.nutritionBars(e)
-    const list = this.logOf(Fmt.todayStr())
-    const tot = list.reduce((a, f) => ({ k: a.k + f.kcal, p: a.p + f.protein, c: a.c + f.carbs, f: a.f + f.fat, fb: a.fb + (f.fiber || 0) }),
-      { k: 0, p: 0, c: 0, f: 0, fb: 0 })
-    const rowTxt = f => Math.round(f.kcal) + 'kcal · 蛋白' + Math.round(f.protein) + ' · 碳水' + Math.round(f.carbs) +
-      ' · 脂肪' + Math.round(f.fat) + (f.fiber ? ' · 纤维' + Math.round(f.fiber) : '') + 'g'
-    const rowsEl = document.getElementById('flList')
-    if (rowsEl) rowsEl.innerHTML = list.map((f, i) => '<div class="li"><span class="nm">' + Fmt.esc(f.name) + ' ' + f.g + 'g</span>' +
-      '<span class="mc">' + rowTxt(f) + '</span>' +
-      '<span class="del" onclick="PageDiet.flDel(' + i + ')">✕</span></div>').join('')
-    const totEl = document.getElementById('flTot')
-    if (totEl && !list.length) totEl.textContent = '还没有记录，搜索食物或从常用食物中选择。'
-    if (totEl && list.length) {
-      const pct = v => Math.min(100, Math.round(v / (e.kcal || 1) * 100))
-      totEl.innerHTML = '今日合计：' + Math.round(tot.k) + ' / ' + e.kcal + ' kcal（' + pct(tot.k) + '%）· 蛋白 ' +
-        Math.round(tot.p) + '/' + e.protein + 'g · 碳水 ' + Math.round(tot.c) + '/' + e.carb + 'g · 脂肪 ' +
-        Math.round(tot.f) + '/' + e.fat + 'g' +
-        (tot.fb ? ' · 纤维 ' + Math.round(tot.fb) + 'g' : '') +
-        ' —— ' + (tot.k > e.kcal ? '已超过参考目标，正常安排下一餐' : pct(tot.k) > 85 ? '快到线了，很稳' : '还差得远，别饿着自己')
+    const goalBox = document.getElementById('goalCardBox')
+    if (goalBox) goalBox.outerHTML = this.goalCard(e, Store.state.user.profile, Store.state.user)
+    const listEl = document.getElementById('mealLists')
+    if (listEl) listEl.innerHTML = this.mealListsHTML(this.logOf(Fmt.todayStr()))
+    const tabs = document.getElementById('mealTabs')
+    if (tabs) {
+      const list = this.logOf(Fmt.todayStr())
+      tabs.innerHTML = this.MEALS.map(m => '<button class="chip' + (this.curMeal === m.k ? ' on' : '') + '" onclick="PageDiet.setMeal(\'' + m.k + '\')">' + m.name +
+        ' <span class="muted txs">' + list.filter(f => (f.meal || 's') === m.k).length + '</span></button>').join('')
     }
+    const panel = document.getElementById('flPanel')
+    if (panel) { panel.innerHTML = this.flPanel(); this.bindFood(); this.bindMealCard() }
   },
   /** 食物库/弹窗一键记入（名字需在库内；g 默认 100） */
   flAddByName(name, g) {
@@ -577,11 +756,11 @@ const PageDiet = {
   flPush(f, g) {
     const k = g / 100
     const list = this.logOf(Fmt.todayStr())
-    const exist = list.find(x => x.name === f.name)
+    const exist = list.find(x => x.name === f.name && (x.meal || 's') === this.curMeal)
     if (exist) {
       exist.g += g; exist.kcal += f.kcal * k; exist.protein += f.protein * k; exist.carbs += f.carbs * k; exist.fat += f.fat * k
       exist.fiber = (exist.fiber || 0) + (f.fiber || 0) * k
-    } else list.push({ name: f.name, g: g, kcal: f.kcal * k, protein: f.protein * k, carbs: f.carbs * k, fat: f.fat * k, fiber: (f.fiber || 0) * k })
+    } else list.push({ name: f.name, g: g, meal: this.curMeal, kcal: f.kcal * k, protein: f.protein * k, carbs: f.carbs * k, fat: f.fat * k, fiber: (f.fiber || 0) * k })
     this.logSave(Fmt.todayStr(), list)
   },
 

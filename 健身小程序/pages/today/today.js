@@ -150,6 +150,8 @@ Page({
     wheelTarget: '',   // '' = 普通组；'fm' = 专注模式重量/次数
     // —— 专注训练全屏 ——
     fm: { on: false, exName: '', gif: '', equipment: '', points: '', ei: 0, si: 0, totalSets: 1, weight: '', reps: '', restLeft: 0, restLabel: '' },
+    mealTabs: [{ k: 'b', name: '早餐' }, { k: 'l', name: '午餐' }, { k: 'd', name: '晚餐' }, { k: 's', name: '加餐' }],
+    curMeal: 'b', mealPanel: 'lib', panelList: [], mealGroups: [], mealTpls: [], freqFoods: [], recentFoods: [],
     swapMode: false,
     // 练前自评浮层（与网站同款）
     preOn: false, preDims: [], preTotal: 12
@@ -566,7 +568,7 @@ Page({
   },
   addFoodKnown(f) {
     wx.showModal({
-      title: `记录 ${f.name}`,
+      title: `记录 ${f.name}（${this.mealName(this.data.curMeal)}）`,
       editable: true,
       placeholderText: '吃了多少克？(默认100)',
       success: r => {
@@ -576,6 +578,7 @@ Page({
         const k = grams / 100
         const item = {
           name: f.name, grams,
+          meal: this.data.curMeal,
           kcal: Math.round(f.kcal * k),
           protein: Math.round(f.protein * k * 10) / 10,
           carbs: Math.round(f.carbs * k * 10) / 10,
@@ -586,6 +589,107 @@ Page({
         this.recalcDiet()
       }
     })
+  },
+
+  // ───── 四餐模型（2026-10-19 与网站同步：早餐/午餐/晚餐/加餐，加餐=练后餐/宵夜）─────
+  MEALS: [
+    { k: 'b', name: '早餐' }, { k: 'l', name: '午餐' },
+    { k: 'd', name: '晚餐' }, { k: 's', name: '加餐' }
+  ],
+  mealName(k) { const m = this.MEALS.find(x => x.k === k); return m ? m.name : '加餐' },
+  setMeal(e) {
+    this.setData({ curMeal: e.currentTarget.dataset.k })
+    this.paintMealPanel()
+  },
+  setMealPanel(e) {
+    this.setData({ mealPanel: e.currentTarget.dataset.p })
+    if (e.currentTarget.dataset.p === 'freq' || e.currentTarget.dataset.p === 'recent') this.loadFreqFoods()
+    if (e.currentTarget.dataset.p === 'tpl') this.loadMealTpls()
+    this.paintMealPanel()
+  },
+  /** 面板数据刷新（常用/最近/套餐的 wxml 数据源） */
+  paintMealPanel() {
+    const p = this.data.mealPanel
+    if (p === 'freq') this.setData({ panelList: (this.data.freqFoods || []).map(f => ({ name: f.name, meta: '记过 ' + f.count + ' 次' })) })
+    else if (p === 'recent') this.setData({ panelList: (this.data.recentFoods || []).map(f => ({ name: f.name, meta: (f._date || '').slice(5) + ' 记过' })) })
+    else if (p === 'tpl') this.setData({ panelList: (this.data.mealTpls || []).map(t => ({ name: t.name, meta: t.items.length + ' 项 · ' + this.mealName(t.meal) })) })
+    else this.setData({ panelList: [] })
+  },
+  /** 常用/最近：从云端最近 7 天打卡的 dietLog 聚合（与网站 localStorage 同逻辑，数据源不同） */
+  loadFreqFoods() {
+    const db = wx.cloud.database()
+    const _ = db.command
+    db.collection('checkins').where({
+      _openid: app.globalData.openid,
+      date: _.gte(new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10))
+    }).limit(20).get().then(res => {
+      const rows = []
+      ;(res.data || []).sort((a, b) => String(b.date).localeCompare(String(a.date))).forEach(ck =>
+        (ck.dietLog || []).forEach(f => rows.push(Object.assign({ _date: ck.date }, f))))
+      // 常用：按名字聚合
+      const cnt = {}
+      rows.forEach(f => { cnt[f.name] = (cnt[f.name] || 0) + 1 })
+      const freq = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).slice(0, 12).map(n => ({ name: n, count: cnt[n] }))
+      // 最近：去重前 12
+      const seen = new Set(), recent = []
+      for (const f of rows) { if (seen.has(f.name)) continue; seen.add(f.name); recent.push(f); if (recent.length >= 12) break }
+      this.setData({ freqFoods: freq, recentFoods: recent })
+      this.paintMealPanel()
+    }).catch(() => { this.setData({ freqFoods: [], recentFoods: [] }) })
+  },
+  /** 套餐（餐次模板）：本机存储，与网站同逻辑 */
+  TPL_KEY: 'lbgym_mealTpl_mp',
+  loadMealTpls() {
+    let list = []
+    try { list = JSON.parse(wx.getStorageSync(this.TPL_KEY) || '[]') } catch (e) {}
+    this.setData({ mealTpls: list }); this.paintMealPanel()
+  },
+  tplSaveCurrent() {
+    const items = this.data.dietLog.filter(f => (f.meal || 's') === this.data.curMeal)
+    if (!items.length) { wx.showToast({ title: '这一餐还没有记录', icon: 'none' }); return }
+    const kcal = Math.round(items.reduce((a, f) => a + (f.kcal || 0), 0))
+    wx.showModal({
+      title: '把这餐存成套餐',
+      editable: true,
+      placeholderText: '套餐名，如：我的早餐（' + items.length + ' 项 ' + kcal + 'kcal）',
+      success: r => {
+        if (!r.confirm) return
+        const name = (r.content || '').trim() || (this.mealName(this.data.curMeal) + ' ' + todayStr().slice(5))
+        let list = []
+        try { list = JSON.parse(wx.getStorageSync(this.TPL_KEY) || '[]') } catch (e) {}
+        list = list.filter(t => t.name !== name)
+        list.unshift({ name, meal: this.data.curMeal, items, at: todayStr() })
+        try { wx.setStorageSync(this.TPL_KEY, JSON.stringify(list.slice(0, 30)) ) } catch (e) {}
+        this.setData({ mealPanel: 'tpl' }); this.loadMealTpls()
+        wx.showToast({ title: '已存套餐「' + name + '」', icon: 'none' })
+      }
+    })
+  },
+  tplUse(e) {
+    const name = e.currentTarget.dataset.n
+    let list = []
+    try { list = JSON.parse(wx.getStorageSync(this.TPL_KEY) || '[]') } catch (e) {}
+    const t = list.find(x => x.name === name)
+    if (!t) return
+    const add = t.items.map(f => Object.assign({}, f, { meal: this.data.curMeal }))
+    this.setData({ dietLog: this.data.dietLog.concat(add) })
+    this.recalcDiet()
+    wx.showToast({ title: '已套用 ' + add.length + ' 项到' + this.mealName(this.data.curMeal), icon: 'none' })
+  },
+  tplDel(e) {
+    const name = e.currentTarget.dataset.n
+    let list = []
+    try { list = JSON.parse(wx.getStorageSync(this.TPL_KEY) || '[]') } catch (e) {}
+    list = list.filter(t => t.name !== name)
+    try { wx.setStorageSync(this.TPL_KEY, JSON.stringify(list)) } catch (e) {}
+    this.loadMealTpls()
+  },
+  /** 点面板里的食物（常用/最近页签复用 addFoodKnown） */
+  pickPanelFood(e) {
+    const n = e.currentTarget.dataset.n
+    const f = kb.FOODS.find(x => x.name === n) || kb.matchFood(n)
+    if (!f) { wx.showToast({ title: '库里没有「' + n + '」', icon: 'none' }); return }
+    this.addFoodKnown(f)
   },
 
   // —— 今日训练：单输入框（打字即联想 + 没找到自行输入）——
@@ -827,6 +931,7 @@ Page({
       const k = grams / 100
       const item = {
         name: known.name, grams,
+        meal: this.data.curMeal,
         kcal: Math.round(known.kcal * k),
         protein: Math.round(known.protein * k * 10) / 10,
         carbs: Math.round(known.carbs * k * 10) / 10,
@@ -842,12 +947,12 @@ Page({
     const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n }
     const hasNutri = cf.kcal !== '' && cf.protein !== ''
     const item = hasNutri
-      ? { name, grams, custom: true, kcal: Math.round(num(cf.kcal) * grams / 100),
+      ? { name, grams, custom: true, meal: this.data.curMeal, kcal: Math.round(num(cf.kcal) * grams / 100),
           protein: Math.round(num(cf.protein) * grams / 100 * 10) / 10,
           carbs: Math.round(num(cf.carbs) * grams / 100 * 10) / 10,
           fat: Math.round(num(cf.fat) * grams / 100 * 10) / 10,
           fiber: Math.round(num(cf.fiber) * grams / 100 * 10) / 10 }
-      : { name, grams, custom: true, unknown: true, kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+      : { name, grams, custom: true, unknown: true, meal: this.data.curMeal, kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
     this.setData({ dietLog: this.data.dietLog.concat(item), showFoodForm: false })
     this.recalcDiet()
     // 记住这个自定义食物（每100g营养存进档案），下次搜索直接命中，不用再填
@@ -905,7 +1010,14 @@ Page({
       mk('carb', '碳水', total.carbs, mt.carb),
       mk('fat', '脂肪', total.fat, mt.fat)
     ]
+    // 四餐分组（每餐小计，2026-10-19 与网站同步）
+    const mealGroups = [{ k: 'b', name: '早餐' }, { k: 'l', name: '午餐' }, { k: 'd', name: '晚餐' }, { k: 's', name: '加餐' }].map(m => {
+      const items = this.data.dietLog.map((f, idx) => ({ f, idx })).filter(x => (x.f.meal || 's') === m.k).map(x => Object.assign({}, x.f, { _idx: x.idx }))
+      return { k: m.k, name: m.name, items,
+        sum: items.length ? items.length + ' 项 · ' + Math.round(items.reduce((a, f) => a + (f.kcal || 0), 0)) + ' kcal' : '还没记' }
+    })
     this.setData({
+      mealGroups,
       dietTotal: total,
       progress,
       dietOk: this.data.dietLog.length > 0,

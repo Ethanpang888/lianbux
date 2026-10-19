@@ -150,3 +150,11 @@ body.has-workout-timer #app{padding-bottom:260px}
 /* 成长总览/徽章进度条（2026-10-18 第一批） */
 .expbar{height:10px;background:var(--bg);border:1px solid var(--line);border-radius:999px;overflow:hidden}
 .expbar-fill{height:100%;background:linear-gradient(90deg,var(--green),#4ade80);border-radius:999px;transition:width .3s}
+
+/* 每日目标合并卡：格内进度柱（2026-10-19 饮食改版）超100%变红 */
+.goal-cell.is-over{border-left-color:var(--red,#e5484d)}
+.goal-cell.is-over b{color:var(--red,#e5484d)}
+.gc-bar{height:8px;background:var(--bg);border-radius:999px;overflow:hidden;margin-top:6px}
+.gc-bar i{display:block;height:100%;background:var(--green,#22a06b);border-radius:999px}
+.goal-cell.is-over .gc-bar i{background:var(--red,#e5484d)}
+.gc-ing{font-size:11px;color:var(--sub);margin-top:4px}
