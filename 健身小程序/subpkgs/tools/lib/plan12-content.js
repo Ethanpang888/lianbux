@@ -28,7 +28,7 @@ const PagePlan12 = {
               '要「每周有人盯着你」那是陪跑（1299 起）的范畴，两边不混。</p></div>' +
           '<div class="callout"><p class="muted txs"><b>为什么单独卖、不塞进买断包：</b>计划是周期性交付物 —— 12 周练完、身体变了，' +
             '需要的是「下一版」而不是同一份。单独按份买，一次一付，谁也不欠谁。</p></div>' +
-'<div class="muted txs"><b>购买</b>：我的 → 完整版页里选「十二周计划」微信支付开通；已有 12 周码在下面输入。</div>' +
+'<div class="muted txs"><b>购买</b>：微信小程序「练不虚Gym」→ 我的 → 十二周计划，微信支付 ¥39.9 秒开通；已有 12 周码在下面输入。</div>' +
           '</div>' +
           '<input class="pro-input" id="p12Code" placeholder="输入 12 周计划码" autocomplete="off">' +
           '<button class="btn" style="margin-top:10px" id="p12Btn">解锁并生成</button>' +

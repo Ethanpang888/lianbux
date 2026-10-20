@@ -129,6 +129,7 @@ const PagePlus = {
       '<div class="muted txs">② 把<b>付款截图</b>发给阿清（抖音私信）</div>' +
       '<div class="muted txs">③ 几分钟内收到一个进阶码，在下面输入即解锁（挂在账号上，换设备也在）</div>' +
       '<div style="text-align:center;margin:12px 0">' +
+'<div class="muted txs">也可在微信小程序「练不虚Gym」内微信支付开通。</div>' +
       '</div>' +
       '<input class="pro-input" id="plusCode" type="text" placeholder="输入进阶码" autocomplete="off">' +
       '<button class="btn" style="margin-top:10px" id="plusBtn">解锁进阶包</button>' +

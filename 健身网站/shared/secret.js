@@ -962,4 +962,7 @@ function currentOf(profile) {
   return p.secret && p.secret.key ? get(p.secret.key) : null
 }
 
-module.exports = { SECRET_VERSION, SECRETS, ROADMAP, list, get, applyTo, currentOf }
+const FREE_KEYS = ['ppl3','split4','split5','home3','home4','home5','fatloss','gain','recomp','thin']
+function isFree(secret) { const s=typeof secret==='string'?get(secret):secret; return !!s && (s.cat==='female'||FREE_KEYS.includes(s.key)) }
+
+module.exports = { isFree, FREE_KEYS, SECRET_VERSION, SECRETS, ROADMAP, list, get, applyTo, currentOf }

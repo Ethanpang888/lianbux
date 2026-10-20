@@ -236,3 +236,10 @@
 
 /* Give the posture image real height; do not crop it to an equipment badge. */
 .gifwrap{float:none;width:100%;height:auto;margin:16rpx 0;overflow:visible}.fm-imgwrap{flex:none;width:100%;max-height:42vh;overflow:auto;margin:12rpx 0}.fm{overflow-y:auto;padding-bottom:calc(160rpx + env(safe-area-inset-bottom))}
+
+/* 专注时收起底栏；各区块不压缩，完成按钮在滚动区域底部保持可见。 */
+.fm{padding-bottom:calc(24rpx + env(safe-area-inset-bottom));overflow-y:auto}
+.fm>view,.fm>scroll-view{flex-shrink:0}
+.fm .fm-imgwrap{height:auto;min-height:0;max-height:none;overflow:visible}
+.fm .fm-done{position:sticky;bottom:0;z-index:2;box-shadow:0 0 0 12rpx var(--bg);margin-bottom:12rpx}
+.fm .fm-points{min-height:0;max-height:100rpx}

@@ -20,22 +20,22 @@ const PageSecret = {
     const cur = ENGINE.secret.currentOf(u.profile)
     const app = document.getElementById('app')
     app.innerHTML = Router.bar('藏经阁', '先把基础练好，再选择进阶方向') +
-      '<section class="library-lead"><div class="eyebrow">修行，从一本开始</div><h2>找到今天用得上的功法。</h2><p>基础功法完整开放；居家、部位专项、体态矫正按需挑选。</p></section>' +
-      '<div class="library-tabs"><button class="chip on" data-filter="all">全部</button><button class="chip" data-filter="free">免费入门</button><button class="chip" data-filter="home">居家</button><button class="chip" data-filter="focus">部位专项</button><button class="chip" data-filter="posture">体态矫正</button><button class="chip" data-filter="advanced">进阶周期</button></div>' +
+      '<section class="library-lead"><div class="eyebrow">修行，从一本开始</div><h2>找到今天用得上的功法。</h2><p>基础功法、三四五分化、居家分化及增肌减脂计划完整免费，阅读和应用均开放。</p></section>' +
+      '<div class="library-tabs"><button class="chip on" data-filter="all">全部</button><button class="chip" data-filter="free">免费功法</button><button class="chip" data-filter="home">居家</button><button class="chip" data-filter="focus">部位专项</button><button class="chip" data-filter="posture">体态矫正</button><button class="chip" data-filter="advanced">进阶周期</button></div>' +
       '<div class="manual-grid" id="manualGrid">' +
-      Foundations.books.map(s => '<button class="manual-card manual-'+s.tone+'" data-access="free" data-cat="free" data-secret="'+s.key+'"><div class="manual-top"><span>'+s.category+'</span><span class="access-free">免费</span></div><div class="manual-glyph">'+s.mark+'</div><h2>'+s.name+'</h2><p>'+s.subtitle+'</p><div class="manual-bottom"><span>'+s.time+'</span><b>开始修习 ↗</b></div></button>').join('') +
+      Foundations.books.map(s => '<button class="manual-card manual-'+s.tone+'" data-access="free" data-cat="free" data-secret="'+s.key+'"><div class="manual-top"><span>'+s.category+'</span><span class="access-free">免费</span></div><h2>'+s.name+'</h2><p>'+s.subtitle+'</p><div class="manual-bottom"><span>'+s.time+'</span><b>开始修习 ↗</b></div></button>').join('') +
       ENGINE.secret.SECRETS.map(s => this.card(s, cur, on)).join('') + '</div>' +
-      '<div class="library-note">基础内容可以直接使用；进阶周期保留原会员权益，应用计划前会说明将改动什么。</div>' +
+      '<div class="library-note">免费计划可完整阅读与应用；部位专项等会员内容按需选择，应用前会说明将改动什么。</div>' +
       // 「还在补的」诚实卡必须保留：不拿半成品凑数（项目规矩，test-pages 有断言）
 '<h2 style="margin:18px 0 4px;font-size:15px">全部秘籍一览 <span class="mini">' +
-      Foundations.books.length + ' 本基础功法 + 女性周期训练（免费）+ ' + (ENGINE.secret.SECRETS.length - 1) + ' 本会员内容</span></h2>' +
+      (Foundations.books.length + ENGINE.secret.SECRETS.filter(s => this.isFree(s)).length) + ' 本免费功法 · ' + ENGINE.secret.SECRETS.filter(s => !this.isFree(s)).length + ' 本会员专项</span></h2>' +
       this.roadmapCard()
     this.bindList()
     const rb = document.getElementById('restorePlanBtn')
     if (rb) rb.onclick = () => this.restoreBackup()
     document.querySelectorAll('[data-filter]').forEach(btn => btn.onclick = () => {
       document.querySelectorAll('[data-filter]').forEach(x => x.classList.toggle('on',x===btn))
-      document.querySelectorAll('[data-cat]').forEach(x => { x.hidden = btn.dataset.filter !== 'all' && x.dataset.cat !== btn.dataset.filter })
+      document.querySelectorAll('[data-cat]').forEach(x => { x.hidden = btn.dataset.filter !== 'all' && (btn.dataset.filter === 'free' ? x.dataset.access !== 'free' : x.dataset.cat !== btn.dataset.filter) })
     })
   },
 
@@ -57,7 +57,7 @@ const PageSecret = {
     if (!on) {
       return '<div class="card">' +
         '<h2>秘籍是什么 <span class="tag gold">完整版</span></h2>' +
-        '<div class="muted txs">功法分品阶：基础功法是<b>黄阶</b>，完整开放；<b>玄阶、地阶功法</b>（部位专项 / 体态矫正 / 居家周期 / 进阶周期）随完整版解锁 —— ' +
+        '<div class="muted txs">基础功法、三四五分化、居家分化及增肌减脂计划完整免费；其余会员专项按需解锁。品阶只表示功法分类，免费与否以卡片标识为准。' +
         '不是解锁几个功能，是拿到主角配置。每一条结论都标了是谁说的。</div>' + restoreBtn + '</div>'
     }
     if (!cur) {
@@ -101,7 +101,7 @@ const PageSecret = {
   },
 
   isFree(s) {
-    return !!s && s.cat === 'female'
+    return ENGINE.secret.isFree(s)
   },
 
   card(s, cur, on) {
@@ -111,8 +111,8 @@ const PageSecret = {
     const tags = Array.isArray(s.tags) && s.tags.length
       ? '<div class="muted" style="font-size:11px;margin-top:4px">' + Fmt.esc(s.tags.join(' · ')) + '</div>' : ''
     return '<button class="manual-card manual-ink" data-access="' + (free ? 'free' : 'advanced') + '" data-cat="' + Fmt.esc(s.cat || 'advanced') + '" data-secret="' + Fmt.esc(s.key) + '">' +
-      '<div class="manual-top"><span>' + meta.label + ' · ' + this.gradeOf(s) + '</span><span class="access-paid">' + (using ? '使用中' : free ? '免费' : on ? '已解锁' : '会员') + '</span></div>' +
-      '<div class="manual-glyph">' + (s.kind === 'append' ? '衡' : meta.glyph) + '</div><h2>' + Fmt.esc(s.name) + '</h2>' +
+      '<div class="manual-top"><span>' + meta.label + ' · ' + this.gradeOf(s) + '</span><span class="' + (free ? 'access-free' : 'access-paid') + '">' + (using ? '使用中' : free ? '免费' : on ? '已解锁' : '会员') + '</span></div>' +
+      '<h2>' + Fmt.esc(s.name) + '</h2>' +
       '<p>' + Fmt.esc(s.tagline) + '</p>' + tags +
       '<div class="manual-bottom"><span>' + s.weeks + ' 周</span><b>查看详情 ↗</b></div></button>'
 
@@ -146,7 +146,7 @@ const PageSecret = {
     }
     const u = Store.state.user || {}
     // 2026-10-18 女性线：女性周期训练（cat 'female'）免费开放
-    const on = ENGINE.pro.isPro(u) || s.cat === 'female'
+    const on = ENGINE.pro.isPro(u) || this.isFree(s)
     const cur = ENGINE.secret.currentOf(u.profile)
     const using = cur && cur.key === s.key
 

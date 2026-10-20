@@ -16,7 +16,7 @@ const CAT_META = {
 }
 const TABS = [
   { key: 'all', name: '全部' },
-  { key: 'free', name: '免费入门' },
+  { key: 'free', name: '免费功法' },
   { key: 'female', name: '女性' },
   { key: 'home', name: '居家' },
   { key: 'focus', name: '部位专项' },
@@ -57,7 +57,7 @@ require('../../utils/page.js')({
     const secrets = SECRET.list().map(s => {
       const meta = CAT_META[s.cat || 'advanced'] || CAT_META.advanced
       const append = s.kind === 'append'
-      const free = s.cat === 'female' // 女性周期训练免费开放（2026-10-18）
+      const free = SECRET.isFree(s) // 女性周期训练免费开放（2026-10-18）
       const grade = s.cat === 'female' ? '黄阶' : (s.cat === 'advanced' ? '地阶' : '玄阶') // 品阶（与网站一致）
       return {
         key: s.key, name: s.name, tagline: s.tagline, weeks: s.weeks,
@@ -71,7 +71,7 @@ require('../../utils/page.js')({
     const road = (SECRET.ROADMAP || []).map(x => ({ name: x.name, why: x.why }))
     this.setData({
       books, secrets, road, hasProfile: !!app.globalData.profile,
-      freeCount: books.length, secCount: secrets.length,
+      freeCount: books.length + secrets.filter(s=>s.free).length, paidCount: secrets.filter(s=>!s.free).length, secCount: secrets.length,
       usingKey: using,
       hasBackup: !!(app.globalData.lastPlanBackup && app.globalData.lastPlanBackup.plan)
     })
@@ -85,7 +85,7 @@ require('../../utils/page.js')({
     const s = SECRET.get(key)
     if (!s) return
     const profile = app.globalData.profile || {}
-    const locked=s.cat!=='female'&&!require('../../utils/pro.js').isPro(app.globalData)
+    const locked=!SECRET.isFree(s)&&!require('../../utils/pro.js').isPro(app.globalData)
     const using = (profile.secret || {}).key === key
     const preset = s.preset || {}
     const withIdx = rows => (rows || []).map((x, i) => Object.assign({ idx: i }, x))
@@ -118,7 +118,7 @@ require('../../utils/page.js')({
     const key = e.currentTarget.dataset.key
     const s = SECRET.get(key)
     if (!s) return
-    if(s.cat!=='female'&&!require('../../utils/pro.js').isPro(app.globalData)){this.goPro();return}
+    if(!SECRET.isFree(s)&&!require('../../utils/pro.js').isPro(app.globalData)){this.goPro();return}
     const profile = app.globalData.profile
     if (!profile) { this.goAssess(); return }
     // 挂载前快照（只在空的时候建；换回 = 回到挂秘籍之前的最初状态。免费可用，防流失兜底）

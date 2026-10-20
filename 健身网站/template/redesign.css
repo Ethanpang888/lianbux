@@ -220,3 +220,12 @@ body.has-workout-timer #app{padding-bottom:260px}
 /* Keep both decoded images mounted; switch only their visibility every 1.5 seconds. */
 .posture-images{position:relative;display:block;aspect-ratio:3/2;overflow:hidden}.posture-images figure{position:absolute;inset:0;width:100%;height:100%}.posture-images figure+figure{opacity:0}.posture-images img{height:calc(100% - 20px);object-fit:contain}.pose-animation.poses-ready figure+figure{animation:exercise-pose 3s steps(1,end) infinite}#focusMode .fm-img .posture-images img{height:calc(100% - 20px);max-height:none}@keyframes exercise-pose{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
 @media(max-width:600px){.home-daily{gap:8px}.home-daily>.card{padding:14px 10px;min-width:0}.home-daily .diet-ring{display:none}.home-daily .diet-macros{display:flex;flex-direction:column;gap:8px}.home-daily .today-stats{flex-wrap:wrap}.home-daily .diet-goal-note{display:none}.home-daily .today-card .btn{padding:12px 6px}}
+
+/* 专注覆盖导航，长屏内容不被 flex 压缩，完成按钮保持可达。 */
+body.fm-open .tabbar{display:none!important}
+#focusMode>*{flex-shrink:0}
+#focusMode .fm-done{position:sticky;bottom:0;z-index:2;box-shadow:0 0 0 8px #0c1119}
+
+.manual-card{border-radius:16px;border-top:3px solid var(--green);box-shadow:none;min-height:230px}
+.manual-card h2{font-size:clamp(20px,2.4vw,26px);line-height:1.4;font-weight:750;margin:20px 0 14px}
+.manual-glyph{display:none}

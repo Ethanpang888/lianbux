@@ -417,6 +417,7 @@ require('../../utils/page.js')({
     const cur = selected ? {ei:fromI,si:Math.max(0,selected.log.findIndex(s=>!s.done))} : (explicit ? null : this.nextSet(Math.max(0,resumeI),true))
     if (!cur) { wx.showToast({ title: '今天的组都完成了 ✓', icon: 'none' }); return }
     this._fmCur = cur
+    if(this.getTabBar && this.getTabBar())this.getTabBar().setData({focusMode:true})
     this.setData(Object.assign({ fm: this.fmData(cur) }, this.fmPrefill(cur) || {}))
     if(this._fmIv)clearInterval(this._fmIv)
     this._fmIv = setInterval(() => this.fmPaint(), 1000)
@@ -520,6 +521,7 @@ require('../../utils/page.js')({
   },
   fmClose() { this.fmStop() },
   fmStop() {
+    if(this.getTabBar && this.getTabBar())this.getTabBar().setData({focusMode:false})
     if (this._fmIv) { clearInterval(this._fmIv); this._fmIv = null }
     this._fmCur = null
     if (this.data.fm && this.data.fm.on) this.setData({ fm: { on: false } })

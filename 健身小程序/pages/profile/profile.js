@@ -19,6 +19,8 @@ require('../../utils/page.js')({
   onShow() {
     if (this.getTabBar) this.getTabBar().setData({ selected: 4 })
     if(app.globalData.ready&&app.loadEntitlements)app.loadEntitlements().then(()=>this.load()).catch(()=>this.load());else this.load()
+    // 虚拟支付兜底：支付成功但发货推送/前端回调丢失时，进「我的」自动查单补发货（2026-10-20）
+    wx.cloud.callFunction({ name: 'webApi', data: { action: 'vp_check' } }).catch(() => {})
   },
 
   load() {

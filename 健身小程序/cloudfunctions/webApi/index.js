@@ -632,31 +632,36 @@ async function vpOrder(event) {
 }
 /** 发货推送接收（兼容 HTTP XML / 云函数消息两种形态）+ GET 验证（echostr） */
 async function vpNotify(event) {
-  // GET 验证（mp 后台配置 URL 时的服务器校验）：需环境变量 VP_TOKEN 与后台一致
-  const q = event.queryStringParameters || event.query || {}
+  // ── 形态③：GET 验证（URL 方案备用）──
+  const q = event.queryStringParameters || event.query || event.QueryStringParameters || {}
   const echostr = event.echostr || q.echostr
-  if (event.httpMethod === 'GET' || (echostr && !event.body)) {
+  if (event.httpMethod === 'GET' || (echostr && !event.body && !event.Event)) {
     const sig = event.signature || q.signature, ts = event.timestamp || q.timestamp, nonce = event.nonce || q.nonce
     const token = (process.env.VP_TOKEN || '').trim()
     const want = crypto.createHash('sha1').update([token, ts, nonce].sort().join('')).digest('hex')
-    if (!token || want !== sig) return { statusCode: 403, body: 'fail' }
-    return { statusCode: 200, body: String(echostr || '') }
+    if (!token || want !== sig) return { isBase64Encoded: true, statusCode: 403, body: Buffer.from('fail').toString('base64') }
+    return String(echostr || '')
   }
+  // ── 形态①②：字段提取（HTTP XML 正文 / 云函数消息 JSON 直接字段，双兼容）──
   const raw = event.body || event.xml || ''
-  const outTradeNo = vpXmlGet(raw, 'OutTradeNo')
-  const wxOrderId = vpXmlGet(raw, 'MchOrderNo')
-  const openid = vpXmlGet(raw, 'OpenId')
-  const productId = vpXmlGet(raw, 'ProductId')
-  const qty = Number(vpXmlGet(raw, 'Quantity')) || 1
-  const evt = vpXmlGet(raw, 'Event')
-  if (evt !== 'xpay_goods_deliver_notify' || !outTradeNo) return { statusCode: 200, body: '<xml><ErrCode>0</ErrCode></xml>' }
+  const g = (tag, jkey) => {
+    if (jkey && event[jkey] !== undefined) return String(event[jkey]).trim()
+    return vpXmlGet(raw, tag)
+  }
+  const evt = g('Event', 'Event')
+  const outTradeNo = g('OutTradeNo', 'OutTradeNo')
+  const openid = g('OpenId', 'FromUserName') || g('OpenId', 'openid')
+  const productId = g('ProductId', 'ProductId')
+  const qty = Number(g('Quantity', 'Quantity')) || 1
+  const wxOrderId = g('MchOrderNo', 'MchOrderNo') || g('MchOrderNo', 'wx_order_id') || ('Q' + outTradeNo)
+  if (evt !== 'xpay_goods_deliver_notify' || !outTradeNo) return { isBase64Encoded: true, statusCode: 200, body: Buffer.from('<xml><ErrCode>0</ErrCode></xml>').toString('base64') }
   try {
     const r = await vpDeliver(db, openid, outTradeNo, wxOrderId, productId, qty)
-    if (!r.ok) return { statusCode: 200, body: '<xml><ErrCode>1</ErrCode><ErrMsg><![CDATA[' + (r.error || 'fail') + ']]></ErrMsg></xml>' }
-  } catch (e) {
-    return { statusCode: 200, body: '<xml><ErrCode>1</ErrCode><ErrMsg><![CDATA[' + e.message + ']]></ErrMsg></xml>' }
+    if (!r.ok) return { isBase64Encoded: true, statusCode: 200, body: Buffer.from('<xml><ErrCode>1</ErrCode><ErrMsg><![CDATA[' + (r.error || 'fail') + ']]></ErrMsg></xml>').toString('base64') }
+  } catch (e2) {
+    return { isBase64Encoded: true, statusCode: 200, body: Buffer.from('<xml><ErrCode>1</ErrCode><ErrMsg><![CDATA[' + e2.message + ']]></ErrMsg></xml>').toString('base64') }
   }
-  return { statusCode: 200, body: '<xml><ErrCode>0</ErrCode><ErrMsg><![CDATA[success]]></ErrMsg></xml>' }
+  return { isBase64Encoded: true, statusCode: 200, body: Buffer.from('<xml><ErrCode>0</ErrCode><ErrMsg><![CDATA[success]]></ErrMsg></xml>').toString('base64') }
 }
 /** 兜底查单：前端 success 后调用 —— 对本人 pending 订单逐单调 query_order，已支付即发货 */
 async function vpCheck(event) {
