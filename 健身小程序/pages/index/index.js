@@ -46,7 +46,7 @@ require('../../utils/page.js')({
   onUnload(){this.onHide()},
   load() {
     const g = app.globalData
-    if (!g.openid) { setTimeout(() => this.load(), 300); return }
+    if (!g.openid) { this.render(); setTimeout(() => this.load(), 300); return }
     if (!g.profile) {
       app.loadUser().then(() => this.render()).catch(() => this.render())
     } else this.render()
@@ -109,9 +109,9 @@ require('../../utils/page.js')({
   openFoodPanel(e){wx.navigateTo({url:'/pages/food/food?meal='+e.currentTarget.dataset.k+'&date='+todayStr()})},
   loadDietSummary(){
     const e=calc.energyPlan(app.globalData.profile,require('../../utils/macro.js').combinedAdj(app.globalData.dietState||{}))
-    const paint=log=>this.setData(Object.assign({goalName:(app.globalData.profile||{}).goal,energy:{tdee:e.tdee,deficit:e.deficit}},require('../../utils/presentation.js').dietSummary(log,e)))
-    paint([])
-    dietRecords.load(app.globalData.openid,todayStr()).then(rows=>paint((rows[0]||{}).dietLog||[])).catch(()=>wx.showToast({title:'饮食记录读取失败',icon:'none'}))
+    const paint=c=>{const daily=require('../../utils/cardio.js').daily(e,c.cardio);this.setData(Object.assign({goalName:(app.globalData.profile||{}).goal,energy:daily},require('../../utils/presentation.js').dietSummary(c.dietLog||[],e)))}
+    paint({})
+    dietRecords.load(app.globalData.openid,todayStr()).then(rows=>paint(rows[0]||{})).catch(()=>wx.showToast({title:'饮食记录读取失败',icon:'none'}))
   },
 
   /* ───── 破境/里程碑仪式卡（与网站分层版一致）：按真实事件分类，跨级合并，不虚构奖励 ───── */
@@ -225,6 +225,7 @@ require('../../utils/page.js')({
   goTab(e) { require('../../utils/navigation.js').go(e.currentTarget.dataset.url) },
   goToday() { wx.switchTab({ url: '/pages/today/today' }) },
   goProfile() { wx.switchTab({ url: '/pages/profile/profile' }) },
+  browseFree(e) { wx.navigateTo({url:'/pages/secret/secret'+(e.currentTarget.dataset.id?'?id='+e.currentTarget.dataset.id:'')}) },
   goAssess() { wx.navigateTo({ url: '/pages/assess/assess' }) },
 
   copyWx() {

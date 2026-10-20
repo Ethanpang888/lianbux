@@ -1,5 +1,5 @@
 const g=getApp().globalData
-const ENGINE={calc:require('../../../utils/calc.js'),kb:require('../../../utils/kb.js'),method:require('../../../utils/method.js'),pro:require('../../../utils/pro.js'),plus:require('../../../utils/plus.js')}
+const ENGINE={calc:require('../../../utils/calc.js'),kb:require('../../../utils/kb.js'),method:require('../../../utils/method.js'),pro:require('../../../utils/pro.js'),plus:require('./plus.js')}
 const Fmt={esc:x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'),round:(n,d=0)=>Math.round(n*Math.pow(10,d))/Math.pow(10,d),todayStr:()=>getApp().todayStr(),num:n=>String(n),shiftDate:(s,n)=>require('../../../utils/macro.js').shiftDate(s,n)}
 const UI={empty:t=>'<p>'+Fmt.esc(t)+'</p>',li:(k,v,n)=>'<div style="padding:10px 0;border-bottom:1px solid #dfe5df"><b>'+k+'</b> '+v+' <small>'+(n||'')+'</small></div>',kv:rows=>'<div>'+rows.map(x=>'<div style="padding:8px 0">'+x.k+' <b>'+x.v+'</b></div>').join('')+'</div>'}
 function context(history){return {ENGINE,Fmt,UI,Store:{state:{user:g,checkins:history||[]},adj:()=>require('../../../utils/macro.js').combinedAdj(g.dietState||{})}}}

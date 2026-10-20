@@ -70,7 +70,7 @@ require('../../utils/page.js')({
     })
     const road = (SECRET.ROADMAP || []).map(x => ({ name: x.name, why: x.why }))
     this.setData({
-      books, secrets, road,
+      books, secrets, road, hasProfile: !!app.globalData.profile,
       freeCount: books.length, secCount: secrets.length,
       usingKey: using,
       hasBackup: !!(app.globalData.lastPlanBackup && app.globalData.lastPlanBackup.plan)
@@ -120,7 +120,7 @@ require('../../utils/page.js')({
     if (!s) return
     if(s.cat!=='female'&&!require('../../utils/pro.js').isPro(app.globalData)){this.goPro();return}
     const profile = app.globalData.profile
-    if (!profile) { wx.showToast({ title: '先在首页完善资料', icon: 'none' }); return }
+    if (!profile) { this.goAssess(); return }
     // 挂载前快照（只在空的时候建；换回 = 回到挂秘籍之前的最初状态。免费可用，防流失兜底）
     const backup = BACKUP.makeBackup({ profile, plan: app.globalData.plan }, key)
     const p = SECRET.applyTo(key, profile)
@@ -253,13 +253,14 @@ require('../../utils/page.js')({
   },
 
   // 功法「跟着开练」：把动作加进今天的训练日末尾（fnd_tag，可随时删）
+  goAssess() { wx.navigateTo({url:'/pages/assess/assess'}) },
   startFnd() {
     const cur = this.data.cur
     const b = FND.filter(x => x.key === cur.key)[0]
     if (!b || !b.actions || !b.actions.length) return
     const plan = app.globalData.plan
     if (!plan || !plan.micro) {
-      wx.showToast({ title: '先有训练计划——回首页建档生成一份', icon: 'none' }); return
+      wx.navigateTo({url:'/pages/assess/assess'}); return
     }
     const today = todayStr()
     const slotN = slotOf(plan, today)

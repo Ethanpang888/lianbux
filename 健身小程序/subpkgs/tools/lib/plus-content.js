@@ -129,9 +129,6 @@ const PagePlus = {
       '<div class="muted txs">② 把<b>付款截图</b>发给阿清（抖音私信）</div>' +
       '<div class="muted txs">③ 几分钟内收到一个进阶码，在下面输入即解锁（挂在账号上，换设备也在）</div>' +
       '<div style="text-align:center;margin:12px 0">' +
-        '<img src="assets/pay-qr.png" alt="付款二维码" style="width:170px;border-radius:12px" ' +
-          'onerror="this.style.display=\'none\';var t=document.getElementById(\'plusPayTip\');if(t)t.style.display=\'block\'">' +
-        '<div id="plusPayTip" style="display:none" class="muted txs">（收款码整理中 —— 可先私信阿清）</div>' +
       '</div>' +
       '<input class="pro-input" id="plusCode" type="text" placeholder="输入进阶码" autocomplete="off">' +
       '<button class="btn" style="margin-top:10px" id="plusBtn">解锁进阶包</button>' +

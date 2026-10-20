@@ -342,7 +342,7 @@ const PagePro = {
     '</div>'
   },
 
-  /** 现在能走的付款方式：收款码 + 人工发码（云端核销已就绪）。
+  /** 付款：小程序内虚拟支付（主路径，2026-10-20）+ 开通码人工兜底。
    *  档位选择：月 / 季 / 半年 / 年 / 进阶包 —— 选中后金额和引导跟着变（商户号到位后这里换成 JSAPI 拉起微信） */
   PAY_TIERS: [
     { k: 'm1', label: '按月', price: '19.9', days: 30, level: 'pro', note: '先试试，随时停' },
@@ -361,24 +361,14 @@ const PagePro = {
       ? '<div class="muted txs" style="margin-top:8px">一次买断永久用：六周增力处方生成器、疼痛排查库（肘/肩/腰/膝）；' +
         '部位专项包筹备中；AI 顾问上线后<b>免费升级</b>。</div>'
       : '<div class="muted txs" style="margin-top:8px">每个动作的具体重量、四周周期表与减载、完整饮食（三套口径）、每日计划邮件、19 本功法秘籍。' + Fmt.esc(t.note) + '。</div>'
-    return '<div class="card"><h2>怎么付款 <span class="mini">选档 → 微信付款 → 发码</span></h2>' +
+    return '<div class="card"><h2>怎么开通 <span class="mini">选档 → 小程序内微信支付</span></h2>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' + chips + '</div>' +
       '<div style="margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--highlight,#f5f7fa)">' +
         '<div style="font-size:22px;font-weight:800">¥' + t.price + ' <span class="muted txs" style="font-weight:400">/ ' + Fmt.esc(t.label) +
           (t.level === 'plus' ? '（永久）' : '') + '</span></div>' + body +
       '</div>' +
-      '<div class="muted txs" style="margin-top:10px"><b>手机上</b>：长按下方收款码 → 识别 → 付款 ' + t.price + ' 元，' +
-        '<b>备注里写你的注册邮箱或用户名</b></div>' +
-      '<div class="muted txs">② 把<b>付款截图 + 注册邮箱</b>发给阿清（抖音私信）</div>' +
-      '<div class="muted txs">③ 几分钟内收到开通码，在下面输入即开通（' +
-        (t.level === 'plus' ? '进阶码' : '完整版码 · ' + t.days + ' 天') + '）</div>' +
-      '<div style="text-align:center;margin:12px 0">' +
-        '<img src="assets/pay-qr.png" alt="付款二维码" style="width:180px;border-radius:12px" ' +
-          'onerror="this.style.display=\'none\';var t=document.getElementById(\'payQrTip\');if(t)t.style.display=\'block\'">' +
-        '<div id="payQrTip" style="display:none" class="muted txs">（收款码整理中 —— 可先私信阿清付款）</div>' +
-      '</div>' +
-      '<div class="muted txs">开通码<b>一次一用</b>、由服务端核销，挂在账号上换设备也在。' +
-        '直接跳转微信支付需要商户号（办理中）—— 到位后这里会换成自动拉起，无需再人工发码。</div>' +
+      '<div class="muted txs" style="margin-top:10px"><b>微信支付开通</b>：打开微信小程序「练不虚Gym」→ 我的 → 完整版，选同档位直接支付，秒开通。</div>' +
+      '<div class="muted txs">已有开通码？在下面输入即可（一次一用、服务端核销）。</div>' +
     '</div>'
   },
   setPayTier(k) { this.payTier = k; this.render() },

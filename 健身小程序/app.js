@@ -81,10 +81,11 @@ App({
 
   // 拉取用户文档（不存在则留空）
   loadUser() {
-    const db = wx.cloud.database()
-    return db.collection('users').doc(this.globalData.openid).get()
+    return wx.cloud.callFunction({ name: 'login', data: { action: 'loadUser' } })
       .then(res => {
-        const d = res.data || {}
+        const result = res.result || {}
+        if (!result.ok) throw new Error(result.message || '档案读取失败，请重试')
+        const d = result.user || {}
         this.globalData.profile = d.profile || null
         const rawPlan = d.plan || null
         // 旧 plan.days（28天）格式一次性迁移为 micro 无限循环，回写云端
@@ -107,7 +108,7 @@ App({
           return this.saveUser({ plan }).catch(() => {})
         }
       })
-      .catch(() => { /* 无文档 = 新用户 */ })
+      .catch(err => { console.error('档案读取失败', err); throw err })
   },
 
   // 保存/更新用户文档（合并写入，避免覆盖 constitution 等已有字段）
@@ -116,20 +117,11 @@ App({
     if (!openid) {
       return Promise.reject(new Error('openid 未初始化，请稍后重试'))
     }
-    const db = wx.cloud.database()
-    return db.collection('users').doc(openid).get()
+    return wx.cloud.callFunction({ name: 'login', data: { action: 'saveUser', patch: data } })
       .then(res => {
-        const cur = res.data || {}
-        delete cur._id; delete cur._openid
-        return db.collection('users').doc(openid).set({ data: Object.assign({}, cur, data) })
-      }, err => {
-        // 只有确实不存在才创建。网络/权限错误不能用部分数据覆盖原文档；
-        // 此拒绝回调只处理 get，不会吞掉前一个 set 的写入失败。
-        const message = String(err && (err.errMsg || err.message) || '')
-        if (!/document(?: does)? not exist|document.*not found|文档不存在/i.test(message)) throw err
-        const clean = Object.assign({}, data)
-        delete clean._id; delete clean._openid
-        return db.collection('users').doc(openid).set({ data: clean })
+        const result = res.result || {}
+        if (!result.ok) throw new Error(result.message || '档案保存失败，请重试')
+        return result
       })
   },
 

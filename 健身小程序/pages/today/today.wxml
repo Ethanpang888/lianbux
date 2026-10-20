@@ -2,7 +2,10 @@
 <view wx:if="{{!loaded}}" class="card center-empty">加载中…</view>
 
 <view wx:elif="{{!hasPlan}}" class="card center-empty">
-  <view class="title">还没有计划</view>
+  <view class="title">先体验，再生成个人计划</view>
+  <view class="muted" style="margin:20rpx 0">免费示例可直接阅读，个人训练与记录在建档后启用。</view>
+  <button class="btn ghost" data-id="bodyweight-start" bindtap="goSecret">先看居家训练示例</button>
+  <button class="btn ghost" bindtap="goSecret">浏览免费秘籍</button>
   <view class="btn block" bindtap="goAssess">去测评生成计划</view>
 </view>
 
@@ -66,8 +69,8 @@
             </view>
             <button size="mini" data-i="{{index}}" bindtap="pgEdit">{{item.pgOn?'调整 / 关闭递进':'设置递进起点'}}</button></block>
           </view>
-          <view wx:if="{{item.gif}}" class="gifwrap" bindtap="fmOpen" data-i="{{index}}"><frame-gif frames="{{item.gif}}" speed="{{420}}" equip="{{item.equipment}}" interactive="{{true}}"/><view class="gif-hint">👆 点图进入专注训练</view></view>
-          <view wx:if="{{item.points}}" class="expo fm-go" bindtap="fmOpen" data-i="{{index}}">{{item.points}}<view class="fm-go-hint">点这里进入「专注训练」：大图大字带着你一组一组练</view></view>
+          <view wx:if="{{item.gif}}" class="gifwrap" bindtap="fmOpen" data-i="{{index}}" data-name="{{item.name}}"><frame-gif frames="{{item.gif}}" mode="auto" equip="{{item.equipment}}" interactive="{{false}}"/><view class="gif-hint">👆 点图进入专注训练</view></view>
+          <view wx:if="{{item.points}}" class="expo fm-go" bindtap="fmOpen" data-i="{{index}}" data-name="{{item.name}}">{{item.points}}<view class="fm-go-hint">点这里进入「专注训练」：大图大字带着你一组一组练</view></view>
           <view class="exops">
             <view class="exop" data-i="{{index}}" catchtap="swapEx">🔁 换动作</view>
             <view class="exop" data-i="{{index}}" catchtap="removeExercise">🗑 删除动作</view>
@@ -111,7 +114,7 @@
     <view wx:if="{{cardio}}" class="card cardio" data-section="cardio">
       <view class="cd-h">03 · 有氧（选做）· {{cardio.type}}</view>
       <view class="muted" style="line-height:1.6">{{cardio.detail}}{{cardio.alt ? ' / ' + cardio.alt : ''}} · 每周 {{cardio.perWeek}}</view>
-      <view class="muted" style="margin-top:6rpx;line-height:1.6">{{cardio.note}}</view><view class="row cardio-actions"><button class="btn ghost" data-seconds="900" bindtap="startCardio">轻松活动 · 15 分钟</button><button class="btn ghost" data-seconds="1200" bindtap="startCardio">走跑间歇 · 20 分钟</button></view><button bindtap="completeCardio">{{cardioCompleted?"已记录有氧 ✓":"记录本次有氧完成"}}</button><text class="coach-link" data-id="cardio" bindtap="goSecret">有氧方法与出处 ›</text>
+      <view class="muted" style="margin-top:6rpx;line-height:1.6">{{cardio.note}}</view><view class="row cardio-actions"><button class="btn ghost" data-seconds="900" bindtap="startCardio">轻松活动 · 15 分钟</button><button class="btn ghost" data-seconds="1200" bindtap="startCardio">走跑间歇 · 20 分钟</button></view><view class="field"><text>实际有氧类型</text><picker range="{{cardioTypes}}" range-key="name" value="{{cardioTypeIndex}}" bindchange="cardioTypeChange"><view>{{cardioTypes[cardioTypeIndex].name}} ›</view></picker></view><view class="field"><text>实际分钟数</text><input type="digit" value="{{cardioMinutes}}" placeholder="如 35（可超过推荐时长）" bindinput="cardioMinutesInput"/></view><view class="row between"><text>这是平常安排以外的额外加练</text><switch checked="{{cardioExtra}}" bindchange="cardioExtraChange"/></view><view class="muted">日常消耗已包含平常训练；额外加练才叠加估算消耗，避免重复计算。饮食目标不自动增加。</view><view wx:if="{{cardioRecord}}" class="paragraph">已记录 {{cardioRecord.name}} {{cardioRecord.minutes}} 分钟 · {{cardioRecord.kcal!==null?'估算净消耗约 '+cardioRecord.kcal+' kcal':'完善体重后可估算消耗'}}<view class="muted">{{cardioRecord.extra?'额外消耗 +'+cardioRecord.added+' kcal':'计划内活动，已包含在日常估算中'}}</view></view><button disabled="{{cardioSaving}}" loading="{{cardioSaving}}" bindtap="completeCardio">{{cardioCompleted?"更新本日有氧记录":"保存实际有氧"}}</button><button wx:if="{{cardioRecord}}" class="btn ghost" disabled="{{cardioSaving}}" bindtap="clearCardio">清除本日有氧记录</button><text class="coach-link" data-id="cardio" bindtap="goSecret">有氧方法与出处 ›</text>
     </view>
   </block>
 
@@ -185,13 +188,10 @@
     <view class="fm-close" bindtap="fmClose">收起 ✕</view>
   </view>
   <view class="fm-imgwrap">
-    <block wx:if="{{fm.gif.length > 1}}">
-      <image wx:for="{{fm.gif}}" wx:key="index" src="{{item}}" mode="aspectFit" class="fm-gif fm-gif-{{index}}"/>
-    </block>
-    <image wx:elif="{{fm.gif.length === 1}}" src="{{fm.gif[0]}}" mode="aspectFit" class="fm-gif fm-static"/>
-    <view wx:else class="fm-noimg">🏋️<text>{{fm.exName}}</text></view>
+    <block wx:for="{{fm.media}}" wx:key="id"><frame-gif frames="{{item.frames}}" equip="{{fm.equipment}}" interactive="{{true}}"/></block>
+
   </view>
-  <view class="fm-set">第 {{fm.si+1}} / {{fm.totalSets}} 组</view>
+  <view class="fm-set">第 {{fm.si+1}} / {{fm.totalSets}} 组</view><view class="fm-fill"><button size="mini" data-d="-1" bindtap="fmChangeSets">− 减一组</button><button size="mini" data-d="1" bindtap="fmChangeSets">＋ 加一组</button></view>
   <view class="fm-timer {{fm.restLeft>0?'resting':''}}">{{fm.restLeft>0 ? fm.restLeft : '─'}}<text wx:if="{{fm.restLeft>0}}" class="fm-ts">s</text></view>
   <view class="fm-sub">{{fm.restLeft>0 ? fm.restLabel : '做这一组 —— 重量次数先调好，练完点大按钮'}}</view>
   <view class="fm-fill">

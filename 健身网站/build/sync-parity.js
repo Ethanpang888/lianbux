@@ -4,7 +4,7 @@ const fs=require('fs'),path=require('path');const root=path.resolve(__dirname,'.
 function sync(write){
  require('./port-native-content.js').sync(write);
  let drift=[];
- for(const name of ['gamify','pro','secret','coach','plan-backup','journal','plus','page-contract','records-view','diet-feedback']){
+ for(const name of ['cardio','gamify','pro','secret','coach','plan-backup','journal','plus','page-contract','records-view','diet-feedback']){
   const src=path.join(mp,'utils',name+'.js'),data=fs.readFileSync(src);
   for(const dir of [path.join(web,'shared'),path.join(mp,'cloudfunctions/webApi/lib'),path.join(mp,'cloudfunctions/sendDailyPlan/lib')]){const target=path.join(dir,name+'.js');if(!fs.existsSync(target)||!data.equals(fs.readFileSync(target))){if(write){fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(target,data)}else drift.push(path.relative(root,target))}}
  }

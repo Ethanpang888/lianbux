@@ -1,0 +1,15 @@
+// 建档共同规则。两端共用目标、默认值、循环推荐和减脂子选项，页面只负责呈现。
+const calc=require('./calc.js'),kb=require('./kb.js'),feedback=require('./diet-feedback.js')
+const GOALS=[{v:'减脂',label:'减脂'},{v:'增肌',label:'增肌'},{v:'增肌减脂同步',label:'增肌减脂同步'},{v:'塑形',label:'塑形（维持+线条）'}]
+const PACES=[{v:'steady',label:'稳步减脂'},{v:'intensive',label:'强化减脂'}]
+function defaults(){return {nick:'',gender:'男',age:'30',height:'170',weight:'70',goal:'增肌减脂同步',fatLossPace:'steady',exp:'新手',days:'4',home:'0',split:'auto',freq:'auto',activity:'mod',bodyType:'中性',dietMode:'simple',city:'',invite:'',progMode:'smart',program:'fb4'}}
+function fromProfile(p,plan){const d=defaults();p=p||{};for(const k of ['nick','gender','goal','fatLossPace','exp','activity','bodyType','dietMode','city'])if(p[k])d[k]=String(p[k]);for(const k of ['age','height','weight','days'])if(p[k]!=null)d[k]=String(p[k]);d.home=(plan?plan.home:p.home)?'1':'0';if(plan){d.split=plan.split||'auto';d.freq=plan.freq||'auto';if(plan.program){d.progMode='program';d.program=plan.program}}return d}
+function freq(d){return kb.FREQ[d.freq]?d.freq:'w'+Math.min(6,Math.max(2,Number(d.days)||3))}
+function recommendSplit(exp,f){if(f==='c5')return 'five';if(f==='c4')return exp==='新手'?'full':'cpbsl';if(f==='c3')return 'ppl';return exp==='新手'?'full':exp==='熟练'?'cpbsl':'ppl'}
+function split(d){return kb.SPLITS[d.split]?d.split:recommendSplit(d.exp,freq(d))}
+function validate(d){if(!(Number(d.age)>=12&&Number(d.age)<=90))return '年龄填12–90之间';if(!(Number(d.height)>=120&&Number(d.height)<=230))return '身高填120–230cm之间';if(!(Number(d.weight)>=30&&Number(d.weight)<=250))return '体重填30–250kg之间';return ''}
+function profile(d,old){return Object.assign({},old||{},{nick:(d.nick||'').trim().slice(0,12),gender:d.gender,age:Number(d.age),height:Number(d.height),weight:Number(d.weight),goal:d.goal,fatLossPace:d.fatLossPace==='intensive'?'intensive':'steady',exp:d.exp,days:Number(d.days),home:d.home==='1',activity:d.activity,bodyType:d.bodyType,dietMode:d.dietMode,city:d.city||''})}
+function pace(d){if(d.goal!=='减脂')return null;const p=profile(d),e=calc.energyPlan(p,{}),invalid=validate(d);return {key:d.fatLossPace||'steady',eligible:!invalid&&e.fatLoss.eligible,reason:invalid?'填写年龄、身高和体重后，可预览减脂目标。':e.fatLoss.reason,kcal:invalid?null:e.kcal,deficit:invalid?null:e.deficit,note:'稳步约300大卡，强化最高约500大卡；均不超过估算日消耗的20%。'}}
+function prepare(d,old,ds,today){const err=validate(d);if(err)throw new Error(err);let p=profile(d,old);const view=pace(d);if(view&&d.fatLossPace==='intensive'&&!view.eligible)throw new Error(view.reason);const changed=p.goal==='减脂'&&(!old||old.goal!=='减脂'||(old.fatLossPace||'steady')!==p.fatLossPace);return changed?feedback.changePace(p,ds,p.fatLossPace,today):{profile:p}}
+function combo(d){const f=freq(d),s=split(d),F=kb.FREQ[f],S=kb.SPLITS[s],need={c3:3,c4:4,c5:5}[f];if(need&&S.foci.length!==need)return '当前循环有'+need+'个训练日，所选分化有'+S.foci.length+'个部位日；部分部位可能重复或轮不到，请复核。';return F.name+' · '+S.name}
+module.exports={GOALS,PACES,defaults,fromProfile,freq,recommendSplit,split,validate,profile,pace,prepare,combo}

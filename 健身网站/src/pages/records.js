@@ -45,6 +45,7 @@ const PageRecords = {
         '<button class="btn ghost" id="writeToday">' + (ENGINE.journal.noteOf(Store.checkinOf(today)) ? '改今天的记录' : '写今天的记录') + '</button>' +
       '</div>' +
       '<div id="noteBox"></div>' +
+      '<section class="card"><h2>有氧记录</h2>'+((cks.filter(c=>ENGINE.cardio.clean(c.cardio)).slice(-20).reverse().map(c=>{const a=ENGINE.cardio.estimate(c.cardio);return '<p>'+Fmt.esc(c.date)+' · '+Fmt.esc(a.name)+' '+a.minutes+' 分钟 · 估算净消耗约 '+(a.kcal===null?'—':a.kcal)+' kcal · '+(a.extra?'额外加练':'计划内活动')+'</p>'}).join(''))||'<p class="muted">在训练页保存实际有氧时长后，可在这里回看。</p>')+'</section>'+
       '<div class="card"><h2>过往记录</h2><div class="timeline">' +
         JournalUI.timelineHTML(cks, { limit: 20 }) + '</div></div>'
 

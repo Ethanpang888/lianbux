@@ -97,6 +97,25 @@ function dietMacros(profile, adj) {
   return { fat, carb, protein, kcal, carbG: round(carbG, 2), protG: round(protG, 2) }
 }
 
+// 减脂力度仅改变热量基线，沿用原有蛋白/脂肪口径，不改变训练计划。
+function fatLossPolicy(profile, total) {
+  const p=profile||{},rule=DIET_RULE.fatLossPaces||{steady:{name:'稳步减脂',kcal:300},intensive:{name:'强化减脂',kcal:500},maxRatio:.20}
+  const enabled=p.goal==='减脂', age=Number(p.age), w=Number(p.weight), h=Number(p.height)
+  let reason=''
+  if(enabled && (!Number.isFinite(age)||age<18||!Number.isFinite(w)||w<=0||!Number.isFinite(h)||h<=0||!['男','女'].includes(p.gender))) reason='请先完善成年用户的年龄、性别、身高和体重，再选择强化档。'
+  else if(enabled && w/Math.pow(h/100,2)<18.5) reason='当前档案体重偏低，不开放强化档。'
+  const requested=enabled&&p.fatLossPace==='intensive'?'intensive':'steady', key=requested==='intensive'&&!reason?'intensive':'steady'
+  const cap=Math.max(0,Math.floor((Number(total)||0)*rule.maxRatio)), nominal=rule[key].kcal
+  return {enabled,key,requested,name:rule[key].name,maxDeficit:Math.min(rule.intensive.kcal,cap),eligible:enabled&&!reason,reason,cap,nominal,baseDeficit:Math.min(nominal,cap),maxRatio:rule.maxRatio}
+}
+function fatLossChoices(profile,adj) {
+  if(!profile||profile.goal!=='减脂') return null
+  const current=energyPlan(profile,adj),base=Object.assign({},profile)
+  delete base.dietReferenceTarget
+  const choices=['steady','intensive'].map(key=>{const e=energyPlan(Object.assign({},base,{fatLossPace:key}),Object.assign({},adj,{kcalAdj:0}));return {key,name:key==='steady'?'稳步减脂':'强化减脂',kcal:e.kcal,deficit:Math.round(e.deficit),disabled:key==='intensive'&&!e.fatLoss.eligible}})
+  return {key:current.fatLoss.key,name:current.fatLoss.name,choices,reason:current.fatLoss.reason,custom:current.source==='reference',limited:current.fatLoss.baseDeficit<current.fatLoss.nominal,note:'稳步档默认约300，强化档最高约500大卡；均不超过估算总消耗的20%。这是产品估算规则，不保证减重速度。'}
+}
+
 // ===== 每日消耗与热量目标（锚定 TDEE）=====
 // ⚠️ 旧版只有 dietMacros：它的 kcal 是「蛋白/脂肪/碳水反算」出来的，**完全没有锚定每日消耗**，
 //    所以会给高强度训练者算出远低于实际需要的热量、把缺口拉到 700+（远超谭成义的安全缺口 200-300）。
@@ -117,12 +136,17 @@ function energyPlan(profile, adj) {
   //   （只有蛋白跷跷板腾出的几十 kcal 落到碳水），会出现「文案说加 23g 碳水、实际只涨 7g」的言行不一。
   //   要真的多给碳水，就得抬高热量目标。
   const kcalAdj = round(Number(adj && adj.kcalAdj) || 0)
-  const targetKcal = round(td + kcalAdjOf(goal) + kcalAdj)   // TDEE ± 目标缺口 ± 宏观调节
+  const fatLoss = fatLossPolicy(p,td)
+  const baseAdj = fatLoss.enabled ? -fatLoss.baseDeficit : kcalAdjOf(goal)
+  const rawTarget = td + baseAdj + kcalAdj
+  // 负向宏观调整不能绕过缺口上限；正向反馈仍可增加摄入。
+  const deficitCap = fatLoss.enabled ? fatLoss.maxDeficit : Infinity
+  const targetKcal = round(Math.max(rawTarget,td-deficitCap))   // TDEE ± 目标缺口 ± 宏观调节
   // 碳水是弹性项：固定蛋白与脂肪后，用碳水补齐到目标热量
-  const carbFlex = round(Math.max(0, (targetKcal - m.protein * 4 - m.fat * 9) / 4))
+  const carbFlex = Math.max(0, (targetKcal - m.protein * 4 - m.fat * 9) / 4)
   // 钳制用「生理上下限」（1.5–6.5 g/kg），**不要**拿体质基准当天花板——
   // 否则训练量大的用户（TDEE 3300+）碳水被压住、缺口又被拉到 900，等于白算 TDEE。
-  const carb = Math.round(clampNum(carbFlex, 1.5 * w, 6.5 * w))
+  const carb = (fatLoss.enabled ? Math.ceil : Math.round)(clampNum(carbFlex, 1.5 * w, fatLoss.enabled ? Infinity : 6.5 * w))
   const kcal = round(m.protein * 4 + m.fat * 9 + carb * 4)
   const custom = p.dietReferenceTarget
   if (custom && custom.basis === require('./diet.js').referenceBasis(p) &&
@@ -130,16 +154,16 @@ function energyPlan(profile, adj) {
     return { bmr:b, activity:act, tdee:td, targetKcal:custom.kcal,
       kcal:custom.kcal, protein:custom.protein, carb:custom.carb, fat:custom.fat,
       protG:round(custom.protein/w,2), carbG:round(custom.carb/w,2), fatG:round(custom.fat/w,2),
-      deficit:td-custom.kcal, wantDeficit:td-custom.kcal, warn:false, source:'reference' }
+      deficit:td-custom.kcal, wantDeficit:td-custom.kcal, warn:false, source:'reference', fatLoss }
   }
   const deficit = td - kcal                           // 正数=缺口，负数=盈余
   // 期望缺口：宏观调控是「有意的」偏离，不该再触发"偏离期望"告警
-  const wantDeficit = -kcalAdjOf(goal) - kcalAdj
+  const wantDeficit = td-targetKcal
   return {
     bmr: b, activity: act, tdee: td,
     targetKcal, protein: m.protein, carb, fat: m.fat, kcal,
     carbBase: m.carb, carbG: round(carb / w, 2), protG: m.protG, fatG: round(m.fat / w, 2),
-    kcalAdj, deficit, wantDeficit,
+    kcalAdj, deficit, wantDeficit, fatLoss,
     warn: Math.abs(deficit - wantDeficit) > 250       // 偏离期望缺口 250kcal 以上 → UI 提示
   }
 }
@@ -202,5 +226,5 @@ function dayIndexFromStart(cycleStart, dateStr) {
 module.exports = {
   round, bmi, bmiCat, bmr, activityFactor, tdee, calorieTarget, macros, dayIndexFromStart,
   dietMacros, applyHunger,
-  energyPlan, weightTrend
+  energyPlan, weightTrend, fatLossPolicy, fatLossChoices
 }

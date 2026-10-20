@@ -740,7 +740,7 @@ section('训练页：加/减组 + 重量滑动 + 动作说明')
   // ★ 动作图：引擎课表只存 oid，页面必须回查动作库，否则永远是「无图」
   // 2026-10-15 起动作卡改为双帧循环（div.ex-frames 包两张 img），单帧/无图才用 img.ex-thumb
   const imgs = (today.match(/class="ex-thumb"[^>]*src="([^"]+)"/g) || [])
-    .concat((today.match(/class="ex-thumb ex-frames"/g) || []))
+    .concat((today.match(/class="ex-thumb ex-frames"/g) || [])).concat((today.match(/class="posture-images"/g)||[]))
   ok(imgs.length >= 3, '动作图回查成功（不再是「无图」）—— ' + imgs.length + ' 张')
   ok(!imgs.length || /\/ex\//.test(today), '图片指向动作图库')
 

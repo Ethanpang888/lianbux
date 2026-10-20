@@ -1,10 +1,10 @@
 <page-meta page-style="{{themeStyle}}"/>
-<view wx:if="{{!profile}}" class="card center-empty">
-  <view style="font-size:60rpx;margin-bottom:20rpx">💪</view>
-  <view class="title">先完善你的资料</view>
-  <view class="muted" style="margin:12rpx 0 30rpx">填一次测评，AI 给你定制 28 天计划</view>
-  <view class="btn block" bindtap="goAssess">开始测评</view>
-</view>
+<block wx:if="{{!profile}}">
+ <view class="homebar"><view><view class="eyebrow">练不虚 · 日常修行</view><view class="homebar-h1">先体验，再开始修行</view></view></view>
+ <view class="card"><view class="title">先练一小步，不急着填资料。</view><view class="muted" style="margin:20rpx 0">先看居家训练示例与完整免费功法；需要个人安排和饮食目标时，再用约1分钟建档。</view><button class="btn" bindtap="goAssess">生成我的计划 · 去建档</button></view>
+ <view class="card"><view class="title">徒手筑基诀 · 完整免费</view><view class="muted" style="margin:20rpx 0">零基础起步 → 上下肢进阶，热身、动作清单、休息与加难条件都开放。</view><button class="btn ghost" data-id="bodyweight-start" bindtap="browseFree">先看居家训练示例</button></view>
+ <view class="card"><view class="title">先把基础学会</view><view class="muted" style="margin:20rpx 0">热身、练后有氧、居家入门与日常恢复，基础功法无需建档即可阅读。</view><button class="btn ghost" bindtap="browseFree">浏览免费秘籍</button></view>
+</block>
 
 <block wx:else>
   <!-- 顶栏（网站 homebar 同款）：eyebrow + 大标题 + 头像点 -->
@@ -44,6 +44,7 @@
     </view>
   </view>
 
+  <view class="home-daily">
   <!-- 今日训练 -->
   <view class="card daily-card">
     <view class="section-label">今日训练</view>
@@ -73,7 +74,9 @@
     <view class="row between"><view class="title">今日饮食</view><text class="muted">目标 {{calTarget}} kcal</text></view>
     <view class="diet-energy"><view><text class="diet-number">{{dietTotal.kcal||0}}</text> 大卡<view class="muted">{{dietOver?'已超目标':'距目标'}} {{dietRemain}} 大卡</view></view><view class="diet-ring" style="{{ringStyle}}"><view><text class="muted">目标进度</text><text>{{calorieProgress.pct||0}}%</text></view></view></view>
     <view class="diet-macros"><view wx:for="{{nutrientProgress}}" wx:key="key" class="diet-macro pb-{{item.key}} {{item.over?'over':''}}"><view class="muted">{{item.label}}</view><view>{{item.got}} / {{item.target}}g</view><view class="muted">{{item.pct}}%</view><view class="pb-bar"><view class="pb-in pbin-{{item.key}} {{item.over?'over':''}}" style="width:{{item.width}}%"></view></view></view></view>
-    <view wx:if="{{energy}}" class="muted diet-note">{{goalName}} · 消耗 {{energy.tdee}} · 摄入 {{calTarget}} kcal · {{energy.deficit>0?'缺口':energy.deficit<0?'盈余':'持平'}} {{energy.deficit<0?-energy.deficit:energy.deficit}} kcal</view>
+    <view wx:if="{{energy.cardio}}" class="muted">本日有氧 {{energy.cardio.minutes}} 分钟 · 净消耗估算约 {{energy.cardio.kcal}} kcal{{energy.added?" · 已计入额外消耗":" · 计划内活动"}}</view><view wx:if="{{energy}}" class="muted diet-note">{{goalName}} · 消耗 {{energy.tdee}} · 摄入 {{calTarget}} kcal · {{energy.deficit>0?'缺口':energy.deficit<0?'盈余':'持平'}} {{energy.deficit<0?-energy.deficit:energy.deficit}} kcal</view>
+  </view>
+
   </view>
 
   <!-- 今日恢复（网站 recoveryCard 同款：睡眠 chips + 补水） -->

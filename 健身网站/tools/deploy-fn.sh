@@ -81,7 +81,7 @@ echo ""
 echo "════ 部署后核对（Code size 应该有变化）════"
 for fn in "$@"; do
   "$ROOT/tools/tcb.sh" fn detail "$fn" -e "$ENV_ID" 2>&1 \
-    | grep -E "Function name|Code size|Runtime|Environment variables|Modification" \
+    | grep -E "Function name|Code size|Runtime|Modification" \
     | sed 's/^│ *//; s/ *│$//'
   echo ""
 done

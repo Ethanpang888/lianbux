@@ -1,21 +1,8 @@
-<view class="fg {{paused || !visible ? 'paused' : ''}}">
-  <block wx:if="{{list.length && !err}}">
-    <!-- 静态海报模式（仅显一张，列表可选） -->
-    <image wx:if="{{mode==='static'}}" src="{{list[poster]}}" mode="aspectFit" class="fg-poster" binderror="onErr"/>
-
-    <!-- 动画模式：2 张真实姿势图，纯 CSS 交叉淡化(ping-pong)，零 setData -->
-    <block wx:else>
-      <image wx:for="{{list}}" wx:key="index" src="{{item}}" mode="aspectFit"
-             class="fg-img fg-img-{{index}}" style="animation-duration:{{speed*2}}ms" binderror="onErr"/>
-    </block>
-  </block>
-
-  <view wx:elif="{{err}}" class="fg-empty">⚠ 图示加载失败\n请重新编译预览或检查资源</view>
-  <view wx:else class="fg-empty">无图</view>
-
-  <view wx:if="{{list.length>1 && !err}}" class="fg-equip {{isHome?'home':'gym'}}">{{isHome?'🏠 居家':'🏋 器械'}}</view>
-  <view wx:if="{{interactive && mode!=='static' && list.length>1 && !err}}" class="fg-play">{{paused?'播放':'暂停'}}</view>
-
-  <!-- 仅详情页(interactive)才拦截点击暂停；列表不拦截，点击冒泡给卡片跳转 -->
-  <view wx:if="{{interactive && mode!=='static'}}" class="fg-overlay" catchtap="toggle"></view>
+<view class="fg">
+ <view class="fg-stage {{paused?'paused':''}} {{ready && list.length>1 && !paused && mode!=='static'?'playing':''}}" style="--pose-duration:{{speed<1000?3000:speed*2}}ms">
+  <image wx:for="{{list}}" wx:key="*this" src="{{item}}" mode="aspectFit" class="fg-image pose-{{index}} {{paused && current===index?'selected':''}}" data-i="{{index}}" bindload="onLoad" binderror="onErr"/>
+  <view wx:if="{{err}}" class="fg-empty" catchtap="retry">图示加载失败 · 点此重试</view>
+  <view wx:elif="{{!list.length}}" class="fg-empty">暂无图示</view>
+ </view>
+ <view wx:if="{{interactive && list.length>1 && !err}}" class="fg-controls"><button catchtap="toggle">{{paused?'播放动作':'暂停演示'}}</button><button catchtap="next">逐帧查看</button></view>
 </view>

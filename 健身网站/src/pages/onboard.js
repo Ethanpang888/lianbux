@@ -17,37 +17,17 @@ const PageOnboard = {
 
   /** 推荐默认值：一个「30 岁 / 170cm / 70kg / 练四休一 / 中度活动」的普通人 */
   defaults() {
-    return {
-      nick: '', gender: '男', age: '30', height: '170', weight: '70',
-      goal: '增肌减脂同步', exp: '新手', days: '4', home: '0',
-      split: 'auto', freq: 'auto',
-      activity: 'mod', bodyType: '中性', dietMode: 'simple', city: ''
-    }
+    return ENGINE.assessment.defaults()
   },
 
   /** 已有档案时用档案回填（改档案场景）。plan 里的分化/循环也要带回来，否则一改档案就被重置 */
   fromProfile(p, plan) {
-    const d = this.defaults()
-    if (plan) {
-      if (plan.split) d.split = plan.split
-      if (plan.freq) d.freq = plan.freq
-    }
-    if (!p) return d
-    const map = ['gender', 'goal', 'exp', 'bodyType', 'dietMode', 'city']
-    map.forEach(k => { if (p[k]) d[k] = String(p[k]) })
-    d.age = String(p.age || d.age)
-    d.height = String(p.height || d.height)
-    d.weight = String(p.weight || d.weight)
-    d.days = String(p.days || d.days)
-    d.home = p.home ? '1' : '0'
-    d.activity = p.activity || d.activity
-    d.nick = p.nick || ''
-    return d
+    return ENGINE.assessment.fromProfile(p, plan)
   },
 
   d() {
     if (!this.draft) {
-      const u = (Store.state.user || {})
+      const u = Store.state.demo ? {} : (Store.state.user || {})
       this.draft = this.fromProfile(u.profile, u.plan)
       if (!this.draft.nick && u.nick) this.draft.nick = u.nick
     }
@@ -60,15 +40,7 @@ const PageOnboard = {
    * 'auto' 表示"跟经验走"，用户手动选过就是固定值。
    */
   recommendSplit(exp, freqKey) {
-    // 循环制：一轮练几天，就该有几个部位 —— 天数直接决定分化。
-    // 为什么必须这样配：练4休1 配三分化会变成「推→拉→腿→推→休」，
-    //   推在 5 天里练 2 次、腿只练 1 次，既不平衡也没必要（实测出来的）。
-    if (freqKey === 'c5') return 'five'
-    if (freqKey === 'c4') return exp === '新手' ? 'full' : 'cpbsl'
-    if (freqKey === 'c3') return 'ppl'
-    // 按周安排：按经验走
-    if (exp === '新手') return 'full'
-    return exp === '熟练' ? 'cpbsl' : 'ppl'
+    return ENGINE.assessment.recommendSplit(exp, freqKey)
   },
 
   /** 生效的分化（没手动选过就用推荐值） */
@@ -111,13 +83,7 @@ const PageOnboard = {
    * 循环制不看星期几：练完一个循环直接接下一个，休息日跟着循环走 —— 作息不固定的人靠它。
    */
   effFreq() {
-    const f = this.d().freq
-    if (f !== 'auto') return f
-    const dpw = Math.min(6, Math.max(3, Number(this.d().days) || 3))
-    if (dpw >= 6) return 'w6'
-    if (dpw >= 5) return 'w5'
-    if (dpw >= 4) return 'w4'
-    return 'w3'
+    return ENGINE.assessment.freq(this.d())
   },
 
   /** 「训练安排」卡的内容（单独抽出来是为了能局部重建，不用整页重渲染） */
@@ -138,7 +104,10 @@ const PageOnboard = {
       this.splitListHTML() +
       (hint ? '<div class="combo-hint">' + hint + '</div>' : '') +
       '<div class="ob-label">在哪练</div>' +
-      this.chips('home', [{ v: '0', label: '健身房' }, { v: '1', label: '居家' }]) 
+      this.chips('home', [{ v: '0', label: '健身房' }, { v: '1', label: '居家' }]) +
+      '<details class="ob-program"'+(this.d().progMode==='program'?' open':'')+'><summary>精选课表（可选）</summary>'+
+      this.chips('progMode',[{v:'smart',label:'智能生成'},{v:'program',label:'精选课表'}])+
+      (this.d().progMode==='program'?'<div class="muted txs">选用课表自带的周期与分化，上方安排不参与本次生成。</div>'+this.chips('program',ENGINE.kb.programList().map(p=>({v:p.key,label:p.name}))):'')+'</details>' 
   },
 
   /** 局部重建「训练安排」卡（推荐值/搭配提示会随 exp、days、freq 变） */
@@ -183,7 +152,7 @@ const PageOnboard = {
     const chip = k => (F[k] ? '<button class="chip' + (cur === k ? ' on' : '') +
       '" data-v="' + k + '">' + Fmt.esc(F[k].name) + '</button>' : '')
     return '<div class="freq-row"><span class="freq-k">按周</span>' +
-        '<div class="chips" data-chips="freq">' + ['w3', 'w4', 'w5', 'w6'].map(chip).join('') + '</div></div>' +
+        '<div class="chips" data-chips="freq">' + ['w2', 'w3', 'w4', 'w5', 'w6'].map(chip).join('') + '</div></div>' +
       '<div class="freq-row"><span class="freq-k">循环制</span>' +
         '<div class="chips" data-chips="freq">' + ['c3', 'c4', 'c5'].map(chip).join('') + '</div></div>' +
       '<div class="muted txs" style="margin-top:8px">' +
@@ -218,6 +187,21 @@ const PageOnboard = {
       (hint ? '<span class="ob-hint">' + Fmt.esc(hint) + '</span>' : '') + '</div>'
   },
 
+  goalHTML() {
+    return '<h2>目标</h2>' + this.chips('goal', ENGINE.assessment.GOALS) +
+      '<div id="obPace">' + this.paceHTML() + '</div>' +
+      (this.d().goal==='减脂'?'':'<div class="muted txs">按所选目标计算热量与营养，之后可以在“我的”修改。</div>')
+  },
+  paceHTML() {
+    const d=this.d();let p=ENGINE.assessment.pace(d);if(!p)return ''
+    if(d.fatLossPace==='intensive'&&!p.eligible){d.fatLossPace='steady';p=ENGINE.assessment.pace(d)}
+    return '<div class="ob-pace"><div class="ob-label">减脂力度</div><div class="chips" data-chips="fatLossPace">'+
+      ENGINE.assessment.PACES.map(c=>'<button class="chip'+(d.fatLossPace===c.v?' on':'')+'" data-v="'+c.v+'" '+(c.v==='intensive'&&!p.eligible?'disabled':'')+'>'+c.label+'</button>').join('')+'</div><div class="muted txs">'+Fmt.esc(p.note)+'</div>'+
+      (p.reason?'<div class="muted txs">'+Fmt.esc(p.reason)+'</div>':'<div class="muted txs">预计每天 '+p.kcal+' 大卡 · 缺口约 '+p.deficit+' 大卡</div>')+'</div>'
+  },
+  syncPace() { const el=document.getElementById('obPace');if(el){el.innerHTML=this.paceHTML();this.bind()} },
+  refreshGoalBlock() { const el=document.getElementById('obGoal');if(el){el.innerHTML=this.goalHTML();this.bind()} },
+
   render() {
     const d = this.d()
     const isEdit = Store.hasProfile()
@@ -249,15 +233,7 @@ const PageOnboard = {
       '</div>' +
 
       /* ② 目标 */
-      '<div class="card"><h2>目标</h2>' +
-        this.chips('goal', [
-          { v: '减脂', label: '减脂' },
-          { v: '增肌', label: '增肌' },
-          { v: '增肌减脂同步', label: '增肌减脂同步' },
-          { v: '塑形', label: '塑形（维持+线条）' }
-        ]) +
-        '<div class="muted txs">目标决定热量缺口（减脂 −300 / 增肌 +130 kcal）与蛋白口径。</div>' +
-      '</div>' +
+      '<div class="card" id="obGoal">' + this.goalHTML() + '</div>' +
 
       /* ③ 训练安排：经验 → 每周天数 → 循环方式 → 分化方式 → 场所 */
       '<div class="card" id="obTrain">' + this.trainBlockHTML() + '</div>' +
@@ -321,7 +297,7 @@ const PageOnboard = {
     })
     // 数字/文本
     document.querySelectorAll('[data-num]').forEach(inp => {
-      inp.oninput = () => { this.d()[inp.dataset.num] = inp.value }
+      inp.oninput = () => { this.d()[inp.dataset.num] = inp.value; this.syncPace() }
     })
     document.querySelectorAll('[data-txt]').forEach(inp => {
       inp.oninput = () => { this.d()[inp.dataset.txt] = inp.value }
@@ -347,6 +323,9 @@ const PageOnboard = {
     document.querySelectorAll('[data-chips="' + key + '"],[data-list="' + key + '"]').forEach(box => {
       box.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x.dataset.v === d[key]))
     })
+
+    if (key === 'goal') this.refreshGoalBlock()
+    if (['fatLossPace','activity','gender','days'].includes(key)) this.syncPace()
 
     // 活动量：手动选过就打标记（之后不再被"每周天数"自动覆盖），并刷新说明
     if (key === 'activity') {
@@ -383,7 +362,8 @@ const PageOnboard = {
     }
 
     // 经验 / 天数 / 循环 一变，分化推荐与搭配提示都会变 → 局部重建这一块
-    if (key === 'exp' || key === 'days' || key === 'freq') this.refreshTrainBlock()
+    if (key === 'exp' || key === 'days' || key === 'freq' || key === 'progMode') this.refreshTrainBlock()
+    if (key === 'days') this.syncPace()
   },
 
   /** 把某个 key 的所有组按给定值刷新高亮 */
@@ -409,11 +389,7 @@ const PageOnboard = {
 
   /** 校验：只挡明显离谱的，别把用户拦在门外 */
   validate(d) {
-    const age = Number(d.age), h = Number(d.height), w = Number(d.weight)
-    if (!(age >= 12 && age <= 90)) return '年龄填 12–90 之间'
-    if (!(h >= 120 && h <= 230)) return '身高填 120–230 cm 之间'
-    if (!(w >= 30 && w <= 250)) return '体重填 30–250 kg 之间'
-    return ''
+    return ENGINE.assessment.validate(d)
   },
 
   submit() {
@@ -421,21 +397,11 @@ const PageOnboard = {
     const err = this.validate(d)
     if (err) { UI.toast(err); return }
 
-    const profile = {
-      nick: (d.nick || '').trim().slice(0, 12),
-      gender: d.gender,
-      age: Number(d.age),
-      height: Number(d.height),
-      weight: Number(d.weight),
-      goal: d.goal,
-      exp: d.exp,
-      days: Number(d.days),
-      home: d.home === '1',
-      activity: d.activity,
-      bodyType: d.bodyType,
-      dietMode: d.dietMode,
-      city: ENGINE.gamify.normCity(d.city)
-    }
+    let patch
+    try { patch = ENGINE.assessment.prepare(d, (Store.state.user || {}).profile, (Store.state.user || {}).dietState, Fmt.todayStr()) }
+    catch(e) { UI.toast(e.message); return }
+    const profile = patch.profile
+    profile.city = ENGINE.gamify.normCity(profile.city)
 
     if (!Store.isLoggedIn()) {
       UI.toast('还没登录 —— 先注册/登录，档案才能存到云端')
@@ -449,7 +415,9 @@ const PageOnboard = {
       split: this.d().split === 'auto' ? '' : this.d().split,
       freq: this.d().freq === 'auto' ? '' : this.d().freq
     }
-    const r = Store.saveProfile(profile, opts)
+    opts.preserveCycle = true
+    if(d.progMode==='program') opts.program=d.program
+    const r = Store.saveProfile(profile, opts, patch.dietState ? {dietState:patch.dietState} : {})
     if (r && r.error) { UI.toast(r.error); return }
 
     UI.toast(Store.state.demo ? '已建档（演示模式：只存本机）' : '建档完成，计划已生成')

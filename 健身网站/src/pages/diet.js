@@ -12,11 +12,34 @@ const PageDiet = {
     const prof = u.profile || {}
     document.getElementById('app').innerHTML = Router.bar('饮食', '吃得清楚，练得踏实') +
       this.goalCard(e, prof, u) +
-      '<details class="fold"><summary>目标计算与饮食调整</summary>' + this.energyCard(e, prof, u) + this.adjustLine(u, Store.adj()) +
+      '<details class="fold"><summary>目标计算与饮食调整</summary>' + this.fatLossPaceCard(prof,adj) + this.energyCard(e, prof, u) + this.adjustLine(u, Store.adj()) +
       this.macroCard(this.review(), e, u) +
       '<div class="card"><h2>今日饥饿反馈</h2><div class="wrap-row">' +
       ['很饿','微饿','不饿'].map(t => '<button class="chip" onclick="PageDiet.hunger(\''+t+'\')">'+t+'</button>').join('') + '</div></div></details>' +
       '<details class="fold"><summary>进阶饮食功能</summary>'+this.proCard(u,e)+'</details>'
+  },
+
+  fatLossPaceCard(profile,adj){
+    const p=ENGINE.calc.fatLossChoices(profile,adj);if(!p)return ''
+    return '<section class="pace-setting"><div class="ob-label">减脂目标 · 力度</div><div class="pace-options">'+p.choices.map(c=>'<button class="pace-choice '+(p.key===c.key?'on':'')+'" '+(c.disabled?'disabled ':'')+'onclick="PageDiet.chooseFatLossPace(\''+c.key+'\')"><b>'+c.name+'</b></button>').join('')+'</div><p class="muted txs">'+Fmt.esc(p.note)+'</p>'+(p.reason?'<p class="muted txs">'+Fmt.esc(p.reason)+'</p>':'')+(p.custom?'<p class="muted txs">当前使用自定参考目标；选择档位后恢复档案估算。</p>':'')+(p.key==='intensive'?'<p class="muted txs">持续疲劳、明显饥饿或训练表现下滑时，先回到稳步档。结合近期体重趋势复核，不因单日体重不变继续减餐。</p>':'')+'</section>'
+  },
+  chooseFatLossPace(key){
+    if(this.paceBusy)return
+    const u=Store.state.user,p=ENGINE.calc.fatLossChoices(u.profile,Store.adj()),c=p&&p.choices.find(x=>x.key===key)
+    if(!c)return;if(c.disabled){UI.toast(p.reason);return}if(key===p.key&&!p.custom)return
+    UI.modal({title:'切换为'+c.name+'？',body:'<p>预计每天吃 <b>'+c.kcal+' 大卡</b>，缺口约 <b>'+c.deficit+' 大卡</b>。</p><p>切换会恢复档案估算目标、重置旧热量偏移，保留已吃记录与参考份量。至少观察7天再调整；持续疲劳、明显饥饿或训练下滑时请回到稳步档。</p>',okText:'确认切换',onOk:()=>this.applyFatLossPace(key)})
+  },
+  async applyFatLossPace(key){
+    if(this.paceBusy)return;this.paceBusy=true
+    try{
+      const u=Store.state.user,patch=ENGINE.dietFeedback.changePace(u.profile,u.dietState,key,Fmt.todayStr())
+      // 合并待同步改动，避免队列里的旧档案在本次确认保存后写回。
+      const pending=Store._pending;clearTimeout(Store._saveTimer)
+      if(!Store.state.demo)await Api.api('putState',{token:Store.state.token,patch:Object.assign({},pending||{},patch)})
+      if(Store._pending===pending)Store._pending=null
+      else if(Store._pending){if(Store._pending.profile)Store._pending.profile=patch.profile;if(Store._pending.dietState)Store._pending.dietState=patch.dietState;Store.saveCloud({})}
+      Object.assign(u,patch);Store.saveCache();this.render();UI.toast('已切换减脂力度')
+    }catch(e){if(Store._pending)Store.saveCloud({});UI.toast('保存失败，请重试；原目标已保留')}finally{this.paceBusy=false}
   },
 
   // ───────── 食物库：只列常见，其余靠搜索 ─────────
@@ -223,7 +246,7 @@ const PageDiet = {
         UI.deltaRow('每日热量杠杆', (rev.action.kcalBefore >= 0 ? '+' : '') + rev.action.kcalBefore,
           (rev.action.kcalAfter >= 0 ? '+' : '') + rev.action.kcalAfter, ' kcal') +
         '<div class="muted txs">（蛋白 ' + e2.protein + 'g、脂肪 ' + e2.fat + 'g 都不动——只加碳水，不会顺手把蛋白压下去）</div>' +
-        '<button class="btn" style="margin-top:10px" onclick="PageDiet.applyMacro()">应用这次调整</button>' +
+        (e2.kcal===e.kcal?'<p class="muted txs">当前目标已到调整边界；不会继续减餐。请先复核减脂力度或自定参考目标。</p>':'<button class="btn" style="margin-top:10px" onclick="PageDiet.applyMacro()">应用这次调整</button>') +
         '</div>'
     }
 
@@ -263,6 +286,7 @@ const PageDiet = {
    */
   energyCard(e, prof, u) {
     if (!e || !e.tdee) return ''
+    const daily=ENGINE.cardio.daily(e,(Store.checkinOf(Fmt.todayStr())||{}).cardio);e=Object.assign({},e,{tdee:daily.tdee});
     const goal = (prof && prof.goal) || '塑形'
     const deficit = Math.round(e.tdee - e.kcal)          // 正=缺口（吃得比消耗少），负=盈余
     const adj = (u && u.dietState && u.dietState.kcalAdj) || 0
@@ -271,13 +295,13 @@ const PageDiet = {
     const line = (e.source==='reference'?'当前使用你保存的全天参考目标，可在饮食参考页恢复档案估算。':'当前使用档案估算目标。')+' 缺口＝每日总消耗−摄入目标；负数表示盈余。消耗是估算值，请结合实际执行和长期趋势复核。'
     return '<div class="card"><h2>消耗与缺口 <span class="mini">' + Fmt.esc(goal) + '</span></h2>' +
       '<div style="display:flex;gap:4px;margin-top:8px">' +
-        big(Fmt.num(e.tdee), '你每天总消耗') +
+        big(Fmt.num(e.tdee), '本日估算总消耗') +
         big(Fmt.num(e.kcal), '建议每天吃', 'var(--green)') +
         big((deficit > 0 ? '-' : deficit < 0 ? '+' : '±') + Math.abs(deficit), deficit > 0 ? '缺口/天' : deficit < 0 ? '盈余/天' : '持平') +
       '</div>' +
       '<div class="muted txs" style="margin-top:10px;border-top:1px dashed var(--line);padding-top:8px">' + line +
         ' 总消耗 = 基础代谢 ' + e.bmr + ' × 活动系数 ' + (e.activity ? e.activity.factor : '—') +
-        '（' + (e.activity ? Fmt.esc(e.activity.name) : '—') + '）。觉得误差大，把活动系数调准比啥都强。</div>' +
+        '（' + (e.activity ? Fmt.esc(e.activity.name) : '—') + '）+ 额外有氧 '+daily.added+' kcal。饮食目标不自动增加。</div>' +
     '</div>'
   },
 
@@ -363,6 +387,7 @@ const PageDiet = {
     }return true
   },
   goalCard(e,prof,u,opts) {
+    const daily=ENGINE.cardio.daily(e,(Store.checkinOf(Fmt.todayStr())||{}).cardio);e=Object.assign({},e,{tdee:daily.tdee});
     const compact=!!(opts&&opts.compact)
     const list=this.logOf(Fmt.todayStr()),t={k:0,p:0,c:0,f:0}
     list.forEach(x=>{t.k+=Number(x.kcal)||0;t.p+=Number(x.protein)||0;t.c+=Number(x.carbs)||0;t.f+=Number(x.fat)||0})
@@ -372,6 +397,7 @@ const PageDiet = {
       (compact?'':'<button class="diet-ref-link" onclick="Router.go(\'mealref\')"><span><b>我的饮食参考</b><small>查看与调整食材、份量</small></span><span>›</span></button>')+
       '<div class="diet-energy"><div><strong>'+Fmt.num(t.k,0)+'</strong> <span>大卡</span><p>'+(delta>0?'已超目标 '+delta:delta===0?'已达到目标':'距目标 '+(-delta))+' 大卡</p></div><div class="diet-ring '+(over?'is-over':'')+'" style="--pct:'+Math.max(0,Math.min(100,pct))+'%"><div><small>目标进度</small><b>'+pct+'%</b></div></div></div>'+
       '<div class="diet-macros">'+macro('蛋白质',t.p,e.protein,'g-pro')+macro('碳水',t.c,e.carb,'g-carb')+macro('脂肪',t.f,e.fat,'g-fat')+'</div>'+
+      (daily.cardio?'<p class="muted txs">本日有氧 '+Fmt.esc(daily.cardio.name)+' '+daily.cardio.minutes+' 分钟 · 估算净消耗约 '+(daily.cardio.kcal===null?'—':daily.cardio.kcal)+' kcal · '+(daily.added?'已计入额外消耗':'计划内活动，已含在日常估算中')+'</p>':'')+
       '<p class="diet-goal-note">'+Fmt.esc(prof.goal||'塑形')+' · 消耗 '+Math.round(e.tdee)+' · 摄入 '+Math.round(e.kcal)+' kcal · '+(gap>0?'缺口 '+gap:gap<0?'盈余 '+(-gap):'收支持平')+(e.source==='reference'?' · 自定参考目标':'')+'</p>'+
       (compact?'':'<div class="diet-meals">'+this.MEALS.map(m=>{const a=list.filter(f=>(f.meal||'s')===m.k);return '<button onclick="PageDiet.openFoodPanel(\''+m.k+'\')"><span>'+({b:'☀',l:'◷',d:'☾',s:'＋'}[m.k])+'</span><b>'+m.name+'</b><small>'+ (a.length?Math.round(a.reduce((n,f)=>n+(Number(f.kcal)||0),0))+' kcal':'去记录')+'</small></button>'}).join('')+'</div>')+'</section>'
   },
@@ -563,6 +589,8 @@ const PageDiet = {
     const u = Store.state.user
     const rev = this.review()
     if (!rev || !rev.ready || !rev.action) { UI.toast('当前没有可应用的调整'); return }
+    const next=ENGINE.macro.apply(rev,u.dietState)
+    if(ENGINE.calc.energyPlan(u.profile,ENGINE.macro.combinedAdj(next)).kcal===ENGINE.calc.energyPlan(u.profile,Store.adj()).kcal){UI.toast('当前目标已到调整边界，请先复核档位或自定目标');return}
     const before = ENGINE.macro.breakdown(u.dietState).macro.kcal
     u.dietState = ENGINE.macro.apply(rev, u.dietState)
     const after = ENGINE.macro.breakdown(u.dietState).macro.kcal

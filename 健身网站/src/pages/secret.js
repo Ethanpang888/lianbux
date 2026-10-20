@@ -250,6 +250,7 @@ const PageSecret = {
 
   /** go = true：套用完直接跳训练页跟着练（「跟着开练」按钮） */
   use(key, go) {
+    if (!Store.hasProfile() || Store.state.demo) { Router.go('onboard'); return }
     const s = ENGINE.secret.get(key)
     if (!s) return
     const u = Store.state.user

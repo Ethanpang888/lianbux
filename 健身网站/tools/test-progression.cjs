@@ -32,7 +32,7 @@ check(()=>assert.throws(()=>P.normalizeConfig({...cfg,min:12,max:8})));
 check(()=>assert.throws(()=>P.normalizeConfig({...cfg,weight:11})));
 // Real cloud mapping functions run in isolation, with no network or cloud writes.
 const api=fs.readFileSync(path.join(root,'健身小程序/cloudfunctions/webApi/index.js'),'utf8');
-const sandbox={progression:P,ROLE_OK:['辅助'],bjDateStr:()=> '2026-10-19',noteOf:()=>undefined,toWebNote:x=>x,toMpNote:x=>x};vm.createContext(sandbox);
+const sandbox={cardioLog:require(path.join(root,'健身小程序/utils/cardio.js')),progression:P,ROLE_OK:['辅助'],bjDateStr:()=> '2026-10-19',noteOf:()=>undefined,toWebNote:x=>x,toMpNote:x=>x};vm.createContext(sandbox);
 for(const [a,b] of [['function sanitizeCheckin','async function upsertCheckin'],['function mpCkToWeb','/** 网站打卡'],['function webCkToMp','async function']]){const start=api.indexOf(a),end=api.indexOf(b,start+a.length);vm.runInContext(api.slice(start,end),sandbox)}
 const raw=warm;const clean=sandbox.sanitizeCheckin(raw,'u');check(()=>assert.equal(clean.exercises[0].target.id,'a'));check(()=>assert.equal(clean.exercises[0].log[0].type,'warmup'));check(()=>assert.equal(clean.exercises[0].progressReady,true));
 check(()=>assert.equal(sandbox.mpCkToWeb(raw,'u').exercises[0].target.kind,'load'));check(()=>assert.equal(sandbox.webCkToMp(clean,'wx').exercises[0].log[0].type,'warmup'));

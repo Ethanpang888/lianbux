@@ -11,6 +11,15 @@
  * 排行榜、徽章墙、玩家身份、本周任务等 → 我的（me.js）二级页面。
  */
 const PageHome = {
+  renderGuest(section) {
+    const diet = section === 'diet'
+    document.getElementById('app').innerHTML = Router.bar(diet ? '饮食' : section === 'today' ? '训练' : '洞府', '先体验，再开始你的修行') +
+      '<section class="card"><span class="tag">免费体验</span><h2 style="margin-top:16px">先练一小步，不急着填资料。</h2><p class="muted">先看居家训练示例与完整免费功法；需要个人安排和饮食目标时，再用约1分钟建档。</p><button class="btn" onclick="Router.go(\'onboard\')">生成我的计划 · 去建档</button></section>' +
+      '<section class="card"><h2>徒手筑基诀 <span class="tag">完整免费</span></h2><p class="muted">零基础起步 → 上下肢进阶，热身、动作清单、休息与加难条件都开放。</p><button class="btn ghost" onclick="Router.go(\'secret/bodyweight-start\')">先看居家训练示例</button></section>' +
+      '<section class="card"><h2>先把基础学会</h2><p class="muted">热身、练后有氧、居家入门与日常恢复，基础功法无需建档即可阅读。</p><button class="btn ghost" onclick="Router.go(\'secret\')">浏览免费秘籍</button></section>' +
+      (diet ? '<section class="card"><h2>饮食目标，按你的资料计算</h2><p class="muted">示例训练不代表个人处方。建档后再显示你的热量、蛋白质、碳水和脂肪目标。</p></section>' : '')
+  },
+
   /* 角色形象按境界段取图：stage1..stage5，缺图自动回退 */
   get CHAR_STAGES(){return ENGINE.pageContract.CHAR_STAGES},
 
@@ -30,6 +39,7 @@ const PageHome = {
   },
 
   render() {
+    if (!Store.hasProfile()) return this.renderGuest('home')
     const u = Store.state.user, g = u.gamify || {}, P = u.player || {}
     const lv = ENGINE.gamify.levelOf(g.exp || 0)
     const realm = ENGINE.gamify.realmOf(lv.level)

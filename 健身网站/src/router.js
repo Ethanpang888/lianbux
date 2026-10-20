@@ -24,13 +24,22 @@ const Router = {
     }
     const { name, args } = this.parse()
 
-    // ── 全局守卫：已登录但还没建档 → 一律先去建档 ──
-    // 放在路由层而不是各页面里，这样连"手动改地址栏"都拦得住。
-    // 没有档案时训练计划算不出来、饮食页会读 null 崩掉，所以这是硬门槛。
-    const noGuard = ['onboard', 'login', 'recover']
-    if (typeof Store !== 'undefined' && Store.isLoggedIn && Store.isLoggedIn()
-      && !Store.hasProfile() && noGuard.indexOf(name) < 0) {
-      if (this.current !== 'onboard') { location.hash = '#/onboard'; return }
+    // 先浏览免费内容；个人训练、饮食与记录仍需要真实档案。
+    const publicPages = ['home','secret','exlib','onboard','login','recover']
+    const missingProfile = typeof Store !== 'undefined' && !Store.hasProfile()
+    const preview = missingProfile && publicPages.indexOf(name) < 0 ||
+      (Store.state.demo && ['home','today','diet'].includes(name))
+    if (preview) {
+      this.current = name
+      document.body.dataset.page = name
+      document.getElementById('tabbar').style.display = 'grid'
+      const modal = document.getElementById('modalbox'); if (modal) modal.innerHTML = ''
+      if (typeof FocusMode !== 'undefined') FocusMode.close()
+      PageHome.renderGuest(name)
+      if (typeof Tabbar !== 'undefined') Tabbar.mark(name)
+      if (typeof WorkoutTimer !== 'undefined') WorkoutTimer.mount()
+      window.scrollTo(0, 0)
+      return
     }
 
     const r = this.routes.find(x => x.path === name) || this.routes.find(x => x.path === 'home')

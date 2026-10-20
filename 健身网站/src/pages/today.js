@@ -276,7 +276,7 @@ const PageToday = {
    */
   exInfo(e) {
     if (!e) return null
-    const key = e.oid || e.name || ''
+    const key = (e.name || '')+'|'+(e.oid||'')
     if (!key) return null
     this._exlib = this._exlib || {}
     if (this._exlib[key] !== undefined) return this._exlib[key]
@@ -284,8 +284,8 @@ const PageToday = {
     // 先按 oid 试（引擎课表里存的就是它），再退回按动作名查。
     // ⚠️ 必须有名字兜底：29 条最主流的动作（卧推/划船/下拉/推举…）在动作库里 gif 是空的，
     //    于是 oid 也为空 —— 只按 oid 查的话它们永远拿不到要领。
-    let hit = null
-    if (e.oid) {
+    let hit = lib.find(x=>x.name===e.name) || null
+    if (!hit && e.oid) {
       hit = lib.find(x => {
         const u = Array.isArray(x.gif) ? x.gif[0] : (x.gif || '')
         return u && String(u).indexOf('/' + e.oid + '/') >= 0
@@ -352,12 +352,9 @@ const PageToday = {
    *  单帧/字符串 → 静态图；空 → 无图占位。 */
   framesHTML(gif) {
     const arr = Array.isArray(gif) ? gif : (gif ? [gif] : [])
-    if (!arr.length) return '<div class="ex-thumb" style="display:flex;align-items:center;justify-content:center;color:#b9bec7;font-size:11px">无图</div>'
-    if (arr.length < 2) return '<img class="ex-thumb" loading="lazy" referrerpolicy="no-referrer" src="' + Fmt.esc(arr[0]) + '" onerror="this.style.visibility=\'hidden\'">'
-    return '<div class="ex-thumb ex-frames">' +
-      '<img src="' + Fmt.esc(arr[0]) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility=\'hidden\'">' +
-      '<img class="f1" src="' + Fmt.esc(arr[1]) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility=\'hidden\'">' +
-      '</div>'
+    if (!arr.length) return '<div class="ex-thumb image-missing">暂无图示</div>'
+    return '<div class="posture-images '+(arr.length>1?'pose-animation':'')+'">'+arr.slice(0,2).map((src,i)=>'<figure><img loading="eager" referrerpolicy="no-referrer" src="'+Fmt.esc(src)+'" onload="this.parentElement.dataset.loaded=1;if(Array.from(this.parentElement.parentElement.children).every(el=>el.dataset.loaded))this.parentElement.parentElement.classList.add(\'poses-ready\')" onerror="this.parentElement.parentElement.classList.remove(\'poses-ready\');this.hidden=true;this.nextElementSibling.textContent=\'图示加载失败，请重试\'"><figcaption>姿势 '+(i+1)+'</figcaption></figure>').join('')+'</div>' 
+
   },
 
   /** 动作卡：details 折叠式 —— summary = 动作名 + 组次 + 完成进度；点开才见图 / 要领 / 组次表格。

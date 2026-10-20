@@ -278,6 +278,8 @@ const DIET = {
   fatPerKg: { 增肌: 0.7, 增肌减脂同步: 0.7, 塑形: 0.7, 减脂: 0.8 },
   // 谭成义：增肌看训练强度、不靠大盈余；减脂缺口只开 200-300；同步取更小的 200
   kcalRule: { 增肌: 130, 增肌减脂同步: -200, 减脂: -300, 塑形: 0 },
+  // 产品推演规则：用户可选强化档；非谭成义原文处方，不保证减重速度。
+  fatLossPaces: { steady: { name: '稳步减脂', kcal: 300 }, intensive: { name: '强化减脂', kcal: 500 }, maxRatio: 0.20 },
   meals: [
     { key: '早', name: '早餐', pct: 0.25, type: 'main' },
     { key: '午', name: '午餐', pct: 0.35, type: 'main' },

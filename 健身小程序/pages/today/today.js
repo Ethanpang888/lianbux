@@ -2,6 +2,7 @@ const app = getApp()
 const kb = require('../../utils/kb.js')
 const calc = require('../../utils/calc.js')
 const progression=require('../../utils/progression.js')
+const cardioLog=require('../../utils/cardio.js'),checkinsStore=require('../../utils/checkins-store.js')
 const restTimer = require('../../utils/rest-timer.js')
 const macro=require('../../utils/macro.js'),pro=require('../../utils/pro.js'),method=require('../../utils/method.js')
 
@@ -89,8 +90,8 @@ const ROLE_KEY = { 主项: 'main', 辅助: 'assist', 孤立: 'iso', 核心: 'cor
 // 把计划里某动作（oid 优先，名字/旧gif兜底）映射成带最新图/要领的展示对象
 // role/rest/rpe/pattern 由新引擎给出（主项/辅助/孤立/核心），老计划没有这些字段时给安全默认值
 function mapExercise(e, exdb, profile) {
-  let hit = null
-  if (e.oid) hit = exdb.find(x => x.gif && x.gif[0] && x.gif[0].includes('/' + e.oid + '/'))
+  let hit = exdb.find(x=>x.name===e.name) || null
+  if (!hit && e.oid) hit = exdb.find(x => x.gif && x.gif[0] && x.gif[0].includes('/' + e.oid + '/'))
   if (!hit) hit = exdb.find(x => x.name === e.name)
   if (!hit && e.gif) {
     const oid = extractOid(e.gif)
@@ -98,7 +99,7 @@ function mapExercise(e, exdb, profile) {
   }
   if (!hit) hit = fuzzyMatch(e.name, exdb)
   const out = {
-    oid: e.oid || (hit && extractOid(hit.gif)) || '',
+    oid: (hit && extractOid(hit.gif)) || e.oid || '',
     name: hit ? hit.name : e.name,
     sets: e.sets,
     gif: hit ? hit.gif : e.gif,
@@ -137,7 +138,7 @@ require('../../utils/page.js')({
     // 动作库选择弹层（与网站 openPicker 同款）
     pk: { on: false, mode: 'add', cats: [], cat: '全部', q: '', list: [], tip: '' },
     // —— 完整版训练内容 ——
-    week: 1, deload: false, srcTag: '', warmup: null, warmupOpen: true, mainNote: '', cardio: null,
+    cardioTypes:cardioLog.TYPES,cardioTypeIndex:0,cardioMinutes:'',cardioExtra:false,cardioRecord:null,cardioSaving:false,week: 1, deload: false, srcTag: '', warmup: null, warmupOpen: true, mainNote: '', cardio: null,
     // —— 饮食双模式 + 进度 ——
     dietMode: 'simple', progress: [],
     // —— 重量/次数滚轮 ——
@@ -162,7 +163,7 @@ require('../../utils/page.js')({
   updateProgress(set){const rows=(this.data.exercises||[]).flatMap(e=>e.log||[]).filter(s=>s.type!=='warmup'),done=rows.filter(s=>s.done).length;(set||this.setData.bind(this))({progressTotal:rows.length,progressDone:done,progressPct:rows.length?Math.round(done/rows.length*100):0})},
   draftKey(){const g=app.globalData;return 'lbgym_training_draft_'+g.openid+'_'+progression.scope(g.plan||{})+'_'+this.data.viewDate},
   persistDraft(){if(this._checkinReadyDate!==this.data.viewDate)return;try{wx.setStorageSync(this.draftKey(),{at:Date.now(),exercises:this.data.exercises,waterMl:this.data.waterMl,sleepHours:this.data.sleepHours,weight:this.data.weight,trained:this.data.trained})}catch(e){if(!this._draftWarn){this._draftWarn=true;wx.showToast({title:'本机草稿未保存，请保存云端打卡',icon:'none'})}}},
-  restoreDraft(saved){const d=saved;if(!d||!Array.isArray(d.exercises))return;this.setData({exercises:this.decorateProgression(d.exercises,this._progressHistory),waterMl:d.waterMl||0,sleepHours:d.sleepHours||0,weight:d.weight||'',trained:!!d.trained,draftSaved:true})},
+  restoreDraft(saved){const d=saved;if(!d||!Array.isArray(d.exercises))return;this.setData({exercises:this.decorateProgression(d.exercises.map(e=>Object.assign({},e,mapExercise(e,kb.EX,app.globalData.profile),{log:e.log,expanded:!!e.expanded,target:e.target,progressReady:e.progressReady})),this._progressHistory),waterMl:d.waterMl||0,sleepHours:d.sleepHours||0,weight:d.weight||'',trained:!!d.trained,draftSaved:true})},
   toggleAutoRest(e){const autoRest=!!e.detail.value;wx.setStorageSync('lbgym_autoRest',autoRest);this.setData({autoRest})},
   toggleFold(e){const k=e.currentTarget.dataset.k;this.setData({[k]:!this.data[k]})},
   goPro(){wx.navigateTo({url:'/subpkgs/tools/pages/pro/pro'})},
@@ -177,7 +178,7 @@ require('../../utils/page.js')({
 
   load() {
     const g = app.globalData
-    if (!g.openid) { setTimeout(() => this.load(), 300); return }
+    if (!g.openid) { this.render(); setTimeout(() => this.load(), 300); return }
     if (!g.profile) { app.loadUser().then(() => { this.render(); this.loadWeek() }).catch(() => this.render()); return }
     this.render(); this.loadWeek()
   },
@@ -353,7 +354,7 @@ require('../../utils/page.js')({
         })
         this.setData({
           journalHistory:res.data||[], exercises:this.decorateProgression(ex,this._progressHistory), dietLog: c.dietLog || [],
-          trained: !!c.trained, waterMl: c.waterMl || 0, sleepHours: c.sleepHours || 0,
+          cardioRecord:cardioLog.estimate(c.cardio),cardioCompleted:!!cardioLog.clean(c.cardio),cardioMinutes:c.cardio?String(c.cardio.minutes):'',cardioExtra:!!(c.cardio&&c.cardio.extra),cardioTypeIndex:Math.max(0,cardioLog.TYPES.findIndex(t=>t.key===(c.cardio||{}).type)),trained: !!c.trained, waterMl: c.waterMl || 0, sleepHours: c.sleepHours || 0,
           weight: c.weight ? String(c.weight) : '', note: c.note || ''
         })
         this.recalcDiet()
@@ -406,13 +407,19 @@ require('../../utils/page.js')({
   // 大倒计时 + 动作大图 + 当前组重量/次数步进 + 「完成这一组」= 打勾并进入休息倒计时
   fmOpen(e) {
     // 入口：①休息浮条「专注训练」→ 从第一个未完成组开始 ②动作要领区 → 从该动作开始
-    const fromI = e && e.currentTarget && e.currentTarget.dataset.i !== undefined
-      ? Number(e.currentTarget.dataset.i) : 0
-    const cur = this.nextSet(fromI, true)
+    const ds = e && e.currentTarget ? e.currentTarget.dataset : {}
+    const explicit = ds.name !== undefined || ds.i !== undefined
+    const fromI = ds.name !== undefined ? this.data.exercises.findIndex(x=>x.name===ds.name) : Number(ds.i)
+    const selected = explicit && this.data.exercises[fromI]
+    const timer=restTimer.current()
+    const timerName=timer&&String(timer.label||'').split(' · 第')[0]
+    const resumeI=this.data.exercises.findIndex(x=>x.name===timerName)
+    const cur = selected ? {ei:fromI,si:Math.max(0,selected.log.findIndex(s=>!s.done))} : (explicit ? null : this.nextSet(Math.max(0,resumeI),true))
     if (!cur) { wx.showToast({ title: '今天的组都完成了 ✓', icon: 'none' }); return }
     this._fmCur = cur
     this.setData(Object.assign({ fm: this.fmData(cur) }, this.fmPrefill(cur) || {}))
-    this._fmIv = setInterval(() => this.fmPaint(), 400)
+    if(this._fmIv)clearInterval(this._fmIv)
+    this._fmIv = setInterval(() => this.fmPaint(), 1000)
   },
   /** 专注模式空重量预填（双写 log：只写显示的话，完成这一组重量就丢了） */
   fmPrefill(cur) {
@@ -446,7 +453,7 @@ require('../../utils/page.js')({
     const gifArr = Array.isArray(ex.gif) ? ex.gif : (ex.gif ? [ex.gif] : [])
     return {
       on: true, ei: cur.ei, si: cur.si,
-      exName: ex.name, gif: gifArr, equipment: ex.equipment || '',
+      exName: ex.name, gif: gifArr, media:[{id:ex.name+'|'+gifArr.join('|'),frames:gifArr}], equipment: ex.equipment || '',
       points: ex.points || '',
       totalSets:ex.log.length,unit:ex.target&&ex.target.kind==='time'?'秒':'次',weightStep:ex.target?ex.target.step:2.5,hasRack:!!(ex.target&&ex.target.weights.length),
       // 空重量预填参考重量（2026-10-18 用户截图反馈同款问题：初始「自重」，±2.5 从 0 起跳太难调）
@@ -502,6 +509,15 @@ require('../../utils/page.js')({
       wx.showToast({ title: '全部完成 ✓', icon: 'none' })
     }
   },
+  fmChangeSets(e) {
+    const cur=this._fmCur;if(!cur)return
+    const ex=this.data.exercises[cur.ei];if(!ex)return
+    const log=ex.log.slice(),adding=Number(e.currentTarget.dataset.d)>0
+    if(adding){if(log.length>=12){wx.showToast({title:'最多12组',icon:'none'});return}const last=log[log.length-1]||{};log.push({weight:last.weight||'',reps:last.reps||'',done:false})}
+    else {const i=log.map(s=>!s.done).lastIndexOf(true);if(log.length<=1||i<0){wx.showToast({title:'保留至少一组，已完成组不删除',icon:'none'});return}log.splice(i,1);cur.si=Math.min(cur.si,log.length-1)}
+    this.setData({['exercises['+cur.ei+'].log']:log,['exercises['+cur.ei+'].sets']:String(ex.sets).replace(/^\d+/,String(log.length))})
+    this.setData({fm:this.fmData(cur)});this.updateProgress();this.persistDraft()
+  },
   fmClose() { this.fmStop() },
   fmStop() {
     if (this._fmIv) { clearInterval(this._fmIv); this._fmIv = null }
@@ -513,10 +529,22 @@ require('../../utils/page.js')({
   checkWarmup(e){const i=Number(e.currentTarget.dataset.i),checks=Object.assign({},this.data.warmChecks||{});checks[i]=!checks[i];this.setData({warmChecks:checks});this.saveFlow('warmup',checks)},
   flowKey(k){return 'lbgym_flow_mp_'+app.globalData.openid+'_'+this.data.viewDate+'_'+k},
   saveFlow(k,v){try{wx.setStorageSync(this.flowKey(k),v)}catch(e){wx.showToast({title:'记录保存失败，请重试',icon:'none'})}},
-  loadFlow(){this.setData({warmChecks:wx.getStorageSync(this.flowKey('warmup'))||{},cardioCompleted:!!wx.getStorageSync(this.flowKey('cardio'))})},
+  loadFlow(){this.setData({warmChecks:wx.getStorageSync(this.flowKey('warmup'))||{}})},
   startWarmup(){restTimer.start((this.data.warmup.minutes||8)*60,'热身准备','warmup');this.restoreRest()},
-  startCardio(e){restTimer.start(Number(e.currentTarget.dataset.seconds),Number(e.currentTarget.dataset.seconds)===1200?'走跑间歇':'轻松有氧','cardio',Number(e.currentTarget.dataset.seconds)===1200);this.restoreRest()},
-  completeCardio(){this.saveFlow('cardio',true);this.setData({cardioCompleted:true});wx.showToast({title:'有氧完成已存本机',icon:'none'})},
+  startCardio(e){this.setData({cardioMinutes:String(Number(e.currentTarget.dataset.seconds)/60),cardioTypeIndex:Number(e.currentTarget.dataset.seconds)===1200?3:0});restTimer.start(Number(e.currentTarget.dataset.seconds),Number(e.currentTarget.dataset.seconds)===1200?'走跑间歇':'轻松有氧','cardio',Number(e.currentTarget.dataset.seconds)===1200);this.restoreRest()},
+  cardioMinutesInput(e){this.setData({cardioMinutes:e.detail.value})},
+  cardioTypeChange(e){this.setData({cardioTypeIndex:Number(e.detail.value)})},
+  cardioExtraChange(e){this.setData({cardioExtra:!!e.detail.value})},
+  async completeCardio(){
+    if(this.data.cardioSaving)return
+    const date=this.data.viewDate,record=cardioLog.clean({type:cardioLog.TYPES[this.data.cardioTypeIndex].key,minutes:this.data.cardioMinutes,extra:this.data.cardioExtra,weight:app.globalData.profile.weight})
+    if(!record){wx.showToast({title:'请填实际有氧时长（1–240分钟）',icon:'none'});return}
+    this.setData({cardioSaving:true})
+    try{await checkinsStore.patch(app.globalData.openid,date,{cardio:record});if(this.data.viewDate===date)this.setData({cardioRecord:cardioLog.estimate(record),cardioCompleted:true});wx.showToast({title:'实际有氧已保存'})}
+    catch(e){wx.showToast({title:'有氧保存失败，请重试',icon:'none'})}finally{this.setData({cardioSaving:false})}
+  },
+  async clearCardio(){if(this.data.cardioSaving)return;const date=this.data.viewDate;this.setData({cardioSaving:true});try{await checkinsStore.patch(app.globalData.openid,date,{cardio:null});if(this.data.viewDate===date)this.setData({cardioRecord:null,cardioCompleted:false,cardioMinutes:'',cardioExtra:false})}catch(e){wx.showToast({title:'清除失败，请重试',icon:'none'})}finally{this.setData({cardioSaving:false})}},
+
   postponeTraining(){app.globalData.openSchedule=true;require('../../utils/navigation.js').go('/pages/plan/plan')},
   toggleProgression(e){const i=Number(e.currentTarget.dataset.i);this.setData({['exercises['+i+'].pgExpanded']:!this.data.exercises[i].pgExpanded})},
   noop() {},

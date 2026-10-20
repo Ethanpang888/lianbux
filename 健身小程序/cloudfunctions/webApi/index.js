@@ -9,10 +9,12 @@
 //
 // 环境变量：AUTH_SECRET（必填）、CLOUD_ENV、ALLOW_ORIGIN
 
+const crypto = require('crypto')
 const cloud = require('wx-server-sdk')
 const K = require('./lib/authkit.js')
 const gamify = require('./lib/gamify.js')
 const journal = require('./lib/journal.js')
+const cardioLog=require('./lib/cardio.js')
 const calc = require('./lib/calc.js')
 const kb = require('./lib/kb.js')
 const progression=require('./lib/progression.js')
@@ -182,6 +184,7 @@ function sanitizeCheckin(raw, uid) {
 
   return {
     date,
+    ...(Object.prototype.hasOwnProperty.call(raw,'cardio')?{cardio:cardioLog.clean(raw.cardio)}:{}),
     trained: !!raw.trained,
     exercises,
     dietLog,
@@ -201,6 +204,8 @@ async function upsertCheckin(event, uid, user) {
 
   const id = uid + '_' + ck.date
   const prev = await getOne(COL.checkins, id)
+  // Older clients do not submit cardio; their strength/meal saves must preserve it.
+  if (!Object.prototype.hasOwnProperty.call(ck,'cardio') && prev && prev.cardio) ck.cardio=cardioLog.clean(prev.cardio)
 
   const profile = user.profile || {}
   const dietState = user.dietState || {}
@@ -533,6 +538,154 @@ async function ensureCollection(name) {
 }
 
 /** 生成零售激活码：明文只在返回里出现一次，库里只存指纹 */
+
+// ───── 虚拟支付（个人主体，2026-10-20 官方文档接入）─────
+// 环境变量：VP_OFFER_ID（虚拟支付→基本配置）、VP_APP_KEY（现网AppKey）、WX_APP_SECRET（mp后台→开发设置→AppSecret）
+// 商品映射（与 MP 后台「道具管理」一一对应，价格单位=分）
+const VP_OFFER_ID = (process.env.VP_OFFER_ID || '').trim()
+const VP_APP_KEY = (process.env.VP_APP_KEY || '').trim()
+const WX_APP_SECRET = (process.env.WX_APP_SECRET || '').trim()
+const VP_PRODUCTS = {
+  pro_m: { cents: 1990, level: 'pro', days: 30, name: '完整版月卡' },
+  pro_q: { cents: 4990, level: 'pro', days: 90, name: '完整版季卡' },
+  pro_h: { cents: 8900, level: 'pro', days: 182, name: '完整版半年卡' },
+  pro_y: { cents: 16800, level: 'pro', days: 365, name: '完整版年卡' },
+  plus1: { cents: 9900, level: 'plus', days: 9999, name: '进阶包' },
+  p12: { cents: 3990, level: 'p12', days: 84, name: '十二周计划' }
+}
+function vpPaySig(uri, body) {
+  return crypto.createHmac('sha256', VP_APP_KEY).update(uri + '&' + body).digest('hex')
+}
+function vpSignature(body, sessionKey) {
+  return crypto.createHmac('sha256', sessionKey).update(body).digest('hex')
+}
+function vpXmlGet(xml, tag) {
+  const m = new RegExp('<' + tag + '>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</' + tag + '>').exec(xml || '')
+  return m ? m[1].trim() : ''
+}
+/** code2Session：code → { openid, session_key } */
+function vpCode2Session(code) {
+  const appid = process.env.WX_APPID || ''
+  const url = 'https://api.weixin.qq.com/sns/jscode2session?appid=' + appid + '&secret=' + encodeURIComponent(WX_APP_SECRET) +
+    '&js_code=' + encodeURIComponent(code) + '&grant_type=authorization_code'
+  return new Promise((resolve, reject) => {
+    require('https').get(url, r => {
+      let d = ''
+      r.on('data', c => d += c)
+      r.on('end', () => { try { resolve(JSON.parse(d)) } catch (e) { reject(e) } })
+    }).on('error', reject)
+  })
+}
+/** 发货（幂等：wx_order_id 去重）——统一走 grantMember，会员/进阶包/12周全兼容 */
+async function vpDeliver(db, openid, outTradeNo, wxOrderId, productId, qty) {
+  const prod = VP_PRODUCTS[productId]
+  if (!prod) return { ok: false, error: '未知道具 ' + productId }
+  const oCol = db.collection('vporders')
+  // 幂等：同一 wx_order_id 只发一次
+  const dup = await oCol.where({ wxOrderId: wxOrderId, shipped: true }).limit(1).get()
+  if (dup.data && dup.data.length) return { ok: true, dup: true }
+  const uid = openid
+  let user = null
+  try { user = (await db.collection(COL.users).doc(uid).get()).data } catch (e) {}
+  if (!user) return { ok: false, error: '用户不存在' }
+  await grantMember(uid, user, { level: prod.level, days: prod.days * (qty || 1) }, COL.users)
+  await oCol.doc(outTradeNo).update({ data: { status: 'shipped', wxOrderId: wxOrderId, shippedAt: Date.now() } })
+  return { ok: true }
+}
+/** 下单：{productId, code(wx.login)} → payData */
+async function vpOrder(event) {
+  if (!VP_OFFER_ID || !VP_APP_KEY) return { ok: false, error: '虚拟支付未配置（VP_OFFER_ID/VP_APP_KEY）' }
+  const prod = VP_PRODUCTS[String(event.productId || '')]
+  if (!prod) return { ok: false, error: '未知商品' }
+  if (!WX_APP_SECRET) return { ok: false, error: 'WX_APP_SECRET 未配置' }
+  const sess = await vpCode2Session(String(event.code || ''))
+  if (!sess || !sess.openid || !sess.session_key) return { ok: false, error: '登录态换取失败（code 无效或过期，重试即可）' }
+  const openid = sess.openid
+  const outTradeNo = 'T' + Date.now() + Math.floor(Math.random() * 900 + 100)
+  const signData = JSON.stringify({
+    offerId: VP_OFFER_ID,
+    buyQuantity: 1,
+    env: 0,
+    currencyType: 'CNY',
+    productId: String(event.productId),
+    goodsPrice: prod.cents,
+    outTradeNo: outTradeNo,
+    attach: openid
+  })
+  const paySig = vpPaySig('requestVirtualPayment', signData)
+  const signature = vpSignature(signData, sess.session_key)
+  try {
+    await db.collection('vporders').doc(outTradeNo).set({
+      data: { openid, productId: event.productId, cents: prod.cents, status: 'pending', createdAt: Date.now() }
+    })
+  } catch (e) { return { ok: false, error: '订单写入失败：' + e.message } }
+  return ok({
+    payData: {
+      signData: signData,
+      paySig: paySig,
+      signature: signature,
+      mode: 'short_series_goods'
+    },
+    outTradeNo: outTradeNo
+  })
+}
+/** 发货推送接收（兼容 HTTP XML / 云函数消息两种形态）+ GET 验证（echostr） */
+async function vpNotify(event) {
+  // GET 验证（mp 后台配置 URL 时的服务器校验）：需环境变量 VP_TOKEN 与后台一致
+  const q = event.queryStringParameters || event.query || {}
+  const echostr = event.echostr || q.echostr
+  if (event.httpMethod === 'GET' || (echostr && !event.body)) {
+    const sig = event.signature || q.signature, ts = event.timestamp || q.timestamp, nonce = event.nonce || q.nonce
+    const token = (process.env.VP_TOKEN || '').trim()
+    const want = crypto.createHash('sha1').update([token, ts, nonce].sort().join('')).digest('hex')
+    if (!token || want !== sig) return { statusCode: 403, body: 'fail' }
+    return { statusCode: 200, body: String(echostr || '') }
+  }
+  const raw = event.body || event.xml || ''
+  const outTradeNo = vpXmlGet(raw, 'OutTradeNo')
+  const wxOrderId = vpXmlGet(raw, 'MchOrderNo')
+  const openid = vpXmlGet(raw, 'OpenId')
+  const productId = vpXmlGet(raw, 'ProductId')
+  const qty = Number(vpXmlGet(raw, 'Quantity')) || 1
+  const evt = vpXmlGet(raw, 'Event')
+  if (evt !== 'xpay_goods_deliver_notify' || !outTradeNo) return { statusCode: 200, body: '<xml><ErrCode>0</ErrCode></xml>' }
+  try {
+    const r = await vpDeliver(db, openid, outTradeNo, wxOrderId, productId, qty)
+    if (!r.ok) return { statusCode: 200, body: '<xml><ErrCode>1</ErrCode><ErrMsg><![CDATA[' + (r.error || 'fail') + ']]></ErrMsg></xml>' }
+  } catch (e) {
+    return { statusCode: 200, body: '<xml><ErrCode>1</ErrCode><ErrMsg><![CDATA[' + e.message + ']]></ErrMsg></xml>' }
+  }
+  return { statusCode: 200, body: '<xml><ErrCode>0</ErrCode><ErrMsg><![CDATA[success]]></ErrMsg></xml>' }
+}
+/** 兜底查单：前端 success 后调用 —— 对本人 pending 订单逐单调 query_order，已支付即发货 */
+async function vpCheck(event) {
+  if (!VP_OFFER_ID || !VP_APP_KEY) return { ok: false, error: '虚拟支付未配置' }
+  const openid = (cloud.getWXContext() || {}).OPENID
+  if (!openid) return { ok: false, error: 'NO_USER' }
+  const pend = await db.collection('vporders').where({ openid: openid, status: 'pending' }).orderBy('createdAt', 'desc').limit(5).get()
+  let done = 0
+  for (const o of (pend.data || [])) {
+    const body = JSON.stringify({ openid: openid, env: 0, order_id: o._id })
+    const paySig = vpPaySig('/xpay/query_order', body)
+    const r = await new Promise((resolve, reject) => {
+      const req = require('https').request({
+        hostname: 'api.weixin.qq.com', path: '/xpay/query_order',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'pay_sig': paySig }
+      }, res => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(d)) })
+      req.on('error', reject); req.write(body); req.end()
+    })
+    try {
+      const j = JSON.parse(r)
+      if (j && j.order && (j.order.status === 'PAYED' || j.order.pay_status === 'PAYED' || j.order.status === 'SUCCESS')) {
+        await vpDeliver(db, openid, o._id, j.order.wx_order_id || ('Q' + o._id), o.productId, 1)
+        done++
+      }
+    } catch (e) {}
+  }
+  return ok({ done: done })
+}
+
 async function issueCode(event) {
   const level = ['pro', 'coach', 'plus', 'p12'].indexOf(event.level) >= 0 ? event.level : 'pro'
   const days = Math.max(1, Math.min(3650, Number(event.days) || 30))
@@ -806,7 +959,7 @@ async function getLinkByMp(openid) {
 /** 小程序打卡 doc → 网站 shape（note 字符串→对象；不带 _openid） */
 function mpCkToWeb(c, webUid) {
   return {
-    uid: webUid, date: c.date,
+    uid: webUid, date: c.date,cardio:cardioLog.clean(c.cardio),
     trained: !!c.trained,
     exercises: (c.exercises || []).map(e => ({
       oid:String(e.oid||'').slice(0,100),target:progression.cleanTarget(e.target),progressReady:!!e.progressReady,
@@ -827,7 +980,7 @@ function mpCkToWeb(c, webUid) {
 /** 网站打卡 doc → 小程序 shape（note 对象→字符串；带 _openid 让客户端能查到） */
 function webCkToMp(c, openid) {
   return {
-    _openid: openid, date: c.date,
+    _openid: openid, date: c.date,cardio:cardioLog.clean(c.cardio),
     trained: !!c.trained,
     exercises: (c.exercises || []).map(e => ({
       oid:String(e.oid||'').slice(0,100),target:progression.cleanTarget(e.target),progressReady:!!e.progressReady,
@@ -993,6 +1146,10 @@ async function myInvitesDo(uid) {
 async function handle(event) {
   const action = String((event && event.action) || '').trim()
   if (action === 'ping') return ok({ pong: true, svc: 'webApi' })
+  // 虚拟支付：下单/查单走 SDK 或 HTTP；发货推送/URL 验证走 HTTP 网关（POST XML / GET echostr）
+  if (action === 'vp_order') return vpOrder(event)
+  if (action === 'vp_check') return vpCheck(event)
+  if (action === 'vp_verify' || action === 'vp_notify') return vpNotify(event)
   // 小程序 AI 通道：callFunction 自带 openid（无法伪造），不走网站 token、用小程序自己的集合。
   // HTTP 网关调用时 getWXContext 无 OPENID → 直接 NO_USER，不用担心被公网伪造。
   if (action === 'mpAiChat') {    const wxCtx = cloud.getWXContext()

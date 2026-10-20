@@ -18,10 +18,21 @@ const TrainingFlow = {
     const recommended=/减脂/.test(goal)
     return '<section class="flow-card cardio-card"><div class="flow-heading"><span class="step-number">03</span><div><h2>练后有氧 <span class="tag">按需选做</span></h2><p>'+(recommended?'配合减脂目标，先看今天的恢复情况':'想练心肺可以加，疲劳时跳过也可以')+'</p></div></div>'+ 
       '<div class="cardio-options"><button class="cardio-option" onclick="TrainingFlow.timer(900,\'轻松有氧\')"><b>轻松活动</b><span>快走 / 单车 · 10–15 分钟</span><small>入门或腿日后优先；能说完整句子</small><em>开始 15 分钟计时 ↗</em></button><button class="cardio-option" onclick="TrainingFlow.timer(1200,\'走跑间歇\',true)"><b>走跑间歇</b><span>4 轮 ×（走 3 分＋跑 2 分）</span><small>已有跑步基础、今天恢复良好时选择</small><em>开始 20 分钟分段计时 ↗</em></button></div>'+ 
-      '<div class="flow-actions"><button class="chip" id="cardioDone" onclick="TrainingFlow.cardioDone()">'+(this.load('cardio',false)?'已记录有氧 ✓':'记录本次有氧完成')+'</button><button class="text-link" onclick="Router.go(\'secret/cardio\')">怎样安排有氧 ›</button></div><p class="muted txs">间歇结构来自谭成义的有氧笔记。配速按个人能力选择；有氧不必每次做，不代替力量打卡。结束时放慢速度，不适立即停止。</p></section>'
+      this.cardioForm()+'<div class="flow-actions"><button class="chip" id="cardioDone" onclick="TrainingFlow.cardioDone()">'+(ENGINE.cardio.clean((Store.checkinOf(PageToday.date)||{}).cardio)?'更新本日有氧记录':'保存实际有氧')+'</button><button class="text-link" onclick="Router.go(\'secret/cardio\')">怎样安排有氧 ›</button></div><p class="muted txs">间歇结构来自谭成义的有氧笔记。配速按个人能力选择；有氧不必每次做，不代替力量打卡。结束时放慢速度，不适立即停止。</p></section>'
   },
-  timer(seconds,label,interval) {WorkoutTimer.start(seconds,label,!!interval)},
-  cardioDone(){this.save('cardio',true);document.getElementById('cardioDone').textContent='已记录有氧 ✓';UI.toast('有氧完成已存本机')},
+  cardioForm(){
+    const c=ENGINE.cardio.estimate((Store.checkinOf(PageToday.date)||{}).cardio)
+    return '<div class="cardio-log"><label>实际类型 <select id="cardioType">'+ENGINE.cardio.TYPES.map(t=>'<option value="'+t.key+'" '+(c&&c.type===t.key?'selected':'')+'>'+t.name+'</option>').join('')+'</select></label><label>实际分钟数 <input id="cardioMinutes" type="number" min="1" max="240" step="0.1" value="'+(c?c.minutes:'')+'" placeholder="如 35，可超过推荐时长"></label><label><input id="cardioExtra" type="checkbox" '+(c&&c.extra?'checked':'')+'>这是平常安排以外的额外加练</label><p class="muted txs">日常消耗已包含平常训练；额外加练才叠加估算消耗，避免重复计算。饮食目标不自动增加。填写本日累计时长，重复保存会更新记录。</p>'+(c?'<p>已记录 '+Fmt.esc(c.name)+' '+c.minutes+' 分钟 · 估算净消耗约 '+(c.kcal===null?'—':c.kcal)+' kcal · '+(c.extra?'额外加练':'计划内活动')+'</p><button class="chip" onclick="TrainingFlow.clearCardio()">清除本日有氧记录</button>':'')+'</div>'
+  },
+  timer(seconds,label,interval) {const m=document.getElementById('cardioMinutes'),t=document.getElementById('cardioType');if(m)m.value=seconds/60;if(t)t.value=interval?'interval':'walk';WorkoutTimer.start(seconds,label,!!interval)},
+  async cardioDone(){
+    if(this.cardioBusy)return
+    const date=PageToday.date,record=ENGINE.cardio.clean({type:document.getElementById('cardioType').value,minutes:document.getElementById('cardioMinutes').value,extra:document.getElementById('cardioExtra').checked,weight:Store.state.user.profile.weight})
+    if(!record){UI.toast('请填实际有氧时长（1–240分钟）');return}
+    this.cardioBusy=true
+    try{const ck=Object.assign({date,exercises:[]},Store.checkinOf(date)||{},{cardio:record}),r=await Store.pushCheckin(ck);Store.saveCache();UI.toast(r.offline?'已暂存本机，云端保存失败，请重试':r.local?'实际有氧已存本机':'实际有氧已保存');if(Router.current==='today'&&PageToday.date===date)PageToday.render([date])}catch(e){UI.toast('有氧保存失败，请重试')}finally{this.cardioBusy=false}
+  },
+  async clearCardio(){if(this.cardioBusy)return;this.cardioBusy=true;const date=PageToday.date;try{const r=await Store.pushCheckin(Object.assign({date,exercises:[]},Store.checkinOf(date)||{},{cardio:null}));Store.saveCache();UI.toast(r.offline?'本机已清除，云端未同步，请重试':'本日有氧已清除');if(Router.current==='today'&&PageToday.date===date)PageToday.render([date])}finally{this.cardioBusy=false}},
   continueStrength(){document.getElementById('warmupSteps').open=false;this.save('warmupClosed',true);document.getElementById('strengthSection').scrollIntoView({behavior:'smooth',block:'start'})},
   mount(){const details=document.getElementById('warmupSteps');details.ontoggle=()=>this.save('warmupClosed',!details.open);document.querySelectorAll('[data-warmup]').forEach(cb=>cb.onchange=()=>{const ids=Array.from(document.querySelectorAll('[data-warmup]:checked')).map(x=>Number(x.dataset.warmup));this.save('warmup',ids);document.getElementById('warmupCount').textContent=ids.length+'/'+this.warmup(this.day).length})}
 }
@@ -95,7 +106,9 @@ const FocusMode = {
   open() { this.openAt(null) },
   openAt(ei) {
     if (!PageToday._exs || !PageToday._exs.length) return
-    const cur = this.nextSet(ei === null || ei === undefined ? 0 : ei, true)
+    PageToday.syncFromDOM()
+    const explicit=ei!==null&&ei!==undefined, ex=explicit&&PageToday._exs[ei]
+    const cur = explicit ? (ex?{ei:Number(ei),si:Math.max(0,(ex.log||[]).findIndex(s=>!s.done))}:null) : this.nextSet(Math.max(0,PageToday._exs.findIndex(x=>x.name===String((WorkoutTimer.state||{}).context||'').split(' · 第')[0])),true)
     if (!cur) { UI.toast('今天的组都完成了 ✓'); return }
     this.cur = cur
     this.mount()
@@ -117,6 +130,7 @@ const FocusMode = {
     el.innerHTML = '<div class="fm-top"><b>' + Fmt.esc(e.name) + '</b><button class="chip" onclick="FocusMode.close()">收起 ✕</button></div>' +
       '<div class="fm-img">' + PageToday.framesHTML(gif) + '</div>' +
       '<div class="fm-set">第 ' + (cur.si + 1) + ' / ' + e.log.length + ' 组</div>' +
+      '<div class="fm-fill"><button class="chip" onclick="FocusMode.changeSets(-1)">− 减一组</button><button class="chip" onclick="FocusMode.changeSets(1)">＋ 加一组</button></div>' +
       '<div class="fm-timer" id="fmTime">—</div><div class="fm-sub" id="fmSub"></div>' +
       '<div class="fm-fill"><button class="chip" onclick="FocusMode.adj(-1,\'w\')">' + (e.target&&e.target.weights.length?'上一档':'−'+(e.target?e.target.step:2.5)) + '</button><b id="fmW" class="fm-val" title="点我滑条选重量" onclick="FocusMode.pickW()"></b><button class="chip" onclick="FocusMode.adj(1,\'w\')">' + (e.target&&e.target.weights.length?'下一档':'+'+(e.target?e.target.step:2.5)) + '</button></div>' +
       '<div class="fm-fill"><button class="chip" onclick="FocusMode.adj(-1,\'r\')">−1</button><b id="fmR" class="fm-val" title="点我滑条选次数" onclick="FocusMode.pickR()"></b><button class="chip" onclick="FocusMode.adj(1,\'r\')">+1</button></div>' +
@@ -233,6 +247,12 @@ const FocusMode = {
       timeEl.textContent = '—'
       subEl.textContent = '做这一组 —— 重量次数先调好，练完点大按钮'
     }
+  },
+  changeSets(d){
+    const cur=this.cur;if(!cur)return;const ex=PageToday._exs[cur.ei];if(!ex)return
+    if(d>0){if(ex.log.length>=12){UI.toast('最多12组');return}const last=ex.log[ex.log.length-1]||{};ex.log.push({weight:last.weight||'',reps:last.reps||'',done:false})}
+    else {const i=ex.log.map(s=>!s.done).lastIndexOf(true);if(ex.log.length<=1||i<0){UI.toast('保留至少一组，已完成组不删除');return}ex.log.splice(i,1);cur.si=Math.min(cur.si,ex.log.length-1)}
+    ex.sets=String(ex.sets).replace(/^\d+/,String(ex.log.length));PageToday.redrawEx();this.mount()
   },
   done() {
     const cur = this.cur; if (!cur) return

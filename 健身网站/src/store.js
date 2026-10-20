@@ -144,23 +144,26 @@ const Store = {
    * 计划必须跟着档案一起生成：两者分开存会出现"有档案没计划"的半残状态。
    * @returns {{ok?:boolean, error?:string}}
    */
-  saveProfile(profile, opts) {
+  saveProfile(profile, opts, extra) {
     const u = this.state.user
     if (!u) return { error: '请先登录' }
     const p = Object.assign({}, profile)
-    u.profile = p
     // opts 里可以带 split / freq（分化方式、循环方式）；给空值时引擎会按经验与天数自动推
     const o = Object.assign({ home: !!p.home, dietMode: p.dietMode }, opts || {})
     if (!o.split) delete o.split
     if (!o.freq) delete o.freq
     try {
-      u.plan = ENGINE.kb.generatePlan(p, o)
+      const nextPlan = o.program ? ENGINE.kb.enrollProgram(o.program,p,o.home) : ENGINE.kb.generatePlan(p, o)
+      if(o.preserveCycle && u.plan && u.plan.cycleStart) nextPlan.cycleStart=u.plan.cycleStart
+      u.plan = nextPlan
     } catch (e) {
       return { error: '计划生成失败：' + ((e && e.message) || e) }
     }
+    u.profile = p
+    if(extra && extra.dietState) u.dietState=extra.dietState
     if (p.nick) u.nick = p.nick
     this.saveCache()
-    this.saveCloud({ profile: u.profile, plan: u.plan, nick: u.nick || '' })
+    this.saveCloud(Object.assign({ profile: u.profile, plan: u.plan, nick: u.nick || '' },extra&&extra.dietState?{dietState:extra.dietState}:{}))
     return { ok: true }
   },
 

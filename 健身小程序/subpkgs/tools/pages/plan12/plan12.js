@@ -13,5 +13,23 @@ require('../../../../utils/page.js')({
  cancel(){wx.showModal({title:'取消会员权益？',content:'取消后立即失效，训练记录保留。这不是关闭自动续费；当前没有自动扣费。',success:async r=>{if(!r.confirm)return;try{await ent.cancel();this.paint()}catch(e){wx.showToast({title:e.message,icon:'none'})}}})},
  go(e){require('../../../../utils/navigation.js').go(e.currentTarget.dataset.url)},
  async exportDoc(){if(!this.data.owned)return;const path=wx.env.USER_DATA_PATH+'/练不虚十二周计划.html',html='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>十二周训练与饮食计划</title>'+ctx.html(this._raw);try{await new Promise((resolve,reject)=>wx.getFileSystemManager().writeFile({filePath:path,data:html,encoding:'utf8',success:resolve,fail:reject}));wx.shareFileMessage({filePath:path,fileName:'练不虚十二周计划.html'})}catch(e){wx.showToast({title:'导出失败，请重试',icon:'none'})}},
- previewQr(){wx.previewImage({urls:['https://c289b837374c4dfc8f14d386d2e36a02.app.workbuddy.host/assets/pay-qr.png']})}
+  async vpBuy(e) {
+    const tierMap = { m1: 'pro_m', m3: 'pro_q', m6: 'pro_h', y1: 'pro_y', plus: 'plus1' }
+    const pid = (e && e.currentTarget && e.currentTarget.dataset.p) || tierMap[this.data.payTier] || 'pro_y'
+    if (this._vpBusy) return
+    this._vpBusy = true
+    try {
+      const code = await new Promise((res, rej) => wx.login({ success: r => res(r.code), fail: rej }))
+      const r = await wx.cloud.callFunction({ name: 'webApi', data: { action: 'vp_order', productId: pid, code } })
+      const out = (r && r.result) || {}
+      if (!out.ok) throw new Error(out.error || '下单失败')
+      await new Promise((res, rej) => wx.requestVirtualPayment(Object.assign({}, out.payData, { success: res, fail: rej })))
+      try { await wx.cloud.callFunction({ name: 'webApi', data: { action: 'vp_check' } }) } catch (err) {}
+      wx.showToast({ title: '已开通', icon: 'success' })
+      if (this.load) this.load()
+    } catch (err) {
+      const msg = (err && (err.errMsg || err.message)) || '支付未完成'
+      if (!/cancel|取消/.test(msg)) wx.showToast({ title: msg, icon: 'none' })
+    } finally { this._vpBusy = false }
+  }
 })

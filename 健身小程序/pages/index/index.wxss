@@ -120,3 +120,23 @@
 .compact-diet .diet-macros{margin:20rpx 0}
 
 .homebar{margin:8rpx 40rpx 44rpx}.homebar-h1{font-size:48rpx}.hero{margin:0 40rpx 36rpx}.hero-in{padding:40rpx 40rpx 0;gap:28rpx}.hero-av{width:200rpx}.hero-slogan{font-size:21rpx;color:var(--green-dark);margin-top:16rpx}.duo-row{margin:0 40rpx 28rpx}.duo{padding:36rpx}.poster-links{margin:0 40rpx 20rpx}.poster-links .chip{display:block;text-align:center;margin-bottom:16rpx;padding:24rpx}.record-link{margin:0 40rpx 28rpx}.conditioning .title{margin-bottom:8rpx}.compact-diet .title{font-size:36rpx}.focus-title{font-size:36rpx}.hero-who .strong{font-size:46rpx}.daily-card .row .chip{border:0;padding:8rpx 0}
+
+/* 两张摘要卡始终并排；完整信息在训练、饮食页查看。 */
+.home-daily{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16rpx;margin:0 24rpx 28rpx;align-items:stretch}
+.home-daily>.card{margin:0;padding:24rpx 20rpx;min-width:0;border-radius:28rpx;box-sizing:border-box;display:flex;flex-direction:column}
+.home-daily .section-label,.home-daily .title{font-size:28rpx;letter-spacing:0;margin-bottom:12rpx}
+.home-daily .focus-title{font-size:30rpx;line-height:1.4;margin-bottom:12rpx}
+.home-daily .today-stats{flex-wrap:wrap;gap:8rpx 16rpx;margin:4rpx 0 16rpx}
+.home-daily .today-stats .strong{font-size:28rpx}.home-daily .today-stats text{font-size:20rpx}
+.home-daily .btn{padding:20rpx 8rpx;font-size:26rpx;text-align:center;margin-top:auto}
+.home-daily .daily-card>.row{flex-direction:column;align-items:flex-start;gap:6rpx}
+.home-daily .chip{font-size:20rpx;white-space:normal}
+.home-daily .compact-diet>.row{flex-direction:column;align-items:flex-start;gap:2rpx}
+.home-daily .compact-diet>.row>.muted{font-size:20rpx}
+.home-daily .diet-energy{margin-top:12rpx}.home-daily .diet-number{font-size:48rpx}
+.home-daily .diet-energy .muted{font-size:20rpx}.home-daily .diet-ring{display:none}
+.home-daily .diet-macros{display:flex;flex-direction:column;gap:10rpx;margin:16rpx 0 0}
+.home-daily .diet-macro{display:grid;grid-template-columns:auto 1fr;gap:2rpx 8rpx;font-size:20rpx}
+.home-daily .diet-macro>view:nth-child(2){text-align:right}.home-daily .diet-macro>view:nth-child(3){display:none}
+.home-daily .diet-macro .pb-bar{grid-column:1 / -1;margin-top:2rpx}
+.home-daily .diet-note,.home-daily .compact-diet>.muted{display:none}
