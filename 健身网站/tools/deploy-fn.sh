@@ -35,6 +35,9 @@ fi
 read_line() { [ -n "$2" ] && echo "$2" || { [ -f "$ROOT/$1" ] && head -1 "$ROOT/$1" | tr -d '\n' || echo ''; } }
 WAPI_AUTH_SECRET=$(read_line .auth-secret "$WAPI_AUTH_SECRET")
 WAPI_AI_KEY=$(read_line .ai-key "$WAPI_AI_KEY")
+VP_OFFER_ID=$(sed -n 1p "$ROOT/.vp-key" 2>/dev/null | tr -d \n)
+VP_APP_KEY=$(sed -n 2p "$ROOT/.vp-key" 2>/dev/null | tr -d \n)
+WX_APP_SECRET=$(sed -n 3p "$ROOT/.vp-key" 2>/dev/null | tr -d \n)
 if [ "$#" -gt 0 ] && printf '%s\n' "$@" | grep -qx webApi; then
   [ -n "$WAPI_AUTH_SECRET" ] || { echo "⛔ 拿不到 AUTH_SECRET（env 或 .auth-secret），拒绝部署 webApi——envVariables 会整体替换"; exit 1; }
   [ -n "$WAPI_AI_KEY" ] || { echo "⛔ 拿不到 AI_API_KEY（env 或 .ai-key），拒绝部署 webApi"; exit 1; }
@@ -61,8 +64,8 @@ ln -sfn "$CF" "$WORK/cloudfunctions"
     [ "$fn" = "webApi" ] && timeout=90
     printf '    { "name": "%s", "timeout": %s, "runtime": "Nodejs16.13", "handler": "index.main", "installDependency": true, "memorySize": 256' "$fn" "$timeout"
     if [ "$fn" = "webApi" ]; then
-      printf ', "envVariables": { "AUTH_SECRET": "%s", "AI_API_KEY": "%s", "AI_MODELS": "%s" }' \
-        "$WAPI_AUTH_SECRET" "$WAPI_AI_KEY" "${WAPI_AI_MODELS:-glm-4.7-flash,glm-4.5-flash,glm-4-flash-250414}"
+      printf ', "envVariables": { "AUTH_SECRET": "%s", "AI_API_KEY": "%s", "AI_MODELS": "%s", "VP_OFFER_ID": "%s", "VP_APP_KEY": "%s", "WX_APP_SECRET": "%s" }' \
+        "$WAPI_AUTH_SECRET" "$WAPI_AI_KEY" "${WAPI_AI_MODELS:-glm-4.7-flash,glm-4.5-flash,glm-4-flash-250414}" "$VP_OFFER_ID" "$VP_APP_KEY" "$WX_APP_SECRET"
     fi
     printf ' }'
     echo ''

@@ -565,7 +565,8 @@ function vpXmlGet(xml, tag) {
 }
 /** code2Session：code → { openid, session_key } */
 function vpCode2Session(code) {
-  const appid = process.env.WX_APPID || ''
+  const wxCtx = cloud.getWXContext() || {}
+  const appid = process.env.WX_APPID || (wxCtx.APPID || '')
   const url = 'https://api.weixin.qq.com/sns/jscode2session?appid=' + appid + '&secret=' + encodeURIComponent(WX_APP_SECRET) +
     '&js_code=' + encodeURIComponent(code) + '&grant_type=authorization_code'
   return new Promise((resolve, reject) => {

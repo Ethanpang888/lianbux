@@ -8,6 +8,7 @@
 
 # ── 密钥与私密（绝不能上）──
 健身网站/.ai-key
+健身网站/.vp-key
 健身小程序/project.private.config.json
 *.pem
 *.env
