@@ -8,7 +8,6 @@ const SECTIONS={
 const TOOLS=[
  {key:'plan',name:'我的完整计划',note:'查看周期与调整安排',url:'/pages/plan/plan'},
  {key:'exlib',name:'动作图鉴',note:'查动作与训练要领',url:'/subpkgs/exlib/pages/exlib/exlib'},
- {key:'ai',name:'随身导师',note:'训练与饮食答疑',url:'/pages/ai/ai'},
  {key:'secret',name:'藏经阁',note:'目标秘籍与训练方法',url:'/pages/secret/secret'},
  {key:'plus',name:'进阶工具包',note:'查看已有工具与权益',url:'/subpkgs/tools/pages/plus/plus'},
  {key:'plan12',name:'12 周定制方案',note:'查看方案与交付说明',url:'/subpkgs/tools/pages/plan12/plan12'}

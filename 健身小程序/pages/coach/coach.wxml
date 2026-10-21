@@ -49,6 +49,6 @@
   </view>
 
   <view class="card">
-    <view class="muted" style="line-height:1.7">🧭 调整顾问按规则引擎算（不猜、不编）。算完点「应用」会直接改你的计划/饮食参数；更细的问题（比如「卧推肩膀不舒服怎么办」）去首页找<text class="strong" style="color:var(--green-dark)">随身导师</text>。</view>
+    <view class="muted" style="line-height:1.7">🧭 调整顾问按规则引擎算（不猜、不编）。算完点「应用」会直接改你的计划/饮食参数；动作选择拿不准，去「藏经阁」看对应秘籍里的要领与替代动作。</view>
   </view>
 </block>

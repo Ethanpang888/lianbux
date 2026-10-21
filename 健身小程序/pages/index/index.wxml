@@ -103,10 +103,10 @@
 
   <!-- 双入口（网站 duo-row 同款） -->
   <view class="duo-row">
-    <view class="duo" bindtap="go" data-url="/pages/ai/ai">
-      <text class="duo-symbol">🧙</text>
-      <text class="strong">随身导师</text>
-      <text class="muted txs">遇到问题，随时问</text>
+    <view class="duo" bindtap="go" data-url="/pages/records/records">
+      <text class="duo-symbol">📈</text>
+      <text class="strong">修炼记录</text>
+      <text class="muted txs">体重趋势 · 打卡历史</text>
       <text class="duo-arrow">↗</text>
     </view>
     <view class="duo" bindtap="go" data-url="/pages/secret/secret">
